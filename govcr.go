@@ -20,8 +20,8 @@ type response struct {
 	Body      string
 }
 
-func GetVCR(scenarioName string) *http.Client {
-	scenario, err := loadScenarioRecordings(scenarioName)
+func GetVCR(cassetteName string) *http.Client {
+	cassette, err := loadCassetteTracks(cassetteName)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -30,19 +30,19 @@ func GetVCR(scenarioName string) *http.Client {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		responseMatched := false
 
-		for _, step := range scenario.Steps {
-			log.Printf("DEBUG - step.request.method=%s\n", step.Request.Method)
+		for _, track := range cassette.Tracks {
+			log.Printf("DEBUG - track.request.method=%s\n", track.Request.Method)
 			log.Printf("DEBUG - r.Method=%s\n", r.Method)
-			log.Printf("DEBUG - step.request.url.String()=%s\n", step.Request.URL.String())
+			log.Printf("DEBUG - track.request.url.String()=%s\n", track.Request.URL.String())
 			log.Printf("DEBUG - r.URL.Path=%s\n", r.URL.Path)
 
-			if step.Request.Method == r.Method &&
-				step.Request.URL.String() == r.URL.String() {
+			if track.Request.Method == r.Method &&
+				track.Request.URL.String() == r.URL.String() {
 				// TODO: implement status code and headers
-				fmt.Fprintln(w, step.Response.Body)
+				fmt.Fprintln(w, track.Response.Body)
 
-				// mark the step as replayed so it doesn't get re-used
-				step.replayed = true
+				// mark the track as replayed so it doesn't get re-used
+				track.replayed = true
 				// mark the response for the request as found
 				responseMatched = true
 
@@ -52,14 +52,14 @@ func GetVCR(scenarioName string) *http.Client {
 
 		if !responseMatched {
 			// TODO: here would be a good place to make the real HTTP call to RTI and record the response
-			log.Printf("INFO - Scenario '%s' - No step found for '%s' '%s' in the steps that remain at this stage (%#v)", scenarioName, r.Method, r.URL.String(), scenario.Steps)
+			log.Printf("INFO - Cassette '%s' - No track found for '%s' '%s' in the tracks that remain at this stage (%#v)", cassetteName, r.Method, r.URL.String(), cassette.Tracks)
 
 			req, err := http.NewRequest("GET", "http://example.com/foo", nil)
 			if err != nil {
 				log.Fatal(err)
 			}
 
-			resp, err := Record(req, scenarioName)
+			resp, err := Record(req, cassetteName)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -129,9 +129,9 @@ func Replay(req *http.Request, filename string) (*httptest.ResponseRecorder, err
 	return w, nil
 }
 
-// readScenarioFromFile reads the scenario file, if present.
-func readScenarioFromFile(scenarioName string) (*scenario, error) {
-	filename := scenarioName + ".rec"
+// readCassetteFromFile reads the cassette file, if present.
+func readCassetteTracksFromFile(cassetteName string) (*cassette, error) {
+	filename := "/tmp/govcr/fixtures/" + cassetteName + ".rec"
 
 	// check file existence
 	_, err := os.Stat(filename)
@@ -148,13 +148,13 @@ func readScenarioFromFile(scenarioName string) (*scenario, error) {
 	}
 
 	// unmarshal
-	scenario := &scenario{}
-	if err := json.Unmarshal(data, scenario); err != nil {
+	cassette := &cassette{}
+	if err := json.Unmarshal(data, cassette); err != nil {
 		log.Println(err)
 		return nil, err
 	}
 
-	return scenario, nil
+	return cassette, nil
 }
 
 // handler executes the request and saves the data
@@ -185,8 +185,9 @@ func handler(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-// persist writes a scenario step to file.
+// persist writes a cassette track to file.
 func persist(req *http.Request, w *httptest.ResponseRecorder, filename string) error {
+	// build request object
 	reqBody := ioutil.NopCloser(req.Body)
 	reqBodyData, err := ioutil.ReadAll(reqBody)
 	if err != nil {
@@ -201,6 +202,7 @@ func persist(req *http.Request, w *httptest.ResponseRecorder, filename string) e
 		Body:      string(reqBodyData),
 	}
 
+	// build response object
 	respBody := ioutil.NopCloser(w.Body)
 	respBodyData, err := ioutil.ReadAll(respBody)
 	if err != nil {
@@ -213,17 +215,20 @@ func persist(req *http.Request, w *httptest.ResponseRecorder, filename string) e
 		Body:      string(respBodyData),
 	}
 
-	step := step{
+	// build track object
+	track := track{
 		Request:  request,
 		Response: response,
 	}
 
-	data, err := json.MarshalIndent(step, "", "  ")
+	// marshal
+	data, err := json.MarshalIndent(track, "", "  ")
 	if err != nil {
 		log.Println(err)
 		return err
 	}
 
+	// append to cassette file
 	path := filepath.Dir(filename)
 	if err := os.MkdirAll(path, 0750); err != nil {
 		log.Println(err)
@@ -246,23 +251,23 @@ type request struct {
 	Body      string
 }
 
-// step is a step (HTTP request + response) in a scenario.
-type step struct {
+// track is a recording (HTTP request + response) in a cassette.
+type track struct {
 	Request  request
 	Response response
 
-	// replayed indicates whether the step has already been processed in the scenario playback.
+	// replayed indicates whether the track has already been processed in the cassette playback.
 	replayed bool
 }
 
-// scenario is a set of steps.
-type scenario struct {
-	Name  string
-	Steps []step
+// cassette contains a set of tracks.
+type cassette struct {
+	Name   string
+	Tracks []track
 }
 
-func loadScenarioRecordings(scenarioName string) (*scenario, error) {
-	s, err := readScenarioFromFile(scenarioName)
+func loadCassetteTracks(cassetteName string) (*cassette, error) {
+	s, err := readCassetteTracksFromFile(cassetteName)
 	if err != nil {
 		log.Println(err)
 		return nil, err
@@ -271,14 +276,14 @@ func loadScenarioRecordings(scenarioName string) (*scenario, error) {
 	return s, nil
 }
 
-// ErrUnknownScenario is an error that occurs when the scenario could not be read from file.
-type ErrUnknownScenario string
+// ErrUnknownCassette is an error that occurs when the cassette could not be read from file.
+type ErrUnknownCassette string
 
-// NewErrUnknownScenario is a constructor.
-func NewErrUnknownScenario(scenarioName string) ErrUnknownScenario {
-	return ErrUnknownScenario(fmt.Sprintf("unknown scenario '%s'", scenarioName))
+// NewErrUnknownCassette is a constructor.
+func NewErrUnknownCassette(cassetteName string) ErrUnknownCassette {
+	return ErrUnknownCassette(fmt.Sprintf("unknown cassette '%s'", cassetteName))
 }
 
-func (e ErrUnknownScenario) Error() string {
+func (e ErrUnknownCassette) Error() string {
 	return string(e)
 }
