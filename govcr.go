@@ -1,7 +1,6 @@
 package govcr
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -20,8 +19,8 @@ type response struct {
 	Body      string
 }
 
-func GetVCR(cassetteName string) *http.Client {
-	cassette, err := loadCassetteTracks(cassetteName)
+func StartVCR(cassetteName string) *http.Client {
+	cassette, err := loadCassette(cassetteName)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -59,7 +58,7 @@ func GetVCR(cassetteName string) *http.Client {
 				log.Fatal(err)
 			}
 
-			resp, err := Record(req, cassetteName)
+			resp, err := recordTrackToCassette(cassette, req)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -81,66 +80,49 @@ func GetVCR(cassetteName string) *http.Client {
 	return c
 }
 
-// Record records the response from an HTTP request.
-func Record(req *http.Request, filename string) (*httptest.ResponseRecorder, error) {
+// recordTrackToCassette saves a new track to a cassette.
+func recordTrackToCassette(cassette *cassette, req *http.Request) (*httptest.ResponseRecorder, error) {
 	w := httptest.NewRecorder()
 
+	// execute HTTP request
 	err := handler(w, req)
 	if err != nil {
 		return nil, err
 	}
 
-	err = persist(req, w, filename)
+	// create track
+	track, err := newTrack(req, w)
 	if err != nil {
 		return nil, err
 	}
 
-	return w, nil
-}
+	// add track to cassette
+	cassette.addTrack(track)
 
-// Replay replays the response of an HTTP request.
-func Replay(req *http.Request, filename string) (*httptest.ResponseRecorder, error) {
-	_, err := os.Stat(filename)
-	if os.IsNotExist(err) {
-		log.Println(err)
-		return nil, err
-	}
-
-	// retrieve previous recording from file
-	data, err := ioutil.ReadFile(filename)
+	// save cassette
+	err = cassette.save()
 	if err != nil {
-		log.Println(err)
 		return nil, err
-	}
-
-	// unmarshal
-	resp := &response{}
-	if err := json.Unmarshal(data, resp); err != nil {
-		log.Println(err)
-		return nil, err
-	}
-
-	w := &httptest.ResponseRecorder{
-		Code:      resp.Code,
-		HeaderMap: resp.HeaderMap,
-		Body:      bytes.NewBufferString(resp.Body),
 	}
 
 	return w, nil
 }
 
 // readCassetteFromFile reads the cassette file, if present.
-func readCassetteTracksFromFile(cassetteName string) (*cassette, error) {
-	filename := "/tmp/govcr/fixtures/" + cassetteName + ".rec"
+func readCassetteFromFile(cassetteName string) (*cassette, error) {
+	filename := "/tmp/govcr/fixtures/" + cassetteName + ".cassette"
 
 	// check file existence
 	_, err := os.Stat(filename)
 	if os.IsNotExist(err) {
 		log.Println(err)
 		return nil, err
+	} else if err != nil {
+		log.Println(err)
+		return nil, err
 	}
 
-	// retrieve previous recording from file
+	// retrieve cassette from file
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
 		log.Println(err)
@@ -185,16 +167,24 @@ func handler(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-// persist writes a cassette track to file.
-func persist(req *http.Request, w *httptest.ResponseRecorder, filename string) error {
-	// build request object
-	reqBody := ioutil.NopCloser(req.Body)
-	reqBodyData, err := ioutil.ReadAll(reqBody)
-	if err != nil {
-		log.Println(err)
-		return err
-	}
+// newTrack creates a new track from an HTTP request and response.
+func newTrack(req *http.Request, w *httptest.ResponseRecorder) (*track, error) {
+	log.Printf("DEBUG - req=%#v\n", req)
+	log.Printf("DEBUG - w=%#v\n", w)
+	var reqBodyData []byte
+	var respBodyData []byte
 
+	// build request object
+	if req.Body != nil {
+		var err error
+
+		reqBody := ioutil.NopCloser(req.Body)
+		reqBodyData, err = ioutil.ReadAll(reqBody)
+		if err != nil {
+			log.Println(err)
+			return nil, err
+		}
+	}
 	request := request{
 		Method:    req.Method,
 		URL:       *req.URL,
@@ -203,11 +193,15 @@ func persist(req *http.Request, w *httptest.ResponseRecorder, filename string) e
 	}
 
 	// build response object
-	respBody := ioutil.NopCloser(w.Body)
-	respBodyData, err := ioutil.ReadAll(respBody)
-	if err != nil {
-		log.Println(err)
-		return err
+	if w.Body != nil {
+		var err error
+
+		respBody := ioutil.NopCloser(w.Body)
+		respBodyData, err = ioutil.ReadAll(respBody)
+		if err != nil {
+			log.Println(err)
+			return nil, err
+		}
 	}
 	response := response{
 		Code:      w.Code,
@@ -216,31 +210,12 @@ func persist(req *http.Request, w *httptest.ResponseRecorder, filename string) e
 	}
 
 	// build track object
-	track := track{
+	track := &track{
 		Request:  request,
 		Response: response,
 	}
 
-	// marshal
-	data, err := json.MarshalIndent(track, "", "  ")
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-
-	// append to cassette file
-	path := filepath.Dir(filename)
-	if err := os.MkdirAll(path, 0750); err != nil {
-		log.Println(err)
-		return err
-	}
-
-	if err := ioutil.WriteFile(filename, data, 0640); err != nil {
-		log.Println(err)
-		return err
-	}
-
-	return nil
+	return track, nil
 }
 
 // request is a recorded HTTP request.
@@ -266,14 +241,50 @@ type cassette struct {
 	Tracks []track
 }
 
-func loadCassetteTracks(cassetteName string) (*cassette, error) {
-	s, err := readCassetteTracksFromFile(cassetteName)
+// saveCassette writes a cassette to file.
+func (k7 *cassette) save() error {
+	// marshal
+	data, err := json.MarshalIndent(k7, "", "  ")
 	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	// write cassette to file
+	filename := "/tmp/govcr/fixtures/" + k7.Name + ".cassette"
+	path := filepath.Dir(filename)
+	if err := os.MkdirAll(path, 0750); err != nil {
+		log.Println(err)
+		return err
+	}
+
+	if err := ioutil.WriteFile(filename, data, 0640); err != nil {
+		log.Println(err)
+		return err
+	}
+
+	return nil
+}
+
+// addTrack adds a track to a cassette.
+func (k7 *cassette) addTrack(track *track) {
+	k7.Tracks = append(k7.Tracks, *track)
+}
+
+func loadCassette(cassetteName string) (*cassette, error) {
+	k7, err := readCassetteFromFile(cassetteName)
+	if err != nil && !os.IsNotExist(err) {
 		log.Println(err)
 		return nil, err
 	}
 
-	return s, nil
+	// provide an empty cassette as a minimum
+	if k7 == nil {
+		log.Println("WARNING - loadCassette - No cassette. Creating a blank one")
+		k7 = &cassette{Name: cassetteName}
+	}
+
+	return k7, nil
 }
 
 // ErrUnknownCassette is an error that occurs when the cassette could not be read from file.
