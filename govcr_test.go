@@ -10,25 +10,27 @@ import (
 	"github.com/seborama/govcr"
 )
 
-// TODO: re-write table test to include more HTTP verbs and payloads
+// TODO: re-write with table test to include more HTTP verbs and payloads
 func TestRecordClientGetRequest(t *testing.T) {
 	cassetteName := "TestRecordClientGetRequest"
 
+	// wipe cassette clear
 	if err := govcr.DeleteCassette(cassetteName); err != nil && !os.IsNotExist(err) {
 		t.Fatalf("err from govcr.DeleteCassette(): Expected nil, got %s", err)
 	}
 
-	vcr := govcr.StartVCR(cassetteName)
-	defer vcr.StopVCRFunc()
-
+	// create a vcr
+	vcr := govcr.NewVCR(cassetteName, http.DefaultTransport)
 	client := vcr.Client
 
+	// run request
 	resp, err := client.Get("http://example.com/foo")
 	if err != nil {
 		t.Fatalf("err from c.Get(): Expected nil, got %s", err)
 	}
 
-	if resp.StatusCode != http.StatusOK {
+	// check outcome of the request
+	if resp.StatusCode != http.StatusNotFound {
 		t.Fatalf("resp.StatusCode: Expected %d, got %d", http.StatusOK, resp.StatusCode)
 	}
 
@@ -43,10 +45,43 @@ func TestRecordClientGetRequest(t *testing.T) {
 	}
 
 	if !strings.Contains(string(bodyData), "Example Domain") {
-		t.Fatalf("Body contains string: Expected true, got false")
+		t.Fatalf("Body does not contain the expected string")
 	}
 
 	if !govcr.CassetteExists(cassetteName) {
 		t.Fatalf("CassetteExists: expected true, got false")
+	}
+
+	if vcr.Stats().TracksLoaded != 0 {
+		t.Fatalf("Expected 0 track loaded, got %d", vcr.Stats().TracksRecorded)
+	}
+
+	if vcr.Stats().TracksRecorded != 1 {
+		t.Fatalf("Expected 1 track recorded, got %d", vcr.Stats().TracksRecorded)
+	}
+
+	if vcr.Stats().TracksPlayed != 0 {
+		t.Fatalf("Expected 0 track played, got %d", vcr.Stats().TracksRecorded)
+	}
+
+	// re-run request and expect play back from vcr
+	vcr = govcr.NewVCR(cassetteName, http.DefaultTransport)
+	client = vcr.Client
+
+	resp, err = client.Get("http://example.com/foo")
+	if err != nil {
+		t.Fatalf("err from c.Get(): Expected nil, got %s", err)
+	}
+
+	if vcr.Stats().TracksLoaded != 1 {
+		t.Fatalf("Expected 1 track loaded, got %d", vcr.Stats().TracksRecorded)
+	}
+
+	if vcr.Stats().TracksRecorded != 0 {
+		t.Fatalf("Expected 0 track recorded, got %d", vcr.Stats().TracksRecorded)
+	}
+
+	if vcr.Stats().TracksPlayed != 1 {
+		t.Fatalf("Expected 1 track played, got %d", vcr.Stats().TracksRecorded)
 	}
 }
