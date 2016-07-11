@@ -2,19 +2,35 @@ package govcr_test
 
 import (
 	"io/ioutil"
-	"log"
 	"net/http"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/seborama/govcr"
 )
 
+// TODO: re-write table test to include more HTTP verbs and payloads
 func TestRecordClientGetRequest(t *testing.T) {
-	client := govcr.StartVCR("TestRecordClientGetRequest")
+	cassetteName := "TestRecordClientGetRequest"
+
+	if err := govcr.DeleteCassette(cassetteName); err != nil && !os.IsNotExist(err) {
+		t.Fatalf("err from govcr.DeleteCassette(): Expected nil, got %s", err)
+	}
+
+	client := govcr.StartVCR(cassetteName)
 
 	resp, err := client.Get("http://example.com/foo")
 	if err != nil {
 		t.Fatalf("err from c.Get(): Expected nil, got %s", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("resp.StatusCode: Expected %d, got %d", http.StatusOK, resp.StatusCode)
+	}
+
+	if resp.Body == nil {
+		t.Fatalf("resp.Body: Expected non-nil, got nil")
 	}
 
 	body := ioutil.NopCloser(resp.Body)
@@ -22,13 +38,13 @@ func TestRecordClientGetRequest(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err from ioutil.ReadAll(): Expected nil, got %s", err)
 	}
-	log.Printf("DEBUG - bodyData=%s\n", bodyData)
 
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("w.Code: Expected %d, got %d", http.StatusOK, resp.StatusCode)
+	//log.Printf("DEBUG - bodyData=%s\n", string(bodyData))
+	if !strings.Contains(string(bodyData), "Example Domain") {
+		t.Fatalf("Body contains string: Expected true, got false")
 	}
 
-	if l := len(bodyData); l < 1 {
-		t.Fatalf("Body length: Expected >= 1, got %d", l)
+	if !govcr.CassetteExists(cassetteName) {
+		t.Fatalf("CassetteExists: expected true, got false")
 	}
 }
