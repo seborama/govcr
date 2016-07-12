@@ -18,7 +18,10 @@ func TestRecordClientGetRequest(t *testing.T) {
 		t.Fatalf("err from govcr.DeleteCassette(): Expected nil, got %s", err)
 	}
 
-	client := govcr.StartVCR(cassetteName)
+	vcr := govcr.StartVCR(cassetteName)
+	defer vcr.StopVCRFunc()
+
+	client := vcr.Client
 
 	resp, err := client.Get("http://example.com/foo")
 	if err != nil {
@@ -39,7 +42,6 @@ func TestRecordClientGetRequest(t *testing.T) {
 		t.Fatalf("err from ioutil.ReadAll(): Expected nil, got %s", err)
 	}
 
-	//log.Printf("DEBUG - bodyData=%s\n", string(bodyData))
 	if !strings.Contains(string(bodyData), "Example Domain") {
 		t.Fatalf("Body contains string: Expected true, got false")
 	}

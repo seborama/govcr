@@ -1,6 +1,7 @@
 package govcr
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -10,16 +11,30 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
-func StartVCR(cassetteName string) *http.Client {
+// StopVCRFunc stops the VCR server.
+// Typically, this is called via a defer statement after calling StartVCR().
+type StopVCRFunc func()
+
+// VCR is the structure returned from StartVCR.
+// It contains useful information for users of govcr.
+type VCR struct {
+	Client      *http.Client
+	StopVCRFunc StopVCRFunc
+}
+
+// StartVCR brings up the proxy server and returns a VCR object helper
+// for programmers to use govcr.
+func StartVCR(cassetteName string) VCR {
 	cassette, err := loadCassette(cassetteName)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// TODO: offer a control shutdown of the test server
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("DEBUG - StartVCR - r url=: %s\n", r.URL.String())
 		responseMatched := false
 
 		for _, track := range cassette.Tracks {
@@ -30,7 +45,7 @@ func StartVCR(cassetteName string) *http.Client {
 				// TODO: implement status code and headers
 				fmt.Fprintln(w, track.Response.Body)
 
-				// mark the track as replayed so it doesn't get re-used
+				// mark the track as replayed so it doesn't get replayed
 				track.replayed = true
 				// mark the response for the request as found
 				responseMatched = true
@@ -43,11 +58,20 @@ func StartVCR(cassetteName string) *http.Client {
 			// TODO: here would be a good place to make the real HTTP call to RTI and record the response
 			log.Printf("INFO - Cassette '%s' - No track found for '%s' '%s' in the tracks that remain at this stage (%#v). Recording a new track from live HTTP", cassetteName, r.Method, r.URL.String(), cassette.Tracks)
 
-			req, err := http.NewRequest("GET", "http://example.com/foo", nil)
+			bodyData, err := ioutil.ReadAll(r.Body)
 			if err != nil {
 				log.Fatal(err)
 			}
 
+			body := strings.NewReader(string(bodyData))
+
+			log.Printf("DEBUG - r.URL.String()=%s\n", r.URL.String())
+			req, err := http.NewRequest(r.Method, r.URL.String(), body)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			log.Println("DEBUG 0")
 			resp, err := recordNewTrackToCassette(cassette, req)
 			if err != nil {
 				log.Fatal(err)
@@ -58,16 +82,30 @@ func StartVCR(cassetteName string) *http.Client {
 		}
 	}))
 
+	log.Print("")
+	if ts.Config.TLSConfig == nil {
+		ts.Config.TLSConfig = &tls.Config{}
+	}
+	ts.Config.TLSConfig.InsecureSkipVerify = true
+
 	c := &http.Client{
 		Transport: &http.Transport{
 			Proxy: func(req *http.Request) (*url.URL, error) {
 				url, err := url.Parse(ts.URL)
+				log.Printf("DEBUG - Proxy - req url=: %s\n", req.URL.String())
+				log.Printf("DEBUG - Proxy - url=: %s\n", url.String())
 				return url, err
+			},
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
 			},
 		},
 	}
 
-	return c
+	return VCR{
+		Client:      c,
+		StopVCRFunc: func() { ts.Close() },
+	}
 }
 
 // recordNewTrackToCassette saves a new track to a cassette.
@@ -75,25 +113,30 @@ func recordNewTrackToCassette(cassette *cassette, req *http.Request) (*httptest.
 	w := httptest.NewRecorder()
 
 	// execute HTTP request
+	log.Println("DEBUG 1")
 	err := httpHandler(w, req)
 	if err != nil {
 		return nil, err
 	}
 
 	// create track
+	log.Println("DEBUG 2")
 	track, err := newTrack(req, w)
 	if err != nil {
 		return nil, err
 	}
 
 	// add track to cassette
+	log.Println("DEBUG 3")
 	cassette.addTrack(track)
 
 	// save cassette
+	log.Println("DEBUG 4")
 	err = cassette.save()
 	if err != nil {
 		return nil, err
 	}
+	log.Println("DEBUG 5")
 
 	return w, nil
 }
@@ -101,6 +144,7 @@ func recordNewTrackToCassette(cassette *cassette, req *http.Request) (*httptest.
 // handler executes the request and saves the data
 // to the supplied ResponseWriter.
 func httpHandler(w http.ResponseWriter, r *http.Request) error {
+	log.Println("DEBUG A")
 	resp, err := http.DefaultClient.Do(r)
 	if err != nil {
 		log.Println(err)
@@ -108,6 +152,7 @@ func httpHandler(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// record the headers
+	log.Println("DEBUG B")
 	for k, v1 := range resp.Header {
 		for _, v2 := range v1 {
 			w.Header().Add(k, v2)
@@ -115,6 +160,7 @@ func httpHandler(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// record the body
+	log.Println("DEBUG C")
 	body := ioutil.NopCloser(resp.Body)
 	bodyData, err := ioutil.ReadAll(body)
 	if err != nil {
@@ -122,6 +168,7 @@ func httpHandler(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 	w.Write([]byte(bodyData))
+	log.Println("DEBUG D")
 
 	return nil
 }
@@ -229,7 +276,7 @@ func cassetteNameToFile(cassetteName string) string {
 		return ""
 	}
 
-	return "/tmp/govcr/fixtures/" + cassetteName + ".cassette"
+	return "./govcr-fixtures/" + cassetteName + ".cassette"
 }
 
 // saveCassette writes a cassette to file.
