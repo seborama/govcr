@@ -4,6 +4,8 @@ Record and replay HTTP interactions for offline unit / behavioural / integration
 
 This project was inspired by [php-vcr](https://github.com/php-vcr/php-vcr) which is a PHP port of [VCR](https://github.com/vcr/vcr) for ruby.
 
+This project is an adaptation for Google's Go / Golang programming language.
+
 ## Install
 
 ```bash
