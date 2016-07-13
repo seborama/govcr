@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"strings"
 )
@@ -79,7 +80,19 @@ func (t *vcrTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 			bodyReadCloser := ioutil.NopCloser(strings.NewReader(track.Response.Body))
 
 			// create error object
-			if track.ErrType != "" {
+			switch track.ErrType {
+			case "*net.OpError":
+				err = &net.OpError{
+					Op:     "govcr",
+					Net:    "govcr",
+					Source: nil,
+					Addr:   nil,
+					Err:    errors.New(track.ErrType + ": " + track.ErrMsg),
+				}
+			case "":
+				err = nil
+
+			default:
 				err = errors.New(track.ErrType + ": " + track.ErrMsg)
 			}
 
