@@ -1,6 +1,6 @@
 # govcr
 
-Record and replay HTTP interactions for offline unit / behavioural / integration tests.
+Record and replay HTTP interactions for offline unit / behavioural / integration tests thereby acting as an HTTP mock.
 
 This project was inspired by [php-vcr](https://github.com/php-vcr/php-vcr) which is a PHP port of [VCR](https://github.com/vcr/vcr) for ruby.
 
@@ -15,6 +15,8 @@ go get github.com/seborama/govcr
 ## Documentation
 
 **govcr** is a wrapper around the Go `http.Client` which offers the ability to run pre-recorded HTTP requests ('**tracks**') instead of live HTTP calls.
+
+The code documentation can be found on [godoc](http://godoc.org/github.com/seborama/govcr).
 
 When using **govcr**'s `http.Client`, the request is matched against the **tracks** on the '**cassette**':
 

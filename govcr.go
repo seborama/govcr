@@ -1,34 +1,44 @@
 package govcr
 
 import (
-	"errors"
+	"bytes"
+	"io"
 	"io/ioutil"
 	"log"
-	"net"
 	"net/http"
-	"strings"
 )
 
-// VCR holds the internal parts of a VCR.
-// Client is the HTTP client associated to VCR.
-type VCR struct {
+// VCRControlPannel holds the parts of a VCR that can be interacted with.
+// Client is the HTTP client associated with the VCR.
+type VCRControlPannel struct {
 	Client *http.Client
 }
 
 // Stats returns Stats about the cassette and VCR session.
-func (vcr *VCR) Stats() Stats {
+func (vcr *VCRControlPannel) Stats() Stats {
 	vcrT := vcr.Client.Transport.(*vcrTransport)
 	return vcrT.Cassette.Stats()
+}
+
+// PCB stands for Printer Circuit Board. It is a structure that holds some
+// facilities that are passed to the VCR machine to modify its internals.
+type PCB struct {
+	Transport        http.RoundTripper
+	HeaderFilterFunc *HeaderFilterFunc
 }
 
 // NewVCR creates a new VCR and loads a cassette.
 // A RoundTripper can be provided when a custom
 // Transport is needed (such as one to provide
 // certificates, etc)
-func NewVCR(cassetteName string, rt http.RoundTripper) *VCR {
+func NewVCR(cassetteName string, pcb *PCB) *VCRControlPannel {
+	if pcb == nil {
+		pcb = &PCB{}
+	}
+
 	// use a default transport if none provided
-	if rt == nil {
-		rt = http.DefaultTransport
+	if pcb.Transport == nil {
+		pcb.Transport = http.DefaultTransport
 	}
 
 	// load cassette
@@ -38,103 +48,177 @@ func NewVCR(cassetteName string, rt http.RoundTripper) *VCR {
 	}
 
 	// return
-	return &VCR{
+	return &VCRControlPannel{
 		Client: &http.Client{
 			// TODO: BUG should also copy all other Client attributes such as Timeout, Jar, etc
 			Transport: &vcrTransport{
-				Transport: rt,
-				Cassette:  cassette,
+				PCB:      pcb,
+				Cassette: cassette,
 			},
 		},
 	}
 }
+
+// HeaderFilterFunc is a hook function that is used to filter the Header.
+//
+// Typically this can be used to remove / amend undesirable custom headers from the request.
+//
+// For instance, if your application sends requests with a timestamp held in a custom header,
+// you likely want to remove it or force a static timestamp via HeaderFilterFunc to
+// ensure that the request headers match those saved on the cassette's track.
+type HeaderFilterFunc func(*http.Header) *http.Header
+
+// BodyFilterFunc is a hook function that is used to filter the Body.
+//
+// Typically this can be used to remove / amend undesirable body elements from the request.
+//
+// For instance, if your application sends requests with a timestamp held in a part of the body,
+// you likely want to remove it or force a static timestamp via BodyFilterFunc to
+// ensure that the request body matches those saved on the cassette's track.
+type BodyFilterFunc func(string) *string
 
 // vcrTransport is the heart of VCR. It provides
 // an http.RoundTripper that wraps over the default
 // one provided by Go's http package or a custom one
 // if specified when calling NewVCR.
 type vcrTransport struct {
-	Transport http.RoundTripper
-	Cassette  *cassette
+	PCB      *PCB
+	Cassette *cassette
+
+	// TODO: this is currently ignored. Implement!
+	RequestHeaderFilter *HeaderFilterFunc
+
+	// TODO: this is currently ignored. Implement!
+	RequestBodyFilter *BodyFilterFunc
 }
 
 // RoundTrip is an implementation of http.RoundTripper.
 func (t *vcrTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	var (
-		resp = &http.Response{}
-		err  error
+		// Note: by convention resp should be nil if an error occurs with HTTP
+		resp *http.Response
+
+		requestMatched bool
+		copiedReq      *http.Request
 	)
 
-	responseMatched := false
+	// copy the request before the body is closed by the HTTP server.
+	copiedReq, err := copyRequest(req)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
 
 	// attempt to use a track from the cassette that matches
 	// the request if one exists.
-	for _, track := range t.Cassette.Tracks {
-		// TODO: matching requests should be more specific (incluing the body of the request)
-		if !track.replayed &&
-			track.Request.Method == req.Method &&
-			track.Request.URL.String() == req.URL.String() {
-			log.Printf("INFO - Cassette '%s' - Replaying roundtrip from track '%s' '%s'", t.Cassette.Name, req.Method, req.URL.String())
-
-			// create a ReadCloser to supply to resp
-			bodyReadCloser := ioutil.NopCloser(strings.NewReader(track.Response.Body))
-
-			// create error object
-			switch track.ErrType {
-			case "*net.OpError":
-				err = &net.OpError{
-					Op:     "govcr",
-					Net:    "govcr",
-					Source: nil,
-					Addr:   nil,
-					Err:    errors.New(track.ErrType + ": " + track.ErrMsg),
-				}
-			case "":
-				err = nil
-
-			default:
-				err = errors.New(track.ErrType + ": " + track.ErrMsg)
-			}
-
-			// re-create the response object from track record
-			if err == nil {
-				tls := track.Response.TLS
-
-				resp.Status = track.Response.Status
-				resp.StatusCode = track.Response.StatusCode
-				resp.Proto = track.Response.Proto
-				resp.ProtoMajor = track.Response.ProtoMajor
-				resp.ProtoMinor = track.Response.ProtoMinor
-
-				resp.Header = track.Response.Header
-				resp.Body = bodyReadCloser
-				resp.ContentLength = track.Response.ContentLength
-				resp.TransferEncoding = track.Response.TransferEncoding
-				resp.Trailer = track.Response.Trailer
-				resp.Request = req
-				resp.TLS = tls
-			}
-
-			// mark the track as replayed so it doesn't get re-used
-			track.replayed = true
-			t.Cassette.stats.TracksPlayed++
-
-			// mark the response for the request as found
-			responseMatched = true
-
-			break
-		}
+	if trackNumber := t.Cassette.seekTrack(copiedReq); trackNumber != trackNotFound {
+		resp = t.Cassette.Tracks[trackNumber].replayResponse(copiedReq)
+		t.Cassette.stats.TracksPlayed++
+		requestMatched = true
 	}
 
-	if !responseMatched {
+	if !requestMatched {
 		// no recorded track was found so execute the
 		// request live and record into a new track on
 		// the cassette
 		log.Printf("INFO - Cassette '%s' - No track found for '%s' '%s' in the tracks that remain at this stage (%#v). Recording a new track from live server", t.Cassette.Name, req.Method, req.URL.String(), t.Cassette.Tracks)
 
-		resp, err = t.Transport.RoundTrip(req)
-		recordNewTrackToCassette(t.Cassette, req, resp, err)
+		resp, err = t.PCB.Transport.RoundTrip(req)
+		recordNewTrackToCassette(t.Cassette, copiedReq, resp, err)
 	}
 
 	return resp, err
+}
+
+// copyRequest makes a copy an HTTP request.
+// It ensures that the original request Body stream is restored to its original state
+// and can be read from again.
+// TODO: should perform a deep copy of the TLS property as with URL
+func copyRequest(req *http.Request) (*http.Request, error) {
+	if req == nil {
+		return nil, nil
+	}
+
+	// get a shallow copy
+	copiedReq := *req
+
+	// remove the channel reference
+	copiedReq.Cancel = nil
+
+	// deal with the Body
+	bodyCopy, err := readRequestBody(req)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	// restore Body stream state
+	req.Body = toReadCloser(bodyCopy)
+	copiedReq.Body = toReadCloser(bodyCopy)
+
+	// deal with the URL (BEWARE obj == &*obj in Go, with obj being a pointer)
+	if req.URL != nil {
+		url := *req.URL
+		if req.URL.User != nil {
+			userInfo := *req.URL.User
+			url.User = &userInfo
+		}
+		copiedReq.URL = &url
+	}
+
+	return &copiedReq, nil
+}
+
+// readRequestBody reads the Body data stream and restores its states.
+// It ensures the stream is restored to its original state and can be read from again.
+func readRequestBody(req *http.Request) (string, error) {
+	if req == nil || req.Body == nil {
+		return "", nil
+	}
+
+	// dump the data
+	bodyWriter := bytes.NewBuffer(nil)
+
+	_, err := io.Copy(bodyWriter, req.Body)
+	if err != nil {
+		log.Println(err)
+		return "", err
+	}
+
+	bodyData := bodyWriter.String()
+
+	// restore original state of the Body source stream
+	req.Body.Close()
+	req.Body = toReadCloser(bodyData)
+
+	return bodyData, nil
+}
+
+// readResponseBody reads the Body data stream and restores its states.
+// It ensures the stream is restored to its original state and can be read from again.
+func readResponseBody(resp *http.Response) (string, error) {
+	if resp == nil || resp.Body == nil {
+		return "", nil
+	}
+
+	// dump the data
+	bodyWriter := bytes.NewBuffer(nil)
+
+	_, err := io.Copy(bodyWriter, resp.Body)
+	if err != nil {
+		log.Println(err)
+		return "", err
+	}
+
+	bodyData := bodyWriter.String()
+
+	// restore original state of the Body source stream
+	resp.Body.Close()
+	resp.Body = toReadCloser(bodyData)
+
+	return bodyData, nil
+}
+
+func toReadCloser(body string) io.ReadCloser {
+	return ioutil.NopCloser(bytes.NewReader([]byte(body)))
 }

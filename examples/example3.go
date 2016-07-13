@@ -2,23 +2,22 @@ package main
 
 import (
 	"crypto/tls"
+	"io/ioutil"
 	"net/http"
 	"time"
+
+	"strings"
 
 	"github.com/seborama/govcr"
 )
 
-// myApp is an application container.
-type myApp struct {
-	httpClient *http.Client
+func (app myApp) Post(url string) {
+	body := ioutil.NopCloser(strings.NewReader(`{"Msg": "This is an example request"}`))
+	app.httpClient.Post(url, "application/json", body)
 }
 
-func (app myApp) Get(url string) {
-	app.httpClient.Get(url)
-}
-
-// Example2 is an example use of govcr.
-func Example2() {
+// Example3 is an example use of govcr.
+func Example3() {
 	// Create a custom http.Transport.
 	tr := http.DefaultTransport.(*http.Transport)
 	tr.TLSClientConfig = &tls.Config{
@@ -35,7 +34,7 @@ func Example2() {
 	}
 
 	// Instantiate VCR.
-	vcr := govcr.NewVCR("MyCassette2",
+	vcr := govcr.NewVCR("MyCassette3",
 		&govcr.PCB{
 			Transport: myapp.httpClient.Transport,
 		})
@@ -44,5 +43,5 @@ func Example2() {
 	// The original transport has been preserved, only just wrapped into VCR's.
 	myapp.httpClient = vcr.Client
 
-	myapp.Get("https://example.com/foo")
+	myapp.Post("https://example.com/foo")
 }

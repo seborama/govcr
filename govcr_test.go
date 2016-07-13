@@ -20,7 +20,7 @@ func TestRecordClientGetRequest(t *testing.T) {
 	}
 
 	// create a vcr
-	vcr := govcr.NewVCR(cassetteName, http.DefaultTransport)
+	vcr := govcr.NewVCR(cassetteName, nil)
 	client := vcr.Client
 
 	// run request
@@ -64,8 +64,10 @@ func TestRecordClientGetRequest(t *testing.T) {
 		t.Fatalf("Expected 0 track played, got %d", vcr.Stats().TracksRecorded)
 	}
 
+	// TODO: add a test to confirm that all track are marked as replyed
+
 	// re-run request and expect play back from vcr
-	vcr = govcr.NewVCR(cassetteName, http.DefaultTransport)
+	vcr = govcr.NewVCR(cassetteName, nil)
 	client = vcr.Client
 
 	resp, err = client.Get("http://example.com/foo")
