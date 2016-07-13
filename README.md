@@ -14,18 +14,20 @@ go get github.com/seborama/govcr
 
 ## Documentation
 
-**govcr** is a wrapper around the Go http.Client which offers the ability to run pre-recorded HTTP requests ('**tracks**').
+**govcr** is a wrapper around the Go `http.Client` which offers the ability to run pre-recorded HTTP requests ('**tracks**') instead of live HTTP calls.
 
-When using **govcr**'s http.Client, the request is matched against the **tracks** on the '**cassette**':
+When using **govcr**'s `http.Client`, the request is matched against the **tracks** on the '**cassette**':
 
 - The **track** is played where a matching one exists on the **cassette**,
-- or the request will executed live to the HTTP server and then recorded on **cassette** for the next time.
+- or the request is executed live to the HTTP server and then recorded on **cassette** for the next time.
+
+**Cassette** recordings are saved under `./govcr-fixtures` as `*.cassette` files in JSON format.
 
 ## Examples
 
 ### Simple VCR
 
-When no special HTTP Transport is required by your http.Client, you can use VCR with the default transport:
+When no special HTTP Transport is required by your `http.Client`, you can use VCR with the default transport:
 
 ```go
 package main
@@ -44,9 +46,9 @@ Otherwise, a real live HTTP call will be made and recorded in a new track added 
 
 ### Custom VCR Transport
 
-Sometimes, your application will create its own http.Client wrapper or will initialise the http.Client's Transport (for instance when using https).
-In such cases, you can pass the Transport object of your application's http.Client instance to VCR.
-VCR will enrich wrap your http.Client with its own which you can inject back into your application.
+Sometimes, your application will create its own `http.Client` wrapper or will initialise the `http.Client`'s Transport (for instance when using https).
+In such cases, you can pass the Transport object of your application's `http.Client` instance to VCR.
+VCR will wrap your `http.Client` with its own which you can inject back into your application.
 
 ```go
 package main
@@ -118,6 +120,10 @@ go run *.go
 go run *.go
 ```
 
+#### Output
+
+TODO.
+
 ## Run the tests
 
 ```bash
@@ -126,9 +132,22 @@ go test -race -cover`
 
 ## Bugs
 
-- Fields of type `interface{}` are not unmarshaled correctly. This can be observed in the x509.Certificate's PublicKey property.
-- NewVCR does not copy all attributes of the http.Client that is supplied to it as an argument (for instance, Timeout, Jar, etc).
+- Fields of type `interface{}` are not unmarshaled correctly. This can be observed with `x509.Certificate`'s `PublicKey` property.
+- NewVCR does not copy all attributes of the `http.Client` that is supplied to it as an argument (for instance, Timeout, Jar, etc).
 
 ## Improvements
 
 - When unmarshaling the cassette fails, rather than fail altogether, it would be preferable to revert to live HTTP call.
+
+## Limitations
+
+### HTTP errors
+
+**govcr** also records `http.Client` errors (network down, blocking firewall, timeout, etc) in the **cassette** for future play back.
+As `errors` is an interface, when it is unmarshalled into JSON, the Go type of the `error` is lost.
+To circumvent this, **govcr** serialises the object type (`ErrType`) and the error message (`ErrMsg`) in the **track** record.
+
+As objects cannot be created by name at runtime in Go, rather than re-create the original error object, *govcr* creates a standard error object with an error string made of both the `ErrType` and `ErrMsg`.
+
+In practice, the implication depends on how much you care about the error type. If all you need to know is that an error occurred, you won't mind this limitation. However, if you need to know exactly what error happened, you will find this annoying.
+In a future release, support for common error (network down) could be implemented, if there is appetite for it.
