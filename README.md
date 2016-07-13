@@ -153,7 +153,7 @@ Running Example2...
 ## Run the tests
 
 ```bash
-go test -race -cover`
+go test -race -cover
 ```
 
 ## Bugs
