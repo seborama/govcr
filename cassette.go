@@ -198,7 +198,7 @@ func (k7 *cassette) save() error {
 	}
 
 	// transform properties known to fail on Unmarshal
-	transformInterfacesInJSON(data)
+	data = transformInterfacesInJSON(data)
 
 	// beautify JSON (now that the JSON text has been transformed)
 	var iData bytes.Buffer
