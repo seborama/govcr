@@ -122,7 +122,33 @@ go run *.go
 
 #### Output
 
-TODO.
+First execution - notice the 'No track found' INFO messages for both **cassettes**:
+
+```bash
+Running Example1...
+=======================================================
+2016/07/13 10:42:03 stat ./govcr-fixtures/MyCassette1.cassette: no such file or directory
+2016/07/13 10:42:03 WARNING - loadCassette - No cassette. Creating a blank one
+2016/07/13 10:42:03 INFO - Cassette 'MyCassette1' - No track found for 'GET' 'http://example.com/foo' in the tracks that remain at this stage ([]govcr.track(nil)). Recording a new track from live server
+
+Running Example2...
+=======================================================
+2016/07/13 10:42:03 stat ./govcr-fixtures/MyCassette2.cassette: no such file or directory
+2016/07/13 10:42:03 WARNING - loadCassette - No cassette. Creating a blank one
+2016/07/13 10:42:03 INFO - Cassette 'MyCassette2' - No track found for 'GET' 'https://example.com/foo' in the tracks that remain at this stage ([]govcr.track(nil)). Recording a new track from live server
+```
+
+Second execution (when **cassettes** exist with applicable **tracks**) - notice the 'Replaying roundtrip from track' INFO messages for both **cassettes** - no more live HTTP call 😊 :
+
+```bash
+Running Example1...
+=======================================================
+2016/07/13 10:44:09 INFO - Cassette 'MyCassette1' - Replaying roundtrip from track 'GET' 'http://example.com/foo'
+
+Running Example2...
+=======================================================
+2016/07/13 14:26:30 INFO - Cassette 'MyCassette2' - Replaying roundtrip from track 'GET' 'https://example.com/foo'
+```
 
 ## Run the tests
 
@@ -132,7 +158,6 @@ go test -race -cover`
 
 ## Bugs
 
-- Fields of type `interface{}` are not unmarshaled correctly. This can be observed with `x509.Certificate`'s `PublicKey` property.
 - NewVCR does not copy all attributes of the `http.Client` that is supplied to it as an argument (for instance, Timeout, Jar, etc).
 
 ## Improvements
@@ -140,6 +165,13 @@ go test -race -cover`
 - When unmarshaling the cassette fails, rather than fail altogether, it would be preferable to revert to live HTTP call.
 
 ## Limitations
+
+### Go empty interfaces (`interface{}`)
+
+Some properties / objects in http.Response are defined as `interface{}`.
+This can cause json.Unmarshall to fail (example: when the original type was `big.Int` with a big interger indeed - `json.Unmarshal` attempts to convert to float64 and fails).
+
+Currently, this is dealt with by converting the output of the JSON produced by `json.Marshal` (big.Int is changed to a string).
 
 ### HTTP errors
 

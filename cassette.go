@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 )
 
 // request is a recorded HTTP request.
@@ -190,7 +191,19 @@ func cassetteNameToFilename(cassetteName string) string {
 // saveCassette writes a cassette to file.
 func (k7 *cassette) save() error {
 	// marshal
-	data, err := json.MarshalIndent(k7, "", "  ")
+	data, err := json.Marshal(k7)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	// transform properties known to fail on Unmarshal
+	transformInterfacesInJSON(data)
+
+	// beautify JSON (now that the JSON text has been transformed)
+	var iData bytes.Buffer
+
+	err = json.Indent(&iData, data, "", "  ")
 	if err != nil {
 		log.Println(err)
 		return err
@@ -204,12 +217,30 @@ func (k7 *cassette) save() error {
 		return err
 	}
 
-	if err := ioutil.WriteFile(filename, data, 0640); err != nil {
+	if err := ioutil.WriteFile(filename, iData.Bytes(), 0640); err != nil {
 		log.Println(err)
 		return err
 	}
 
 	return nil
+}
+
+// transformInterfacesInJSON looks for known properties in the JSON that are defined as interface{}
+// in their original Go structure and don't UnMarshal correctly.
+//
+// Example x509.Certificate.PublicKey:
+// When the type is rsa.PublicKey, Unmarshal attempts to map property "N" to a float64 because it is a number.
+// However, it really is a big.Int which does not fit float64 and makes Unmarshal fail.
+//
+// This is not an ideal solution but it works. In the future, we could consider adding a property that
+// records the original type and re-creates it post Unmarshal.
+func transformInterfacesInJSON(jsonString []byte) []byte {
+	regex, err := regexp.Compile(`("PublicKey":{"N":)([0-9]+),`)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	return []byte(regex.ReplaceAllString(string(jsonString), `$1"$2",`))
 }
 
 // addTrack adds a track to a cassette.
@@ -245,13 +276,6 @@ func loadCassette(cassetteName string) (*cassette, error) {
 // readCassetteFromFile reads the cassette file, if present.
 func readCassetteFromFile(cassetteName string) (*cassette, error) {
 	filename := cassetteNameToFilename(cassetteName)
-
-	// check file existence
-	_, err := os.Stat(filename)
-	if err != nil {
-		log.Println(err)
-		return nil, err
-	}
 
 	// retrieve cassette from file
 	data, err := ioutil.ReadFile(filename)
