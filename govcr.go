@@ -112,8 +112,7 @@ func (t *vcrTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	// attempt to use a track from the cassette that matches
 	// the request if one exists.
 	if trackNumber := t.Cassette.seekTrack(copiedReq); trackNumber != trackNotFound {
-		resp = t.Cassette.Tracks[trackNumber].replayResponse(copiedReq)
-		t.Cassette.stats.TracksPlayed++
+		resp = t.Cassette.replayResponse(trackNumber, copiedReq)
 		requestMatched = true
 	}
 
@@ -121,7 +120,7 @@ func (t *vcrTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 		// no recorded track was found so execute the
 		// request live and record into a new track on
 		// the cassette
-		log.Printf("INFO - Cassette '%s' - No track found for '%s' '%s' in the tracks that remain at this stage (%#v). Recording a new track from live server", t.Cassette.Name, req.Method, req.URL.String(), t.Cassette.Tracks)
+		log.Printf("INFO - Cassette '%s' - No track found for '%s' '%s' in the tracks that remain at this stage in the cassette. Recording a new track from live server", t.Cassette.Name, req.Method, req.URL.String())
 
 		resp, err = t.PCB.Transport.RoundTrip(req)
 		recordNewTrackToCassette(t.Cassette, copiedReq, resp, err)
@@ -139,11 +138,8 @@ func copyRequest(req *http.Request) (*http.Request, error) {
 		return nil, nil
 	}
 
-	// get a shallow copy
-	copiedReq := *req
-
-	// remove the channel reference
-	copiedReq.Cancel = nil
+	// get a deep copy without body considerations
+	copiedReq := copyRequestWithoutBody(req)
 
 	// deal with the Body
 	bodyCopy, err := readRequestBody(req)
@@ -156,6 +152,25 @@ func copyRequest(req *http.Request) (*http.Request, error) {
 	req.Body = toReadCloser(bodyCopy)
 	copiedReq.Body = toReadCloser(bodyCopy)
 
+	return copiedReq, nil
+}
+
+// copyRequestWithoutBody makes a copy an HTTP request but not the Body (set to nil).
+// TODO: should perform a deep copy of the TLS property as with URL
+func copyRequestWithoutBody(req *http.Request) *http.Request {
+	if req == nil {
+		return nil
+	}
+
+	// get a shallow copy
+	copiedReq := *req
+
+	// remove the channel reference
+	copiedReq.Cancel = nil
+
+	// deal with the body
+	copiedReq.Body = nil
+
 	// deal with the URL (BEWARE obj == &*obj in Go, with obj being a pointer)
 	if req.URL != nil {
 		url := *req.URL
@@ -166,7 +181,7 @@ func copyRequest(req *http.Request) (*http.Request, error) {
 		copiedReq.URL = &url
 	}
 
-	return &copiedReq, nil
+	return &copiedReq
 }
 
 // readRequestBody reads the Body data stream and restores its states.
