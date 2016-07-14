@@ -180,11 +180,11 @@ func checkResponseForTestRecordClientGetRequest(t *testing.T, cassetteName strin
 		t.Fatalf("resp.Body: Expected non-nil, got nil")
 	}
 
-	body := ioutil.NopCloser(resp.Body)
-	bodyData, err := ioutil.ReadAll(body)
+	bodyData, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("err from ioutil.ReadAll(): Expected nil, got %s", err)
 	}
+	resp.Body.Close()
 
 	if !strings.Contains(string(bodyData), "Example Domain") {
 		t.Fatalf("Body does not contain the expected string")
@@ -206,11 +206,11 @@ func checkResponseForTestPlaybackOrder(t *testing.T, cassetteName string, vcr *g
 		t.Fatalf("resp.Body: Expected non-nil, got nil")
 	}
 
-	body := ioutil.NopCloser(resp.Body)
-	bodyData, err := ioutil.ReadAll(body)
+	bodyData, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("err from ioutil.ReadAll(): Expected nil, got %s", err)
 	}
+	resp.Body.Close()
 
 	expectedBody := fmt.Sprintf("Hello, client %d", i)
 	if string(bodyData) != expectedBody {
