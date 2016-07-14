@@ -11,4 +11,9 @@ func main() {
 	fmt.Println("Running Example2...")
 	fmt.Println("=======================================================")
 	Example2()
+
+	fmt.Println()
+	fmt.Println("Running Example3...")
+	fmt.Println("=======================================================")
+	Example3()
 }

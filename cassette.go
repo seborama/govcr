@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -14,12 +16,36 @@ import (
 	"regexp"
 )
 
+type header http.Header
+
 // request is a recorded HTTP request.
 type request struct {
-	Method    string
-	URL       *url.URL
-	HeaderMap http.Header
-	Body      string
+	Method string
+	URL    *url.URL
+	Header header
+	Body   string
+}
+
+// Resembles compares HTTP headers for equivalence.
+// TODO: BUG should not compare ALL headers (particularly those with timestamps, etc).
+func (h *header) Resembles(actual http.Header) bool {
+	if len(*h) != len(actual) {
+		log.Printf("DEBUG - Resembles - Headers length mismatch: %d vs %d\n", len(*h), len(actual))
+		log.Printf("DEBUG - Resembles - Headers: %#v vs %#v\n", *h, actual)
+		return false
+	}
+
+	for k, v1 := range *h {
+		log.Printf("DEBUG - Resembles - Comparing keys: %#v vs %#v\n", actual.Get(k), v1)
+		for _, v2 := range v1 {
+			if actual.Get(k) != v2 {
+				log.Printf("DEBUG - Resembles - Comparing values: %#v vs %#v\n", actual.Get(k), v2)
+				return false
+			}
+		}
+	}
+
+	return true
 }
 
 // response is a recorded HTTP response.
@@ -49,6 +75,108 @@ type track struct {
 	replayed bool
 }
 
+func (t *track) replayResponse(req *http.Request) *http.Response {
+	var (
+		err  error
+		resp = &http.Response{}
+	)
+
+	// mark the track as replayed so it doesn't get re-used
+	t.replayed = true
+
+	// create a ReadCloser to supply to resp
+	bodyReadCloser := toReadCloser(t.Response.Body)
+
+	// create error object
+	switch t.ErrType {
+	case "*net.OpError":
+		err = &net.OpError{
+			Op:     "govcr",
+			Net:    "govcr",
+			Source: nil,
+			Addr:   nil,
+			Err:    errors.New(t.ErrType + ": " + t.ErrMsg),
+		}
+	case "":
+		err = nil
+
+	default:
+		err = errors.New(t.ErrType + ": " + t.ErrMsg)
+	}
+
+	if err != nil {
+		// No need to parse the response.
+		// By convention, when an HTTP error occurred, the response should be empty
+		// (or Go's http package will show a warning message at runtime).
+		return resp
+	}
+
+	// re-create the response object from track record
+	tls := t.Response.TLS
+
+	resp.Status = t.Response.Status
+	resp.StatusCode = t.Response.StatusCode
+	resp.Proto = t.Response.Proto
+	resp.ProtoMajor = t.Response.ProtoMajor
+	resp.ProtoMinor = t.Response.ProtoMinor
+
+	resp.Header = t.Response.Header
+	resp.Body = bodyReadCloser
+	resp.ContentLength = t.Response.ContentLength
+	resp.TransferEncoding = t.Response.TransferEncoding
+	resp.Trailer = t.Response.Trailer
+	resp.Request = req
+	resp.TLS = tls
+
+	return resp
+}
+
+// Matches checks whether the track is a match for the supplied request.
+func (t *track) Matches(req *http.Request) bool {
+	if req == nil {
+		return false
+	}
+
+	// get body data safely
+	bodyData, err := readRequestBody(req)
+	if err != nil {
+		log.Println(err)
+		return false
+	}
+
+	if t.replayed {
+		log.Println("DEBUG - Matches - track already replayed")
+	} else {
+		log.Println("DEBUG - Matches - track available for replay")
+	}
+	if t.Request.Method != req.Method {
+		log.Printf("DEBUG - Matches - methods differ - %s vs %s\n", t.Request.Method, req.Method)
+	} else {
+		log.Println("DEBUG - Matches - methods match")
+	}
+	if t.Request.URL.String() != req.URL.String() {
+		log.Printf("DEBUG - Matches - URLs differ - %s vs %s\n", t.Request.URL.String(), req.URL.String())
+	} else {
+		log.Println("DEBUG - Matches - URLs match")
+	}
+	if t.Request.Body != bodyData {
+		log.Printf("DEBUG - Matches - body data differ - %s vs %s\n", t.Request.Body, bodyData)
+	} else {
+		log.Println("DEBUG - Matches - body match")
+	}
+	if !t.Request.Header.Resembles(req.Header) {
+		log.Printf("DEBUG - Matches - headers differ\n")
+	} else {
+		log.Println("DEBUG - Matches - headers match")
+	}
+
+	return !t.replayed &&
+		t.Request.Method == req.Method &&
+		t.Request.URL.String() == req.URL.String() &&
+		t.Request.Header.Resembles(req.Header) &&
+		t.Request.Body == bodyData
+}
+
 // newTrack creates a new track from an HTTP request and response.
 func newTrack(req *http.Request, resp *http.Response, reqErr error) (*track, error) {
 	var (
@@ -58,48 +186,26 @@ func newTrack(req *http.Request, resp *http.Response, reqErr error) (*track, err
 
 	// build request object
 	if req != nil {
-		var (
-			data []byte
-			err  error
-		)
-
-		if req.Body != nil {
-			body := ioutil.NopCloser(req.Body)
-			data, err = ioutil.ReadAll(body)
-			if err != nil {
-				log.Println(err)
-				// continue nonetheless
-			}
-
-			// reset the Body on req
-			req.Body = ioutil.NopCloser(bytes.NewReader(data))
+		bodyData, err := readRequestBody(req)
+		if err != nil {
+			log.Println(err)
+			// continue nonetheless
 		}
 
 		k7Request = request{
-			Method:    req.Method,
-			URL:       req.URL,
-			HeaderMap: req.Header,
-			Body:      string(data),
+			Method: req.Method,
+			URL:    req.URL,
+			Header: header(req.Header),
+			Body:   bodyData,
 		}
 	}
 
 	// build response object
 	if resp != nil {
-		var (
-			data []byte
-			err  error
-		)
-
-		if resp.Body != nil {
-			body := ioutil.NopCloser(resp.Body)
-			data, err = ioutil.ReadAll(body)
-			if err != nil {
-				log.Println(err)
-				// continue nonetheless
-			}
-
-			// reset the Body on resp
-			resp.Body = ioutil.NopCloser(bytes.NewReader(data))
+		bodyData, err := readResponseBody(resp)
+		if err != nil {
+			log.Println(err)
+			// continue nonetheless
 		}
 
 		k7Response = response{
@@ -110,7 +216,7 @@ func newTrack(req *http.Request, resp *http.Response, reqErr error) (*track, err
 			ProtoMinor: resp.ProtoMinor,
 
 			Header:           resp.Header,
-			Body:             string(data),
+			Body:             bodyData,
 			ContentLength:    resp.ContentLength,
 			TransferEncoding: resp.TransferEncoding,
 			Trailer:          resp.Trailer,
@@ -135,13 +241,6 @@ func newTrack(req *http.Request, resp *http.Response, reqErr error) (*track, err
 	return track, nil
 }
 
-// cassette contains a set of tracks.
-type cassette struct {
-	Name   string
-	Tracks []track
-	stats  Stats
-}
-
 // Stats holds information about the cassette and
 // VCR runtime.
 type Stats struct {
@@ -154,6 +253,26 @@ type Stats struct {
 	// TracksPlayed is the number of tracks played back straight from the cassette.
 	// I.e. tracks that were already present on the cassette and were played back.
 	TracksPlayed int
+}
+
+// cassette contains a set of tracks.
+type cassette struct {
+	Name   string
+	Tracks []track
+	stats  Stats
+}
+
+const trackNotFound = -1
+
+func (k7 *cassette) seekTrack(req *http.Request) int {
+	for idx, track := range k7.Tracks {
+		if track.Matches(req) {
+			log.Printf("INFO - Cassette '%s' - Found a track matching the request '%s' '%s'", k7.Name, req.Method, req.URL.String())
+			return idx
+		}
+	}
+
+	return trackNotFound
 }
 
 // DeleteCassette removes the cassette file from disk.
@@ -286,7 +405,7 @@ func readCassetteFromFile(cassetteName string) (*cassette, error) {
 
 	// unmarshal
 	cassette := &cassette{}
-	// TODO: BUG http.Response.TLS.PeerCertificates[xxx].PublicKey is an interface{} - See http://stackoverflow.com/questions/28254102/how-to-unmarshal-json-into-interface-in-golang?rq=1
+	// NOTE: Properties which are of type 'interface{}' are not handled very well
 	if err := json.Unmarshal(data, cassette); err != nil {
 		log.Println(err)
 		return nil, err
