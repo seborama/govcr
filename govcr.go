@@ -224,11 +224,11 @@ func readResponseBody(resp *http.Response) (string, error) {
 		log.Println(err)
 		return "", err
 	}
+	resp.Body.Close()
 
 	bodyData := bodyWriter.String()
 
 	// restore original state of the Body source stream
-	resp.Body.Close()
 	resp.Body = toReadCloser(bodyData)
 
 	return bodyData, nil
