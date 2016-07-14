@@ -75,14 +75,11 @@ type track struct {
 	replayed bool
 }
 
-func (t *track) replayResponse(req *http.Request) *http.Response {
+func (t *track) response(req *http.Request) *http.Response {
 	var (
 		err  error
 		resp = &http.Response{}
 	)
-
-	// mark the track as replayed so it doesn't get re-used
-	t.replayed = true
 
 	// create a ReadCloser to supply to resp
 	bodyReadCloser := toReadCloser(t.Response.Body)
@@ -125,7 +122,10 @@ func (t *track) replayResponse(req *http.Request) *http.Response {
 	resp.ContentLength = t.Response.ContentLength
 	resp.TransferEncoding = t.Response.TransferEncoding
 	resp.Trailer = t.Response.Trailer
-	resp.Request = req
+
+	// See notes on http.Response.Request - Body is nil because it has already been consumed
+	resp.Request = copyRequestWithoutBody(req)
+
 	resp.TLS = tls
 
 	return resp
@@ -142,32 +142,6 @@ func (t *track) Matches(req *http.Request) bool {
 	if err != nil {
 		log.Println(err)
 		return false
-	}
-
-	if t.replayed {
-		log.Println("DEBUG - Matches - track already replayed")
-	} else {
-		log.Println("DEBUG - Matches - track available for replay")
-	}
-	if t.Request.Method != req.Method {
-		log.Printf("DEBUG - Matches - methods differ - %s vs %s\n", t.Request.Method, req.Method)
-	} else {
-		log.Println("DEBUG - Matches - methods match")
-	}
-	if t.Request.URL.String() != req.URL.String() {
-		log.Printf("DEBUG - Matches - URLs differ - %s vs %s\n", t.Request.URL.String(), req.URL.String())
-	} else {
-		log.Println("DEBUG - Matches - URLs match")
-	}
-	if t.Request.Body != bodyData {
-		log.Printf("DEBUG - Matches - body data differ - %s vs %s\n", t.Request.Body, bodyData)
-	} else {
-		log.Println("DEBUG - Matches - body match")
-	}
-	if !t.Request.Header.Resembles(req.Header) {
-		log.Printf("DEBUG - Matches - headers differ\n")
-	} else {
-		log.Println("DEBUG - Matches - headers match")
 	}
 
 	return !t.replayed &&
@@ -259,7 +233,9 @@ type Stats struct {
 type cassette struct {
 	Name   string
 	Tracks []track
-	stats  Stats
+
+	// stats is unexported since it doesn't need serialising
+	stats Stats
 }
 
 const trackNotFound = -1
@@ -275,8 +251,27 @@ func (k7 *cassette) seekTrack(req *http.Request) int {
 	return trackNotFound
 }
 
+func (k7 *cassette) replayResponse(trackNumber int, req *http.Request) *http.Response {
+	if trackNumber == trackNotFound || trackNumber >= len(k7.Tracks) {
+		return nil
+	}
+	track := &k7.Tracks[trackNumber]
+
+	// mark the track as replayed so it doesn't get re-used
+	track.replayed = true
+
+	// update Stats
+	k7.stats.TracksPlayed++
+
+	return track.response(req)
+}
+
 // DeleteCassette removes the cassette file from disk.
 func DeleteCassette(cassetteName string) error {
+	if !CassetteExists(cassetteName) {
+		return nil
+	}
+
 	filename := cassetteNameToFilename(cassetteName)
 
 	err := os.Remove(filename)
