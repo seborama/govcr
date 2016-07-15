@@ -118,7 +118,7 @@ func TestPlaybackOrder(t *testing.T) {
 		// check outcome of the request
 		checkResponseForTestPlaybackOrder(t, cassetteName, vcr, resp, i)
 
-		if !govcr.CassetteExists(cassetteName) {
+		if !govcr.CassetteExistsAndValid(cassetteName) {
 			t.Fatalf("CassetteExists: expected true, got false")
 		}
 
@@ -171,7 +171,7 @@ func TestPlaybackOrder(t *testing.T) {
 	}
 }
 
-func checkResponseForTestRecordClientGetRequest(t *testing.T, cassetteName string, vcr *govcr.VCRControlPannel, resp *http.Response) {
+func checkResponseForTestRecordClientGetRequest(t *testing.T, cassetteName string, vcr *govcr.VCRControlPanel, resp *http.Response) {
 	if resp.StatusCode != http.StatusNotFound {
 		t.Fatalf("resp.StatusCode: Expected %d, got %d", http.StatusNotFound, resp.StatusCode)
 	}
@@ -190,14 +190,14 @@ func checkResponseForTestRecordClientGetRequest(t *testing.T, cassetteName strin
 		t.Fatalf("Body does not contain the expected string")
 	}
 
-	if !govcr.CassetteExists(cassetteName) {
+	if !govcr.CassetteExistsAndValid(cassetteName) {
 		t.Fatalf("CassetteExists: expected true, got false")
 	}
 
 	// TODO: add a test to confirm that all track are marked as replyed
 }
 
-func checkResponseForTestPlaybackOrder(t *testing.T, cassetteName string, vcr *govcr.VCRControlPannel, resp *http.Response, i int) {
+func checkResponseForTestPlaybackOrder(t *testing.T, cassetteName string, vcr *govcr.VCRControlPanel, resp *http.Response, i int) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("resp.StatusCode: Expected %d, got %d", http.StatusOK, resp.StatusCode)
 	}
