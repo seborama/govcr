@@ -1,4 +1,4 @@
-package main
+package examples_test
 
 import (
 	"crypto/tls"

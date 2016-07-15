@@ -21,8 +21,10 @@ func (vcr *VCRControlPanel) Stats() Stats {
 }
 
 // VCRConfig holds a set of options for the VCR.
+// TODO: update README.md with details of DisableRecording and FilterFunc's
 type VCRConfig struct {
 	Client                *http.Client
+	DisableRecording      bool
 	ExcludeHeaderFunc     ExcludeHeaderFunc
 	RequestBodyFilterFunc BodyFilterFunc
 }
@@ -30,6 +32,7 @@ type VCRConfig struct {
 // PCB stands for Printed Circuit Board. It is a structure that holds some
 // facilities that are passed to the VCR machine to modify its internals.
 type pcb struct {
+	DisableRecording      bool
 	Transport             http.RoundTripper
 	ExcludeHeaderFunc     ExcludeHeaderFunc
 	RequestBodyFilterFunc BodyFilterFunc
@@ -133,6 +136,8 @@ func NewVCR(cassetteName string, vcrConfig *VCRConfig) *VCRControlPanel {
 
 	// create PCB
 	pcbr := &pcb{
+		// TODO: create appropriate test!
+		DisableRecording:      vcrConfig.DisableRecording,
 		Transport:             vcrConfig.Client.Transport,
 		ExcludeHeaderFunc:     vcrConfig.ExcludeHeaderFunc,
 		RequestBodyFilterFunc: vcrConfig.RequestBodyFilterFunc,
@@ -211,12 +216,16 @@ func (t *vcrTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	}
 
 	if !requestMatched {
-		// no recorded track was found so execute the request live and record into a new
-		// track on the cassette
+		// no recorded track was found so execute the request live
 		log.Printf("INFO - Cassette '%s' - No track found for '%s' '%s' in the tracks that remain at this stage in the cassette. Recording a new track from live server", t.Cassette.Name, req.Method, req.URL.String())
 
 		resp, err = t.PCB.Transport.RoundTrip(req)
-		recordNewTrackToCassette(t.Cassette, copiedReq, resp, err)
+
+		if !t.PCB.DisableRecording {
+			// the VCR is not in read-only mode so
+			// record the HTTP traffic into a new track on the cassette
+			recordNewTrackToCassette(t.Cassette, copiedReq, resp, err)
+		}
 	}
 
 	return resp, err

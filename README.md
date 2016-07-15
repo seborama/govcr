@@ -26,6 +26,10 @@ go get github.com/seborama/govcr
 
 **govcr** is a wrapper around the Go `http.Client` which offers the ability to run pre-recorded HTTP requests ('**tracks**') instead of live HTTP calls.
 
+**govcr** can replay both successful and failed HTTP transactions.
+
+A given request may be repeated, again and again. They will be replayed in the same order as they were recorded. See the tests for an example (`TestPlaybackOrder`).
+
 The code documentation can be found on [godoc](http://godoc.org/github.com/seborama/govcr).
 
 When using **govcr**'s `http.Client`, the request is matched against the **tracks** on the '**cassette**':
@@ -82,7 +86,7 @@ Otherwise, a real live HTTP call will be made and recorded in a new track added 
 ### Custom VCR Transport
 
 Sometimes, your application will create its own `http.Client` wrapper or will initialise the `http.Client`'s Transport (for instance when using https).
-In such cases, you can pass the Transport object of your application's `http.Client` instance to VCR.
+In such cases, you can pass the `http.Client` object of your application to VCR.
 VCR will wrap your `http.Client` with its own which you can inject back into your application.
 
 ```go
@@ -123,7 +127,10 @@ func Example2() {
     }
 
     // Instantiate VCR.
-    vcr := govcr.NewVCR("MyCassette2", myapp.httpClient.Transport)
+    vcr := govcr.NewVCR("MyCassette2",
+        &govcr.VCRConfig{
+            Client: myapp.httpClient,
+        })
 
     // Inject VCR's http.Client wrapper.
     // The original transport has been preserved, only just wrapped into VCR's.
@@ -140,6 +147,15 @@ VCR provides some statistics.
 To access the stats, call `vcr.Stats()` where vcr is the `VCR` instance obtained from `NewVCR(...)`.
 
 ### Run the examples
+
+#### Make utility
+
+```bash
+make test
+make examples
+```
+
+#### Manually
 
 ```bash
 cd examples
@@ -193,7 +209,7 @@ go test -race -cover
 
 ## Bugs
 
-- NewVCR does not copy all attributes of the `http.Client` that is supplied to it as an argument (for instance, Timeout, Jar, etc).
+- None known
 
 ## Improvements
 
@@ -217,4 +233,5 @@ To circumvent this, **govcr** serialises the object type (`ErrType`) and the err
 As objects cannot be created by name at runtime in Go, rather than re-create the original error object, *govcr* creates a standard error object with an error string made of both the `ErrType` and `ErrMsg`.
 
 In practice, the implication depends on how much you care about the error type. If all you need to know is that an error occurred, you won't mind this limitation. However, if you need to know exactly what error happened, you will find this annoying.
-In a future release, support for common error (network down) could be implemented, if there is appetite for it.
+
+Mitigation: support for common error (network down) has been implemented. More error types can be implemented, if there is appetite for it.
