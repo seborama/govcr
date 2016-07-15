@@ -6,16 +6,17 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"regexp"
 )
 
-// VCRControlPannel holds the parts of a VCR that can be interacted with.
+// VCRControlPanel holds the parts of a VCR that can be interacted with.
 // Client is the HTTP client associated with the VCR.
-type VCRControlPannel struct {
+type VCRControlPanel struct {
 	Client *http.Client
 }
 
 // Stats returns Stats about the cassette and VCR session.
-func (vcr *VCRControlPannel) Stats() Stats {
+func (vcr *VCRControlPanel) Stats() Stats {
 	vcrT := vcr.Client.Transport.(*vcrTransport)
 	return vcrT.Cassette.Stats()
 }
@@ -23,15 +24,75 @@ func (vcr *VCRControlPannel) Stats() Stats {
 // PCB stands for Printer Circuit Board. It is a structure that holds some
 // facilities that are passed to the VCR machine to modify its internals.
 type PCB struct {
-	Transport        http.RoundTripper
-	HeaderFilterFunc *HeaderFilterFunc
+	Transport                http.RoundTripper
+	IgnoreHeaderMismatchFunc IgnoreHeaderMismatchFunc
+	RequestBodyFilterFunc    BodyFilterFunc
+}
+
+const trackNotFound = -1
+
+func (pcb *PCB) seekTrack(cassette *cassette, req *http.Request) int {
+	for idx := range cassette.Tracks {
+		if pcb.trackMatches(cassette, idx, req) {
+			log.Printf("INFO - Cassette '%s' - Found a track matching the request '%s' '%s'", cassette.Name, req.Method, req.URL.String())
+			return idx
+		}
+	}
+
+	return trackNotFound
+}
+
+// Matches checks whether the track is a match for the supplied request.
+func (pcb *PCB) trackMatches(cassette *cassette, trackNumber int, req *http.Request) bool {
+	if req == nil {
+		return false
+	}
+
+	// get body data safely
+	bodyData, err := readRequestBody(req)
+	if err != nil {
+		log.Println(err)
+		return false
+	}
+
+	track := cassette.Tracks[trackNumber]
+
+	return !track.replayed &&
+		track.Request.Method == req.Method &&
+		track.Request.URL.String() == req.URL.String() &&
+		pcb.headerResembles(track.Request.Header, req.Header) &&
+		pcb.bodyResembles(track.Request.Body, bodyData)
+}
+
+// Resembles compares HTTP headers for equivalence.
+func (pcb *PCB) headerResembles(header1 http.Header, header2 http.Header) bool {
+	for k, v1 := range header1 {
+		for _, v2 := range v1 {
+			if header2.Get(k) != v2 && !pcb.IgnoreHeaderMismatchFunc(k) {
+				return false
+			}
+		}
+	}
+
+	// finally assert the number of headers match
+	// TODO: perhaps should count how many h.ignoreHeader() returned true and removes that count from the len to compare?
+	if len(header1) != len(header2) {
+		return false
+	}
+
+	return true
+}
+
+// Resembles compares HTTP bodies for equivalence.
+func (pcb *PCB) bodyResembles(body1 string, body2 string) bool {
+	return *pcb.RequestBodyFilterFunc(body1) == *pcb.RequestBodyFilterFunc(body2)
 }
 
 // NewVCR creates a new VCR and loads a cassette.
 // A RoundTripper can be provided when a custom
 // Transport is needed (such as one to provide
 // certificates, etc)
-func NewVCR(cassetteName string, pcb *PCB) *VCRControlPannel {
+func NewVCR(cassetteName string, pcb *PCB) *VCRControlPanel {
 	if pcb == nil {
 		pcb = &PCB{}
 	}
@@ -41,6 +102,26 @@ func NewVCR(cassetteName string, pcb *PCB) *VCRControlPannel {
 		pcb.Transport = http.DefaultTransport
 	}
 
+	// use a default set of FilterFunc's
+	if pcb.IgnoreHeaderMismatchFunc == nil {
+		pcb.IgnoreHeaderMismatchFunc = func(key string) bool {
+			return true
+		}
+	}
+
+	if pcb.RequestBodyFilterFunc == nil {
+		pcb.RequestBodyFilterFunc = func(body string) *string {
+			regex, err := regexp.Compile(`(<MessageI[Dd] Timestamp=)"[^"]*">[^<]*(</MessageI[Dd]>)`)
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			b := regex.ReplaceAllString(body, `$1""$2`)
+
+			return &b
+		}
+	}
+
 	// load cassette
 	cassette, err := loadCassette(cassetteName)
 	if err != nil {
@@ -48,7 +129,7 @@ func NewVCR(cassetteName string, pcb *PCB) *VCRControlPannel {
 	}
 
 	// return
-	return &VCRControlPannel{
+	return &VCRControlPanel{
 		Client: &http.Client{
 			// TODO: BUG should also copy all other Client attributes such as Timeout, Jar, etc
 			Transport: &vcrTransport{
@@ -59,14 +140,14 @@ func NewVCR(cassetteName string, pcb *PCB) *VCRControlPannel {
 	}
 }
 
-// HeaderFilterFunc is a hook function that is used to filter the Header.
+// IgnoreHeaderMismatchFunc is a hook function that is used to filter the Header.
 //
 // Typically this can be used to remove / amend undesirable custom headers from the request.
 //
 // For instance, if your application sends requests with a timestamp held in a custom header,
 // you likely want to remove it or force a static timestamp via HeaderFilterFunc to
 // ensure that the request headers match those saved on the cassette's track.
-type HeaderFilterFunc func(*http.Header) *http.Header
+type IgnoreHeaderMismatchFunc func(key string) bool
 
 // BodyFilterFunc is a hook function that is used to filter the Body.
 //
@@ -82,14 +163,10 @@ type BodyFilterFunc func(string) *string
 // one provided by Go's http package or a custom one
 // if specified when calling NewVCR.
 type vcrTransport struct {
-	PCB      *PCB
-	Cassette *cassette
-
-	// TODO: this is currently ignored. Implement!
-	RequestHeaderFilter *HeaderFilterFunc
-
-	// TODO: this is currently ignored. Implement!
-	RequestBodyFilter *BodyFilterFunc
+	PCB                 *PCB
+	Cassette            *cassette
+	RequestHeaderFilter IgnoreHeaderMismatchFunc
+	RequestBodyFilter   BodyFilterFunc
 }
 
 // RoundTrip is an implementation of http.RoundTripper.
@@ -111,15 +188,14 @@ func (t *vcrTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 	// attempt to use a track from the cassette that matches
 	// the request if one exists.
-	if trackNumber := t.Cassette.seekTrack(copiedReq); trackNumber != trackNotFound {
+	if trackNumber := t.PCB.seekTrack(t.Cassette, copiedReq); trackNumber != trackNotFound {
 		resp = t.Cassette.replayResponse(trackNumber, copiedReq)
 		requestMatched = true
 	}
 
 	if !requestMatched {
-		// no recorded track was found so execute the
-		// request live and record into a new track on
-		// the cassette
+		// no recorded track was found so execute the request live and record into a new
+		// track on the cassette
 		log.Printf("INFO - Cassette '%s' - No track found for '%s' '%s' in the tracks that remain at this stage in the cassette. Recording a new track from live server", t.Cassette.Name, req.Method, req.URL.String())
 
 		resp, err = t.PCB.Transport.RoundTrip(req)

@@ -16,36 +16,12 @@ import (
 	"regexp"
 )
 
-type header http.Header
-
 // request is a recorded HTTP request.
 type request struct {
 	Method string
 	URL    *url.URL
-	Header header
+	Header http.Header
 	Body   string
-}
-
-// Resembles compares HTTP headers for equivalence.
-// TODO: BUG should not compare ALL headers (particularly those with timestamps, etc).
-func (h *header) Resembles(actual http.Header) bool {
-	if len(*h) != len(actual) {
-		log.Printf("DEBUG - Resembles - Headers length mismatch: %d vs %d\n", len(*h), len(actual))
-		log.Printf("DEBUG - Resembles - Headers: %#v vs %#v\n", *h, actual)
-		return false
-	}
-
-	for k, v1 := range *h {
-		log.Printf("DEBUG - Resembles - Comparing keys: %#v vs %#v\n", actual.Get(k), v1)
-		for _, v2 := range v1 {
-			if actual.Get(k) != v2 {
-				log.Printf("DEBUG - Resembles - Comparing values: %#v vs %#v\n", actual.Get(k), v2)
-				return false
-			}
-		}
-	}
-
-	return true
 }
 
 // response is a recorded HTTP response.
@@ -131,26 +107,6 @@ func (t *track) response(req *http.Request) *http.Response {
 	return resp
 }
 
-// Matches checks whether the track is a match for the supplied request.
-func (t *track) Matches(req *http.Request) bool {
-	if req == nil {
-		return false
-	}
-
-	// get body data safely
-	bodyData, err := readRequestBody(req)
-	if err != nil {
-		log.Println(err)
-		return false
-	}
-
-	return !t.replayed &&
-		t.Request.Method == req.Method &&
-		t.Request.URL.String() == req.URL.String() &&
-		t.Request.Header.Resembles(req.Header) &&
-		t.Request.Body == bodyData
-}
-
 // newTrack creates a new track from an HTTP request and response.
 func newTrack(req *http.Request, resp *http.Response, reqErr error) (*track, error) {
 	var (
@@ -169,7 +125,7 @@ func newTrack(req *http.Request, resp *http.Response, reqErr error) (*track, err
 		k7Request = request{
 			Method: req.Method,
 			URL:    req.URL,
-			Header: header(req.Header),
+			Header: req.Header,
 			Body:   bodyData,
 		}
 	}
@@ -238,19 +194,6 @@ type cassette struct {
 	stats Stats
 }
 
-const trackNotFound = -1
-
-func (k7 *cassette) seekTrack(req *http.Request) int {
-	for idx, track := range k7.Tracks {
-		if track.Matches(req) {
-			log.Printf("INFO - Cassette '%s' - Found a track matching the request '%s' '%s'", k7.Name, req.Method, req.URL.String())
-			return idx
-		}
-	}
-
-	return trackNotFound
-}
-
 func (k7 *cassette) replayResponse(trackNumber int, req *http.Request) *http.Response {
 	if trackNumber == trackNotFound || trackNumber >= len(k7.Tracks) {
 		return nil
@@ -268,22 +211,21 @@ func (k7 *cassette) replayResponse(trackNumber int, req *http.Request) *http.Res
 
 // DeleteCassette removes the cassette file from disk.
 func DeleteCassette(cassetteName string) error {
-	if !CassetteExists(cassetteName) {
-		return nil
-	}
-
 	filename := cassetteNameToFilename(cassetteName)
 
 	err := os.Remove(filename)
-	if err != nil {
+	if os.IsNotExist(err) {
+		// the file does not exist so this is not an error since we wanted it gone!
+		err = nil
+	} else if err != nil {
 		log.Println(err)
 	}
 
 	return err
 }
 
-// CassetteExists verifies a cassette exists and is seemingly valid.
-func CassetteExists(cassetteName string) bool {
+// CassetteExistsAndValid verifies a cassette file exists and is seemingly valid.
+func CassetteExistsAndValid(cassetteName string) bool {
 	_, err := readCassetteFromFile(cassetteName)
 	if err != nil {
 		log.Println(err)
@@ -349,6 +291,7 @@ func (k7 *cassette) save() error {
 // This is not an ideal solution but it works. In the future, we could consider adding a property that
 // records the original type and re-creates it post Unmarshal.
 func transformInterfacesInJSON(jsonString []byte) []byte {
+	// TODO: precompile this regexp perhaps via a receiver
 	regex, err := regexp.Compile(`("PublicKey":{"N":)([0-9]+),`)
 	if err != nil {
 		log.Fatalln(err)
