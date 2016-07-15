@@ -204,6 +204,12 @@ To access the stats, call `vcr.Stats()` where vcr is the `VCR` instance obtained
 
 Please refer to the `examples` directory for examples of code and uses.
 
+**Observe the output of the examples.**
+The first time they run, they perform a live HTTP call (`Executing request to live server`).
+
+However, on second execution (and sub-sequent executions as long as the **cassette** is not deleted)
+**govcr** retrieves the previously recorded request and plays it back without live HTTP call (`Found a matching track`). You can disconnect from the internet and still playback HTTP requests endlessly!
+
 #### Make utility
 
 ```bash
@@ -236,7 +242,7 @@ Running Example1...
 1st run =======================================================
 2016/07/16 00:26:21 open ./govcr-fixtures/MyCassette1.cassette: no such file or directory
 2016/07/16 00:26:21 WARNING - loadCassette - No cassette. Creating a blank one
-2016/07/16 00:26:21 INFO - Cassette 'MyCassette1' - Executing request from live server for GET http://example.com/foo
+2016/07/16 00:26:21 INFO - Cassette 'MyCassette1' - Executing request to live server for GET http://example.com/foo
 2016/07/16 00:26:23 INFO - Cassette 'MyCassette1' - Recording new track for GET http://example.com/foo
 &{404 Not Found 404 HTTP/1.1 1 1 map[Cache-Control:[max-age=604800] Content-Type:[text/html] Last-Modified:[Fri, 09 Aug 2013 23:54:35 GMT] Server:[ECS (ewr/1445)] Vary:[Accept-Encoding] Accept-Ranges:[bytes] Expires:[Fri, 22 Jul 2016 23:26:23 GMT] X-Cache:[HIT] X-Ec-Custom-Error:[1] Date:[Fri, 15 Jul 2016 23:26:23 GMT] Etag:["359670651"]] {0xc8200cc0f0} -1 [] false map[] 0xc82001a1c0 <nil>}
 2nd run =======================================================
@@ -250,7 +256,7 @@ Running Example2...
 1st run =======================================================
 2016/07/16 00:26:23 open ./govcr-fixtures/MyCassette2.cassette: no such file or directory
 2016/07/16 00:26:23 WARNING - loadCassette - No cassette. Creating a blank one
-2016/07/16 00:26:23 INFO - Cassette 'MyCassette2' - Executing request from live server for GET https://example.com/foo
+2016/07/16 00:26:23 INFO - Cassette 'MyCassette2' - Executing request to live server for GET https://example.com/foo
 2016/07/16 00:26:24 INFO - Cassette 'MyCassette2' - Recording new track for GET https://example.com/foo
 &{404 Not Found 404 HTTP/1.1 1 1 map[Accept-Ranges:[bytes] Date:[Fri, 15 Jul 2016 23:26:25 GMT] Etag:["359670651+gzip"] Vary:[Accept-Encoding] X-Ec-Custom-Error:[1] Cache-Control:[max-age=604800] Content-Type:[text/html] Expires:[Fri, 22 Jul 2016 23:26:25 GMT] Last-Modified:[Fri, 09 Aug 2013 23:54:35 GMT] Server:[ECS (ewr/15F1)] X-Cache:[HIT]] 0xc8200b5020 -1 [] false map[] 0xc82010e540 0xc820110420}
 2nd run =======================================================
@@ -264,7 +270,7 @@ Running Example4...
 1st run =======================================================
 2016/07/16 00:26:25 open ./govcr-fixtures/MyCassette4.cassette: no such file or directory
 2016/07/16 00:26:25 WARNING - loadCassette - No cassette. Creating a blank one
-2016/07/16 00:26:25 INFO - Cassette 'MyCassette4' - Executing request from live server for POST http://example.com/foo
+2016/07/16 00:26:25 INFO - Cassette 'MyCassette4' - Executing request to live server for POST http://example.com/foo
 2016/07/16 00:26:25 INFO - Cassette 'MyCassette4' - Recording new track for POST http://example.com/foo
 &{404 Not Found 404 HTTP/1.1 1 1 map[Content-Length:[454] Cache-Control:[max-age=604800] Content-Type:[text/html] Date:[Fri, 15 Jul 2016 23:26:25 GMT] Expires:[Fri, 22 Jul 2016 23:26:25 GMT] Server:[EOS (lax004/2813)]] {0xc82016a4e0} 454 [] false map[] 0xc82001b5e0 <nil>}
 2nd run =======================================================
