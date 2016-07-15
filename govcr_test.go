@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strings"
 	"testing"
@@ -109,7 +108,6 @@ func TestPlaybackOrder(t *testing.T) {
 
 	// run requests
 	for i := 1; i <= 10; i++ {
-		log.Printf("i=%d\n", i)
 		resp, err := client.Get(ts.URL)
 		if err != nil {
 			t.Fatalf("err from c.Get(): Expected nil, got %s", err)
