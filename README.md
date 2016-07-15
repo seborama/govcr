@@ -140,6 +140,60 @@ func Example2() {
 }
 ```
 
+### Custom VCR with a ExcludeHeaderFunc
+
+This example shows how to handle situations where a header in the request needs to be ignored.
+
+Note: `RequestBodyFilterFunc` achieves a similar purpose with the Body of the request.
+      This is useful when some of the data in the Body needs to be transformed before it
+      can be evaluated for comparison matching for playback.
+
+```go
+package main
+
+import (
+    "fmt"
+    "strings"
+    "time"
+
+    "net/http"
+
+    "github.com/seborama/govcr"
+)
+
+const example4CassetteName = "MyCassette4"
+
+// Example4 is an example use of govcr.
+// The request contains a customer header 'X-Custom-My-Date' which varies with every request.
+// This example shows how to exclude a particular header from the request to facilitate
+// matching a previous recording.
+// Without the ExcludeHeaderFunc, the headers would not match and hence the playback would not
+// happen!
+func Example4() {
+    vcr := govcr.NewVCR(example4CassetteName,
+        &govcr.VCRConfig{
+            ExcludeHeaderFunc: func(key string) bool {
+                // HTTP headers are case-insensitive
+                return strings.ToLower(key) == "x-custom-my-date"
+            },
+        })
+
+    // create a request with our custom header
+    req, err := http.NewRequest("POST", "http://example.com/foo", nil)
+    if err != nil {
+        fmt.Println(err)
+    }
+    req.Header.Add("X-Custom-My-Date", time.Now().String())
+
+    // run the request
+    resp, err := vcr.Client.Do(req)
+    if err != nil {
+        fmt.Println(err)
+    }
+    fmt.Println(resp)
+}
+```
+
 ### Stats
 
 VCR provides some statistics.
@@ -147,6 +201,8 @@ VCR provides some statistics.
 To access the stats, call `vcr.Stats()` where vcr is the `VCR` instance obtained from `NewVCR(...)`.
 
 ### Run the examples
+
+Please refer to the `examples` directory for examples of code and uses.
 
 #### Make utility
 
@@ -177,28 +233,45 @@ First execution - notice the 'No track found' INFO messages for both **cassettes
 
 ```bash
 Running Example1...
-=======================================================
-2016/07/13 10:42:03 stat ./govcr-fixtures/MyCassette1.cassette: no such file or directory
-2016/07/13 10:42:03 WARNING - loadCassette - No cassette. Creating a blank one
-2016/07/13 10:42:03 INFO - Cassette 'MyCassette1' - No track found for 'GET' 'http://example.com/foo' in the tracks that remain at this stage ([]govcr.track(nil)). Recording a new track from live server
+1st run =======================================================
+2016/07/16 00:26:21 open ./govcr-fixtures/MyCassette1.cassette: no such file or directory
+2016/07/16 00:26:21 WARNING - loadCassette - No cassette. Creating a blank one
+2016/07/16 00:26:21 INFO - Cassette 'MyCassette1' - Executing request from live server for GET http://example.com/foo
+2016/07/16 00:26:23 INFO - Cassette 'MyCassette1' - Recording new track for GET http://example.com/foo
+&{404 Not Found 404 HTTP/1.1 1 1 map[Cache-Control:[max-age=604800] Content-Type:[text/html] Last-Modified:[Fri, 09 Aug 2013 23:54:35 GMT] Server:[ECS (ewr/1445)] Vary:[Accept-Encoding] Accept-Ranges:[bytes] Expires:[Fri, 22 Jul 2016 23:26:23 GMT] X-Cache:[HIT] X-Ec-Custom-Error:[1] Date:[Fri, 15 Jul 2016 23:26:23 GMT] Etag:["359670651"]] {0xc8200cc0f0} -1 [] false map[] 0xc82001a1c0 <nil>}
+2nd run =======================================================
+DEBUG - headers match
+2016/07/16 00:26:23 INFO - Cassette 'MyCassette1' - Found a matching track for GET http://example.com/foo
+&{404 Not Found 404 HTTP/1.1 1 1 map[Etag:["359670651"] Expires:[Fri, 22 Jul 2016 23:26:23 GMT] Server:[ECS (ewr/1445)] Vary:[Accept-Encoding] X-Cache:[HIT] X-Ec-Custom-Error:[1] Accept-Ranges:[bytes] Cache-Control:[max-age=604800] Content-Type:[text/html] Date:[Fri, 15 Jul 2016 23:26:23 GMT] Last-Modified:[Fri, 09 Aug 2013 23:54:35 GMT]] {0xc8200ccf30} -1 [] false map[] 0xc82010e380 <nil>}
+Complete ======================================================
+
 
 Running Example2...
-=======================================================
-2016/07/13 10:42:03 stat ./govcr-fixtures/MyCassette2.cassette: no such file or directory
-2016/07/13 10:42:03 WARNING - loadCassette - No cassette. Creating a blank one
-2016/07/13 10:42:03 INFO - Cassette 'MyCassette2' - No track found for 'GET' 'https://example.com/foo' in the tracks that remain at this stage ([]govcr.track(nil)). Recording a new track from live server
-```
+1st run =======================================================
+2016/07/16 00:26:23 open ./govcr-fixtures/MyCassette2.cassette: no such file or directory
+2016/07/16 00:26:23 WARNING - loadCassette - No cassette. Creating a blank one
+2016/07/16 00:26:23 INFO - Cassette 'MyCassette2' - Executing request from live server for GET https://example.com/foo
+2016/07/16 00:26:24 INFO - Cassette 'MyCassette2' - Recording new track for GET https://example.com/foo
+&{404 Not Found 404 HTTP/1.1 1 1 map[Accept-Ranges:[bytes] Date:[Fri, 15 Jul 2016 23:26:25 GMT] Etag:["359670651+gzip"] Vary:[Accept-Encoding] X-Ec-Custom-Error:[1] Cache-Control:[max-age=604800] Content-Type:[text/html] Expires:[Fri, 22 Jul 2016 23:26:25 GMT] Last-Modified:[Fri, 09 Aug 2013 23:54:35 GMT] Server:[ECS (ewr/15F1)] X-Cache:[HIT]] 0xc8200b5020 -1 [] false map[] 0xc82010e540 0xc820110420}
+2nd run =======================================================
+DEBUG - headers match
+2016/07/16 00:26:25 INFO - Cassette 'MyCassette2' - Found a matching track for GET https://example.com/foo
+&{404 Not Found 404 HTTP/1.1 1 1 map[Cache-Control:[max-age=604800] Expires:[Fri, 22 Jul 2016 23:26:25 GMT] Last-Modified:[Fri, 09 Aug 2013 23:54:35 GMT] Server:[ECS (ewr/15F1)] Vary:[Accept-Encoding] X-Cache:[HIT] X-Ec-Custom-Error:[1] Accept-Ranges:[bytes] Content-Type:[text/html] Date:[Fri, 15 Jul 2016 23:26:25 GMT] Etag:["359670651+gzip"]] 0xc82027ee60 -1 [] false map[] 0xc82001aa80 0xc8200b86e0}
+Complete ======================================================
 
-Second execution (when **cassettes** exist with applicable **tracks**) - notice the 'Replaying roundtrip from track' INFO messages for both **cassettes** - no more live HTTP call 😊 :
 
-```bash
-Running Example1...
-=======================================================
-2016/07/13 10:44:09 INFO - Cassette 'MyCassette1' - Replaying roundtrip from track 'GET' 'http://example.com/foo'
-
-Running Example2...
-=======================================================
-2016/07/13 14:26:30 INFO - Cassette 'MyCassette2' - Replaying roundtrip from track 'GET' 'https://example.com/foo'
+Running Example4...
+1st run =======================================================
+2016/07/16 00:26:25 open ./govcr-fixtures/MyCassette4.cassette: no such file or directory
+2016/07/16 00:26:25 WARNING - loadCassette - No cassette. Creating a blank one
+2016/07/16 00:26:25 INFO - Cassette 'MyCassette4' - Executing request from live server for POST http://example.com/foo
+2016/07/16 00:26:25 INFO - Cassette 'MyCassette4' - Recording new track for POST http://example.com/foo
+&{404 Not Found 404 HTTP/1.1 1 1 map[Content-Length:[454] Cache-Control:[max-age=604800] Content-Type:[text/html] Date:[Fri, 15 Jul 2016 23:26:25 GMT] Expires:[Fri, 22 Jul 2016 23:26:25 GMT] Server:[EOS (lax004/2813)]] {0xc82016a4e0} 454 [] false map[] 0xc82001b5e0 <nil>}
+2nd run =======================================================
+DEBUG - headers match
+2016/07/16 00:26:25 INFO - Cassette 'MyCassette4' - Found a matching track for POST http://example.com/foo
+&{404 Not Found 404 HTTP/1.1 1 1 map[Cache-Control:[max-age=604800] Content-Length:[454] Content-Type:[text/html] Date:[Fri, 15 Jul 2016 23:26:25 GMT] Expires:[Fri, 22 Jul 2016 23:26:25 GMT] Server:[EOS (lax004/2813)]] {0xc82016a8a0} 454 [] false map[] 0xc82010ed20 <nil>}
+Complete ======================================================
 ```
 
 ## Run the tests

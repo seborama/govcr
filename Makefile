@@ -8,13 +8,6 @@ test: deps
 	go test -cover -race -parallel 2 ./...
 
 examples: deps
-	@-echo "First execution: live HTTP calls"
-	@-echo "--------------------------------"
-	@-rm -rf ./govcr-fixtures
-	go run ./examples/*.go
-	@-echo "\n\n"
-	@-echo "Second execution: VCR replayed HTTP calls"
-	@-echo "-----------------------------------------"
 	go run ./examples/*.go
 
 lint: deps

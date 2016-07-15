@@ -43,7 +43,7 @@ const trackNotFound = -1
 func (pcbr *pcb) seekTrack(cassette *cassette, req *http.Request) int {
 	for idx := range cassette.Tracks {
 		if pcbr.trackMatches(cassette, idx, req) {
-			log.Printf("INFO - Cassette '%s' - Found a track matching the request '%s' '%s'", cassette.Name, req.Method, req.URL.String())
+			log.Printf("INFO - Cassette '%s' - Found a matching track for %s %s\n", cassette.Name, req.Method, req.URL.String())
 			return idx
 		}
 	}
@@ -217,13 +217,14 @@ func (t *vcrTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 	if !requestMatched {
 		// no recorded track was found so execute the request live
-		log.Printf("INFO - Cassette '%s' - No track found for '%s' '%s' in the tracks that remain at this stage in the cassette. Recording a new track from live server", t.Cassette.Name, req.Method, req.URL.String())
+		log.Printf("INFO - Cassette '%s' - Executing request from live server for %s %s\n", t.Cassette.Name, req.Method, req.URL.String())
 
 		resp, err = t.PCB.Transport.RoundTrip(req)
 
 		if !t.PCB.DisableRecording {
 			// the VCR is not in read-only mode so
 			// record the HTTP traffic into a new track on the cassette
+			log.Printf("INFO - Cassette '%s' - Recording new track for %s %s\n", t.Cassette.Name, req.Method, req.URL.String())
 			recordNewTrackToCassette(t.Cassette, copiedReq, resp, err)
 		}
 	}
