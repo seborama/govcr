@@ -102,8 +102,8 @@ func TestPlaybackOrder(t *testing.T) {
 
 	// create a vcr
 	vcr := govcr.NewVCR(cassetteName,
-		&govcr.PCB{
-			Transport: tr,
+		&govcr.VCRConfig{
+			Client: &http.Client{Transport: tr},
 		})
 	client := vcr.Client
 
@@ -142,8 +142,8 @@ func TestPlaybackOrder(t *testing.T) {
 
 	// re-run request and expect play back from vcr
 	vcr = govcr.NewVCR(cassetteName,
-		&govcr.PCB{
-			Transport: tr,
+		&govcr.VCRConfig{
+			Client: &http.Client{Transport: tr},
 		})
 	client = vcr.Client
 

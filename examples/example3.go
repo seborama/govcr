@@ -35,8 +35,8 @@ func Example3() {
 
 	// Instantiate VCR.
 	vcr := govcr.NewVCR("MyCassette3",
-		&govcr.PCB{
-			Transport: myapp.httpClient.Transport,
+		&govcr.VCRConfig{
+			Client: myapp.httpClient,
 		})
 
 	// Inject VCR's http.Client wrapper.
