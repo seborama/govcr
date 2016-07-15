@@ -217,7 +217,7 @@ func (t *vcrTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 	if !requestMatched {
 		// no recorded track was found so execute the request live
-		log.Printf("INFO - Cassette '%s' - Executing request from live server for %s %s\n", t.Cassette.Name, req.Method, req.URL.String())
+		log.Printf("INFO - Cassette '%s' - Executing request to live server for %s %s\n", t.Cassette.Name, req.Method, req.URL.String())
 
 		resp, err = t.PCB.Transport.RoundTrip(req)
 
