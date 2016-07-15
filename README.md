@@ -205,6 +205,7 @@ To access the stats, call `vcr.Stats()` where vcr is the `VCR` instance obtained
 Please refer to the `examples` directory for examples of code and uses.
 
 **Observe the output of the examples.**
+
 The first time they run, they perform a live HTTP call (`Executing request to live server`).
 
 However, on second execution (and sub-sequent executions as long as the **cassette** is not deleted)
@@ -213,7 +214,6 @@ However, on second execution (and sub-sequent executions as long as the **casset
 #### Make utility
 
 ```bash
-make test
 make examples
 ```
 
@@ -221,15 +221,6 @@ make examples
 
 ```bash
 cd examples
-
-# clear the fixtures
-rm govcr-fixtures/*.cassette
-
-# the first time, live calls are made to the HTTP server
-go run *.go
-
-# the second time, VCR plays back the tracks from the cassette
-# observe the info messages displayed in the output
 go run *.go
 ```
 
@@ -281,6 +272,12 @@ Complete ======================================================
 ```
 
 ## Run the tests
+
+```bash
+make test
+```
+
+or
 
 ```bash
 go test -race -cover
