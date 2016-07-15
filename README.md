@@ -35,6 +35,29 @@ When using **govcr**'s `http.Client`, the request is matched against the **track
 
 **Cassette** recordings are saved under `./govcr-fixtures` as `*.cassette` files in JSON format.
 
+## Features
+
+- Record extensive details about the request, response or error to provide as accurate a playback as possible compared to the live HTTP request.
+
+- Recordings are JSON files and can be read in an editor.
+
+- Custom Go `http.Client`'s can be supplied.
+
+- Custom Go `http.Transport` / `http.RoundTrippers`.
+
+- http / https supported and any other protocol implemented by the supplied `http.Client`'s `http.RoundTripper`.
+
+- Hook to define HTTP headers that should be excluded from the HTTP request when attemtping to retrieve a **track** for playback.
+  This is useful to deal with non-static HTTP headers (for example, containing a timestamp).
+
+- Hook to parse the Body of an HTTP request to deal with non-static data. The purpose is similar to the hook for headers described above.
+
+- Ability to switch off automatic recordings.
+  This allows to play back existing records or make
+  a live HTTP call without recording it to the **cassette**.
+
+- Record SSL certificates.
+
 ## Examples
 
 ### Simple VCR
