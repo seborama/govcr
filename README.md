@@ -20,7 +20,7 @@ go get github.com/seborama/govcr
 
 **tracks**: a record of an HTTP request. It contains the request data, the response data, if available, or the error that occurred.
 
-**PCB**: Printed Circuit Board. This is an analogy that refers to the ability to supply customisations to certain aspects of the behaviour of the **VCR** (for instance, disable recordings).
+**PCB**: Printed Circuit Board. This is an analogy that refers to the ability to supply customisations to certain aspects of the behaviour of the **VCR** (for instance, disable recordings or ignore certain HTTP headers in the request when looking for a previously recorded **track**).
 
 ## Documentation
 
