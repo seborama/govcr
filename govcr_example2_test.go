@@ -66,7 +66,7 @@ func runTestEx2(app *myApp) {
 // Example2 is an example use of govcr.
 // It shows the use of a VCR with a custom Client.
 // Here, the app executes a GET request.
-func Example_numer2CustomClientVCR1() {
+func Example_number2CustomClientVCR1() {
 	// Create a custom http.Transport.
 	tr := http.DefaultTransport.(*http.Transport)
 	tr.TLSClientConfig = &tls.Config{
