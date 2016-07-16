@@ -14,7 +14,7 @@ go get github.com/seborama/govcr
 
 ## Glossary of Terms
 
-**VCR**: Video Cassette Recorder. In this context, a VCR refers to the overall engine and data that this project provides. A VCR is both an HTTP recorder and player. When you use a VCR, HTTP requests are replayed from previous recordings (**tracks saved in **cassette** files on the filesystem). When no previous recording exists for the request, it is performed live on the HTTP server the request is intended to, after what it is saved to a **track** on the **cassette**.
+**VCR**: Video Cassette Recorder. In this context, a VCR refers to the overall engine and data that this project provides. A VCR is both an HTTP recorder and player. When you use a VCR, HTTP requests are replayed from previous recordings (**tracks** saved in **cassette** files on the filesystem). When no previous recording exists for the request, it is performed live on the HTTP server the request is intended to, after what it is saved to a **track** on the **cassette**.
 
 **cassette**: a sequential collection of **tracks**. This is in effect a JSON file saved under directory `./govcr-fixtures`. The **cassette** is given a name when creating the **VCR** which becomes the filename (with an extension of `.cassette`).
 
