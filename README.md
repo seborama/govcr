@@ -41,7 +41,7 @@ When using **govcr**'s `http.Client`, the request is matched against the **track
 
 ## Features
 
-- Record extensive details about the request, response or error to provide as accurate a playback as possible compared to the live HTTP request.
+- Record extensive details about the request, response or error (network error, timeout, etc) to provide as accurate a playback as possible compared to the live HTTP request.
 
 - Recordings are JSON files and can be read in an editor.
 
@@ -197,7 +197,7 @@ func Example4() {
 ### Stats
 
 VCR provides some statistics.
-
+The 
 To access the stats, call `vcr.Stats()` where vcr is the `VCR` instance obtained from `NewVCR(...)`.
 
 ### Run the examples
@@ -300,7 +300,7 @@ This can cause json.Unmarshall to fail (example: when the original type was `big
 
 Currently, this is dealt with by converting the output of the JSON produced by `json.Marshal` (big.Int is changed to a string).
 
-### HTTP errors
+### HTTP transport errors
 
 **govcr** also records `http.Client` errors (network down, blocking firewall, timeout, etc) in the **cassette** for future play back.
 As `errors` is an interface, when it is unmarshalled into JSON, the Go type of the `error` is lost.
