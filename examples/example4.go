@@ -25,6 +25,7 @@ func Example4() {
 				// HTTP headers are case-insensitive
 				return strings.ToLower(key) == "x-custom-my-date"
 			},
+			Logging: true,
 		})
 
 	// create a request with our custom header
@@ -35,9 +36,6 @@ func Example4() {
 	req.Header.Add("X-Custom-My-Date", time.Now().String())
 
 	// run the request
-	resp, err := vcr.Client.Do(req)
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println(resp)
+	vcr.Client.Do(req)
+	fmt.Printf("%+v\n", vcr.Stats())
 }

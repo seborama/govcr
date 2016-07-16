@@ -17,12 +17,7 @@ type myApp struct {
 }
 
 func (app myApp) Get(url string) {
-	resp, err := app.httpClient.Get(url)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	fmt.Println(resp)
+	app.httpClient.Get(url)
 }
 
 // Example2 is an example use of govcr.
@@ -54,5 +49,7 @@ func Example2() {
 	// The original transport has been preserved, only just wrapped into VCR's.
 	myapp.httpClient = vcr.Client
 
+	// Run request and display stats.
 	myapp.Get("https://example.com/foo")
+	fmt.Printf("%+v\n", vcr.Stats())
 }
