@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -118,8 +117,7 @@ func newTrack(req *http.Request, resp *http.Response, reqErr error) (*track, err
 	if req != nil {
 		bodyData, err := readRequestBody(req)
 		if err != nil {
-			log.Println(err)
-			// continue nonetheless
+			return nil, err
 		}
 
 		k7Request = request{
@@ -134,8 +132,7 @@ func newTrack(req *http.Request, resp *http.Response, reqErr error) (*track, err
 	if resp != nil {
 		bodyData, err := readResponseBody(resp)
 		if err != nil {
-			log.Println(err)
-			// continue nonetheless
+			return nil, err
 		}
 
 		k7Response = response{
@@ -217,8 +214,6 @@ func DeleteCassette(cassetteName string) error {
 	if os.IsNotExist(err) {
 		// the file does not exist so this is not an error since we wanted it gone!
 		err = nil
-	} else if err != nil {
-		log.Println(err)
 	}
 
 	return err
@@ -228,7 +223,6 @@ func DeleteCassette(cassetteName string) error {
 func CassetteExistsAndValid(cassetteName string) bool {
 	_, err := readCassetteFromFile(cassetteName)
 	if err != nil {
-		log.Println(err)
 		return false
 	}
 
@@ -249,19 +243,19 @@ func (k7 *cassette) save() error {
 	// marshal
 	data, err := json.Marshal(k7)
 	if err != nil {
-		log.Println(err)
 		return err
 	}
 
 	// transform properties known to fail on Unmarshal
-	data = transformInterfacesInJSON(data)
+	data, err = transformInterfacesInJSON(data)
+	if err != nil {
+		return err
+	}
 
 	// beautify JSON (now that the JSON text has been transformed)
 	var iData bytes.Buffer
 
-	err = json.Indent(&iData, data, "", "  ")
-	if err != nil {
-		log.Println(err)
+	if err := json.Indent(&iData, data, "", "  "); err != nil {
 		return err
 	}
 
@@ -269,16 +263,11 @@ func (k7 *cassette) save() error {
 	filename := cassetteNameToFilename(k7.Name)
 	path := filepath.Dir(filename)
 	if err := os.MkdirAll(path, 0750); err != nil {
-		log.Println(err)
 		return err
 	}
 
-	if err := ioutil.WriteFile(filename, iData.Bytes(), 0640); err != nil {
-		log.Println(err)
-		return err
-	}
-
-	return nil
+	err = ioutil.WriteFile(filename, iData.Bytes(), 0640)
+	return err
 }
 
 // transformInterfacesInJSON looks for known properties in the JSON that are defined as interface{}
@@ -290,14 +279,14 @@ func (k7 *cassette) save() error {
 //
 // This is not an ideal solution but it works. In the future, we could consider adding a property that
 // records the original type and re-creates it post Unmarshal.
-func transformInterfacesInJSON(jsonString []byte) []byte {
+func transformInterfacesInJSON(jsonString []byte) ([]byte, error) {
 	// TODO: precompile this regexp perhaps via a receiver
 	regex, err := regexp.Compile(`("PublicKey":{"N":)([0-9]+),`)
 	if err != nil {
-		log.Fatalln(err)
+		return []byte{}, err
 	}
 
-	return []byte(regex.ReplaceAllString(string(jsonString), `$1"$2",`))
+	return []byte(regex.ReplaceAllString(string(jsonString), `$1"$2",`)), nil
 }
 
 // addTrack adds a track to a cassette.
@@ -314,13 +303,11 @@ func (k7 *cassette) Stats() Stats {
 func loadCassette(cassetteName string) (*cassette, error) {
 	k7, err := readCassetteFromFile(cassetteName)
 	if err != nil && !os.IsNotExist(err) {
-		log.Println(err)
 		return nil, err
 	}
 
 	// provide an empty cassette as a minimum
 	if k7 == nil {
-		log.Println("WARNING - loadCassette - No cassette. Creating a blank one")
 		k7 = &cassette{Name: cassetteName}
 	}
 
@@ -337,7 +324,6 @@ func readCassetteFromFile(cassetteName string) (*cassette, error) {
 	// retrieve cassette from file
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
-		log.Println(err)
 		return nil, err
 	}
 
@@ -345,7 +331,6 @@ func readCassetteFromFile(cassetteName string) (*cassette, error) {
 	cassette := &cassette{}
 	// NOTE: Properties which are of type 'interface{}' are not handled very well
 	if err := json.Unmarshal(data, cassette); err != nil {
-		log.Println(err)
 		return nil, err
 	}
 
