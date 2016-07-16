@@ -56,7 +56,7 @@ func runTestEx4() {
 // Example_simpleVCR is an example use of govcr.
 // It shows how to use govcr in the simplest case when the default
 // http.Client suffices.
-func Example_headerExclusionVCR() {
+func Example_number3HeaderExclusionVCR() {
 	// Delete cassette to enable live HTTP call
 	govcr.DeleteCassette(example3CassetteName)
 
