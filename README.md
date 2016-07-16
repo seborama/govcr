@@ -64,26 +64,33 @@ When using **govcr**'s `http.Client`, the request is matched against the **track
 
 ## Examples
 
-### Simple VCR
+### Example 1 - Simple VCR
 
 When no special HTTP Transport is required by your `http.Client`, you can use VCR with the default transport:
 
 ```go
 package main
 
-import "github.com/seborama/govcr"
+import (
+    "fmt"
+
+    "github.com/seborama/govcr"
+)
+
+const example1CassetteName = "MyCassette1"
 
 // Example1 is an example use of govcr.
 func Example1() {
-    vcr := govcr.NewVCR("MyCassette1", nil)
+    vcr := govcr.NewVCR(example1CassetteName, nil)
     vcr.Client.Get("http://example.com/foo")
+    fmt.Printf("%+v\n", vcr.Stats())
 }
 ```
 
 If the **cassette** exists and a **track** matches the request, it will be played back without any real HTTP call to the live server.
 Otherwise, a real live HTTP call will be made and recorded in a new track added to the **cassette**.
 
-### Custom VCR Transport
+### Example 2 - Custom VCR Transport
 
 Sometimes, your application will create its own `http.Client` wrapper or will initialise the `http.Client`'s Transport (for instance when using https).
 In such cases, you can pass the `http.Client` object of your application to VCR.
@@ -94,11 +101,14 @@ package main
 
 import (
     "crypto/tls"
+    "fmt"
     "net/http"
     "time"
 
     "github.com/seborama/govcr"
 )
+
+const example2CassetteName = "MyCassette2"
 
 // myApp is an application container.
 type myApp struct {
@@ -110,6 +120,8 @@ func (app myApp) Get(url string) {
 }
 
 // Example2 is an example use of govcr.
+// It shows the use of a VCR with a custom Client.
+// Here, the app executes a GET request.
 func Example2() {
     // Create a custom http.Transport.
     tr := http.DefaultTransport.(*http.Transport)
@@ -127,7 +139,7 @@ func Example2() {
     }
 
     // Instantiate VCR.
-    vcr := govcr.NewVCR("MyCassette2",
+    vcr := govcr.NewVCR(example2CassetteName,
         &govcr.VCRConfig{
             Client: myapp.httpClient,
         })
@@ -136,13 +148,22 @@ func Example2() {
     // The original transport has been preserved, only just wrapped into VCR's.
     myapp.httpClient = vcr.Client
 
+    // Run request and display stats.
     myapp.Get("https://example.com/foo")
+    fmt.Printf("%+v\n", vcr.Stats())
 }
 ```
 
-### Custom VCR with a ExcludeHeaderFunc
+### Example 3 - Custom VCR, POST method
+
+Please refer to the source file in the `examples` directory.
+This example is identical to Example 2 but with a POST request rather than a GET.
+
+### Example 4 - Custom VCR with a ExcludeHeaderFunc
 
 This example shows how to handle situations where a header in the request needs to be ignored.
+
+For this example, logging is switched on. This is achieved with `Logging: true` in `VCRConfig` when calling `NewVCR`.
 
 Note: `RequestBodyFilterFunc` achieves a similar purpose with the Body of the request.
       This is useful when some of the data in the Body needs to be transformed before it
@@ -176,6 +197,7 @@ func Example4() {
                 // HTTP headers are case-insensitive
                 return strings.ToLower(key) == "x-custom-my-date"
             },
+            Logging: true,
         })
 
     // create a request with our custom header
@@ -186,18 +208,15 @@ func Example4() {
     req.Header.Add("X-Custom-My-Date", time.Now().String())
 
     // run the request
-    resp, err := vcr.Client.Do(req)
-    if err != nil {
-        fmt.Println(err)
-    }
-    fmt.Println(resp)
+    vcr.Client.Do(req)
+    fmt.Printf("%+v\n", vcr.Stats())
 }
 ```
 
 ### Stats
 
 VCR provides some statistics.
-The 
+The
 To access the stats, call `vcr.Stats()` where vcr is the `VCR` instance obtained from `NewVCR(...)`.
 
 ### Run the examples
@@ -226,48 +245,43 @@ go run *.go
 
 #### Output
 
-First execution - notice the 'No track found' INFO messages for both **cassettes**:
+First execution - notice the stats show that a **track** was recorded (from a live HTTP call).
+
+Second execution - no **track** is recorded (no live HTTP call) but 1 **track** is loaded and played back.
 
 ```bash
 Running Example1...
 1st run =======================================================
-2016/07/16 00:26:21 open ./govcr-fixtures/MyCassette1.cassette: no such file or directory
-2016/07/16 00:26:21 WARNING - loadCassette - No cassette. Creating a blank one
-2016/07/16 00:26:21 INFO - Cassette 'MyCassette1' - Executing request to live server for GET http://example.com/foo
-2016/07/16 00:26:23 INFO - Cassette 'MyCassette1' - Recording new track for GET http://example.com/foo
-&{404 Not Found 404 HTTP/1.1 1 1 map[Cache-Control:[max-age=604800] Content-Type:[text/html] Last-Modified:[Fri, 09 Aug 2013 23:54:35 GMT] Server:[ECS (ewr/1445)] Vary:[Accept-Encoding] Accept-Ranges:[bytes] Expires:[Fri, 22 Jul 2016 23:26:23 GMT] X-Cache:[HIT] X-Ec-Custom-Error:[1] Date:[Fri, 15 Jul 2016 23:26:23 GMT] Etag:["359670651"]] {0xc8200cc0f0} -1 [] false map[] 0xc82001a1c0 <nil>}
+{TracksLoaded:0 TracksRecorded:1 TracksPlayed:0}
 2nd run =======================================================
-DEBUG - headers match
-2016/07/16 00:26:23 INFO - Cassette 'MyCassette1' - Found a matching track for GET http://example.com/foo
-&{404 Not Found 404 HTTP/1.1 1 1 map[Etag:["359670651"] Expires:[Fri, 22 Jul 2016 23:26:23 GMT] Server:[ECS (ewr/1445)] Vary:[Accept-Encoding] X-Cache:[HIT] X-Ec-Custom-Error:[1] Accept-Ranges:[bytes] Cache-Control:[max-age=604800] Content-Type:[text/html] Date:[Fri, 15 Jul 2016 23:26:23 GMT] Last-Modified:[Fri, 09 Aug 2013 23:54:35 GMT]] {0xc8200ccf30} -1 [] false map[] 0xc82010e380 <nil>}
+{TracksLoaded:1 TracksRecorded:0 TracksPlayed:1}
 Complete ======================================================
 
 
 Running Example2...
 1st run =======================================================
-2016/07/16 00:26:23 open ./govcr-fixtures/MyCassette2.cassette: no such file or directory
-2016/07/16 00:26:23 WARNING - loadCassette - No cassette. Creating a blank one
-2016/07/16 00:26:23 INFO - Cassette 'MyCassette2' - Executing request to live server for GET https://example.com/foo
-2016/07/16 00:26:24 INFO - Cassette 'MyCassette2' - Recording new track for GET https://example.com/foo
-&{404 Not Found 404 HTTP/1.1 1 1 map[Accept-Ranges:[bytes] Date:[Fri, 15 Jul 2016 23:26:25 GMT] Etag:["359670651+gzip"] Vary:[Accept-Encoding] X-Ec-Custom-Error:[1] Cache-Control:[max-age=604800] Content-Type:[text/html] Expires:[Fri, 22 Jul 2016 23:26:25 GMT] Last-Modified:[Fri, 09 Aug 2013 23:54:35 GMT] Server:[ECS (ewr/15F1)] X-Cache:[HIT]] 0xc8200b5020 -1 [] false map[] 0xc82010e540 0xc820110420}
+{TracksLoaded:0 TracksRecorded:1 TracksPlayed:0}
 2nd run =======================================================
-DEBUG - headers match
-2016/07/16 00:26:25 INFO - Cassette 'MyCassette2' - Found a matching track for GET https://example.com/foo
-&{404 Not Found 404 HTTP/1.1 1 1 map[Cache-Control:[max-age=604800] Expires:[Fri, 22 Jul 2016 23:26:25 GMT] Last-Modified:[Fri, 09 Aug 2013 23:54:35 GMT] Server:[ECS (ewr/15F1)] Vary:[Accept-Encoding] X-Cache:[HIT] X-Ec-Custom-Error:[1] Accept-Ranges:[bytes] Content-Type:[text/html] Date:[Fri, 15 Jul 2016 23:26:25 GMT] Etag:["359670651+gzip"]] 0xc82027ee60 -1 [] false map[] 0xc82001aa80 0xc8200b86e0}
+{TracksLoaded:1 TracksRecorded:0 TracksPlayed:1}
+Complete ======================================================
+
+
+Running Example3...
+1st run =======================================================
+{TracksLoaded:0 TracksRecorded:1 TracksPlayed:0}
+2nd run =======================================================
+{TracksLoaded:1 TracksRecorded:0 TracksPlayed:1}
 Complete ======================================================
 
 
 Running Example4...
 1st run =======================================================
-2016/07/16 00:26:25 open ./govcr-fixtures/MyCassette4.cassette: no such file or directory
-2016/07/16 00:26:25 WARNING - loadCassette - No cassette. Creating a blank one
-2016/07/16 00:26:25 INFO - Cassette 'MyCassette4' - Executing request to live server for POST http://example.com/foo
-2016/07/16 00:26:25 INFO - Cassette 'MyCassette4' - Recording new track for POST http://example.com/foo
-&{404 Not Found 404 HTTP/1.1 1 1 map[Content-Length:[454] Cache-Control:[max-age=604800] Content-Type:[text/html] Date:[Fri, 15 Jul 2016 23:26:25 GMT] Expires:[Fri, 22 Jul 2016 23:26:25 GMT] Server:[EOS (lax004/2813)]] {0xc82016a4e0} 454 [] false map[] 0xc82001b5e0 <nil>}
+2016/07/17 00:08:01 INFO - Cassette 'MyCassette4' - Executing request to live server for POST http://example.com/foo
+2016/07/17 00:08:02 INFO - Cassette 'MyCassette4' - Recording new track for POST http://example.com/foo
+{TracksLoaded:0 TracksRecorded:1 TracksPlayed:0}
 2nd run =======================================================
-DEBUG - headers match
-2016/07/16 00:26:25 INFO - Cassette 'MyCassette4' - Found a matching track for POST http://example.com/foo
-&{404 Not Found 404 HTTP/1.1 1 1 map[Cache-Control:[max-age=604800] Content-Length:[454] Content-Type:[text/html] Date:[Fri, 15 Jul 2016 23:26:25 GMT] Expires:[Fri, 22 Jul 2016 23:26:25 GMT] Server:[EOS (lax004/2813)]] {0xc82016a8a0} 454 [] false map[] 0xc82010ed20 <nil>}
+2016/07/17 00:08:02 INFO - Cassette 'MyCassette4' - Found a matching track for POST http://example.com/foo
+{TracksLoaded:1 TracksRecorded:0 TracksPlayed:1}
 Complete ======================================================
 ```
 
@@ -302,12 +316,14 @@ Currently, this is dealt with by converting the output of the JSON produced by `
 
 ### HTTP transport errors
 
-**govcr** also records `http.Client` errors (network down, blocking firewall, timeout, etc) in the **cassette** for future play back.
-As `errors` is an interface, when it is unmarshalled into JSON, the Go type of the `error` is lost.
+**govcr** also records `http.Client` errors (network down, blocking firewall, timeout, etc) in the **track** for future play back.
+
+Since `errors` is an interface, when it is unmarshalled into JSON, the Go type of the `error` is lost.
+
 To circumvent this, **govcr** serialises the object type (`ErrType`) and the error message (`ErrMsg`) in the **track** record.
 
-As objects cannot be created by name at runtime in Go, rather than re-create the original error object, *govcr* creates a standard error object with an error string made of both the `ErrType` and `ErrMsg`.
+Objects cannot be created by name at runtime in Go. Rather than re-create the original error object, *govcr* creates a standard error object with an error string made of both the `ErrType` and `ErrMsg`.
 
-In practice, the implication depends on how much you care about the error type. If all you need to know is that an error occurred, you won't mind this limitation. However, if you need to know exactly what error happened, you will find this annoying.
+In practice, the implications for you depends on how much you care about the error type. If all you need to know is that an error occurred, you won't mind this limitation.
 
-Mitigation: support for common error (network down) has been implemented. More error types can be implemented, if there is appetite for it.
+Mitigation: Support for common errors (network down) has been implemented. More error types can be implemented, if there is appetite for it.
