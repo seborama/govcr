@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 )
 
 // VCRControlPanel holds the parts of a VCR that can be interacted with.
@@ -16,6 +17,7 @@ type VCRControlPanel struct {
 
 // Stats returns Stats about the cassette and VCR session.
 func (vcr *VCRControlPanel) Stats() Stats {
+	// TODO: add cassette runtime/internal stats (tracks actually marked as 'replayed' vs those counted)
 	vcrT := vcr.Client.Transport.(*vcrTransport)
 	return vcrT.Cassette.Stats()
 }
@@ -27,6 +29,7 @@ type VCRConfig struct {
 	DisableRecording      bool
 	ExcludeHeaderFunc     ExcludeHeaderFunc
 	RequestBodyFilterFunc BodyFilterFunc
+	Logging               bool
 }
 
 // PCB stands for Printed Circuit Board. It is a structure that holds some
@@ -36,6 +39,7 @@ type pcb struct {
 	Transport             http.RoundTripper
 	ExcludeHeaderFunc     ExcludeHeaderFunc
 	RequestBodyFilterFunc BodyFilterFunc
+	Logger                *log.Logger
 }
 
 const trackNotFound = -1
@@ -43,7 +47,7 @@ const trackNotFound = -1
 func (pcbr *pcb) seekTrack(cassette *cassette, req *http.Request) int {
 	for idx := range cassette.Tracks {
 		if pcbr.trackMatches(cassette, idx, req) {
-			log.Printf("INFO - Cassette '%s' - Found a matching track for %s %s\n", cassette.Name, req.Method, req.URL.String())
+			pcbr.Logger.Printf("INFO - Cassette '%s' - Found a matching track for %s %s\n", cassette.Name, req.Method, req.URL.String())
 			return idx
 		}
 	}
@@ -60,7 +64,7 @@ func (pcbr *pcb) trackMatches(cassette *cassette, trackNumber int, req *http.Req
 	// get body data safely
 	bodyData, err := readRequestBody(req)
 	if err != nil {
-		log.Println(err)
+		pcbr.Logger.Println(err)
 		return false
 	}
 
@@ -105,6 +109,13 @@ func NewVCR(cassetteName string, vcrConfig *VCRConfig) *VCRControlPanel {
 		vcrConfig = &VCRConfig{}
 	}
 
+	// set up logging
+	logger := log.New(os.Stderr, "", log.LstdFlags)
+	if !vcrConfig.Logging {
+		out, _ := os.OpenFile(os.DevNull, os.O_WRONLY|os.O_APPEND, 0600)
+		logger.SetOutput(out)
+	}
+
 	// use a default client if none provided
 	if vcrConfig.Client == nil {
 		vcrConfig.Client = http.DefaultClient
@@ -131,7 +142,7 @@ func NewVCR(cassetteName string, vcrConfig *VCRConfig) *VCRControlPanel {
 	// load cassette
 	cassette, err := loadCassette(cassetteName)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal(err)
 	}
 
 	// create PCB
@@ -141,6 +152,7 @@ func NewVCR(cassetteName string, vcrConfig *VCRConfig) *VCRControlPanel {
 		Transport:             vcrConfig.Client.Transport,
 		ExcludeHeaderFunc:     vcrConfig.ExcludeHeaderFunc,
 		RequestBodyFilterFunc: vcrConfig.RequestBodyFilterFunc,
+		Logger:                logger,
 	}
 
 	// create VCR's HTTP client
@@ -204,7 +216,7 @@ func (t *vcrTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	// copy the request before the body is closed by the HTTP server.
 	copiedReq, err := copyRequest(req)
 	if err != nil {
-		log.Println(err)
+		t.PCB.Logger.Println(err)
 		return nil, err
 	}
 
@@ -217,15 +229,17 @@ func (t *vcrTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 	if !requestMatched {
 		// no recorded track was found so execute the request live
-		log.Printf("INFO - Cassette '%s' - Executing request to live server for %s %s\n", t.Cassette.Name, req.Method, req.URL.String())
+		t.PCB.Logger.Printf("INFO - Cassette '%s' - Executing request to live server for %s %s\n", t.Cassette.Name, req.Method, req.URL.String())
 
 		resp, err = t.PCB.Transport.RoundTrip(req)
 
 		if !t.PCB.DisableRecording {
 			// the VCR is not in read-only mode so
 			// record the HTTP traffic into a new track on the cassette
-			log.Printf("INFO - Cassette '%s' - Recording new track for %s %s\n", t.Cassette.Name, req.Method, req.URL.String())
-			recordNewTrackToCassette(t.Cassette, copiedReq, resp, err)
+			t.PCB.Logger.Printf("INFO - Cassette '%s' - Recording new track for %s %s\n", t.Cassette.Name, req.Method, req.URL.String())
+			if err := recordNewTrackToCassette(t.Cassette, copiedReq, resp, err); err != nil {
+				t.PCB.Logger.Println(err)
+			}
 		}
 	}
 
@@ -247,7 +261,6 @@ func copyRequest(req *http.Request) (*http.Request, error) {
 	// deal with the Body
 	bodyCopy, err := readRequestBody(req)
 	if err != nil {
-		log.Println(err)
 		return nil, err
 	}
 
@@ -299,7 +312,6 @@ func readRequestBody(req *http.Request) (string, error) {
 
 	_, err := io.Copy(bodyWriter, req.Body)
 	if err != nil {
-		log.Println(err)
 		return "", err
 	}
 
@@ -324,7 +336,6 @@ func readResponseBody(resp *http.Response) (string, error) {
 
 	_, err := io.Copy(bodyWriter, resp.Body)
 	if err != nil {
-		log.Println(err)
 		return "", err
 	}
 	resp.Body.Close()
