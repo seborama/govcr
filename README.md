@@ -204,7 +204,7 @@ To access the stats, call `vcr.Stats()` where vcr is the `VCR` instance obtained
 
 Please refer to the `examples` directory for examples of code and uses.
 
-**Observe the output of the examples.**
+**Observe the output of the examples between the `1st run` and the `2nd run` of each example.**
 
 The first time they run, they perform a live HTTP call (`Executing request to live server`).
 
