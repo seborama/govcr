@@ -200,42 +200,7 @@ func (k7 *cassette) replayResponse(trackNumber int, req *http.Request) *http.Res
 	// mark the track as replayed so it doesn't get re-used
 	track.replayed = true
 
-	// update Stats
-	k7.stats.TracksPlayed++
-
 	return track.response(req)
-}
-
-// DeleteCassette removes the cassette file from disk.
-func DeleteCassette(cassetteName string) error {
-	filename := cassetteNameToFilename(cassetteName)
-
-	err := os.Remove(filename)
-	if os.IsNotExist(err) {
-		// the file does not exist so this is not an error since we wanted it gone!
-		err = nil
-	}
-
-	return err
-}
-
-// CassetteExistsAndValid verifies a cassette file exists and is seemingly valid.
-func CassetteExistsAndValid(cassetteName string) bool {
-	_, err := readCassetteFromFile(cassetteName)
-	if err != nil {
-		return false
-	}
-
-	return true
-}
-
-// cassetteNameToFilename returns the filename associated to the cassette.
-func cassetteNameToFilename(cassetteName string) string {
-	if cassetteName == "" {
-		return ""
-	}
-
-	return "./govcr-fixtures/" + cassetteName + ".cassette"
 }
 
 // saveCassette writes a cassette to file.
@@ -270,6 +235,63 @@ func (k7 *cassette) save() error {
 	return err
 }
 
+// addTrack adds a track to a cassette.
+func (k7 *cassette) addTrack(track *track) {
+	k7.Tracks = append(k7.Tracks, *track)
+}
+
+// Stats returns the cassette's Stats.
+func (k7 *cassette) Stats() Stats {
+	k7.stats.TracksRecorded = k7.numberOfTracks() - k7.stats.TracksLoaded
+	k7.stats.TracksPlayed = k7.tracksPlayed() - k7.stats.TracksRecorded
+
+	return k7.stats
+}
+
+func (k7 *cassette) tracksPlayed() int {
+	replayed := 0
+
+	for _, t := range k7.Tracks {
+		if t.replayed {
+			replayed++
+		}
+	}
+
+	return replayed
+}
+
+func (k7 *cassette) numberOfTracks() int {
+	return len(k7.Tracks)
+}
+
+// DeleteCassette removes the cassette file from disk.
+func DeleteCassette(cassetteName string) error {
+	filename := cassetteNameToFilename(cassetteName)
+
+	err := os.Remove(filename)
+	if os.IsNotExist(err) {
+		// the file does not exist so this is not an error since we wanted it gone!
+		err = nil
+	}
+
+	return err
+}
+
+// CassetteExistsAndValid verifies a cassette file exists and is seemingly valid.
+func CassetteExistsAndValid(cassetteName string) bool {
+	_, err := readCassetteFromFile(cassetteName)
+	return err == nil
+}
+
+// cassetteNameToFilename returns the filename associated to the cassette.
+func cassetteNameToFilename(cassetteName string) string {
+	if cassetteName == "" {
+		return ""
+	}
+
+	return "./govcr-fixtures/" + cassetteName + ".cassette"
+}
+
 // transformInterfacesInJSON looks for known properties in the JSON that are defined as interface{}
 // in their original Go structure and don't UnMarshal correctly.
 //
@@ -287,17 +309,6 @@ func transformInterfacesInJSON(jsonString []byte) ([]byte, error) {
 	}
 
 	return []byte(regex.ReplaceAllString(string(jsonString), `$1"$2",`)), nil
-}
-
-// addTrack adds a track to a cassette.
-func (k7 *cassette) addTrack(track *track) {
-	k7.Tracks = append(k7.Tracks, *track)
-	k7.stats.TracksRecorded++
-}
-
-// Stats returns the cassette's Stats.
-func (k7 *cassette) Stats() Stats {
-	return k7.stats
 }
 
 func loadCassette(cassetteName string) (*cassette, error) {

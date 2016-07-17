@@ -17,7 +17,6 @@ type VCRControlPanel struct {
 
 // Stats returns Stats about the cassette and VCR session.
 func (vcr *VCRControlPanel) Stats() Stats {
-	// TODO: add cassette runtime/internal stats (tracks actually marked as 'replayed' vs those counted)
 	vcrT := vcr.Client.Transport.(*vcrTransport)
 	return vcrT.Cassette.Stats()
 }
@@ -26,9 +25,9 @@ func (vcr *VCRControlPanel) Stats() Stats {
 // TODO: update README.md with details of DisableRecording and FilterFunc's
 type VCRConfig struct {
 	Client                *http.Client
-	DisableRecording      bool
 	ExcludeHeaderFunc     ExcludeHeaderFunc
 	RequestBodyFilterFunc BodyFilterFunc
+	DisableRecording      bool
 	Logging               bool
 }
 
@@ -36,10 +35,10 @@ type VCRConfig struct {
 // facilities that are passed to the VCR machine to modify its internals.
 type pcb struct {
 	Transport             http.RoundTripper
-	DisableRecording      bool
 	ExcludeHeaderFunc     ExcludeHeaderFunc
 	RequestBodyFilterFunc BodyFilterFunc
 	Logger                *log.Logger
+	DisableRecording      bool
 }
 
 const trackNotFound = -1
@@ -89,11 +88,7 @@ func (pcbr *pcb) headerResembles(header1 http.Header, header2 http.Header) bool 
 
 	// finally assert the number of headers match
 	// TODO: perhaps should count how manypcb.ExcludeHeaderFunc() returned true and removes that count from the len to compare?
-	if len(header1) != len(header2) {
-		return false
-	}
-
-	return true
+	return len(header1) == len(header2)
 }
 
 // Resembles compares HTTP bodies for equivalence.
