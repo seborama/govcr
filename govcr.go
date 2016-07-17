@@ -36,6 +36,7 @@ type VCRConfig struct {
 // facilities that are passed to the VCR machine to modify its internals.
 type pcb struct {
 	Transport             http.RoundTripper
+	DisableRecording      bool
 	ExcludeHeaderFunc     ExcludeHeaderFunc
 	RequestBodyFilterFunc BodyFilterFunc
 	Logger                *log.Logger
