@@ -35,7 +35,6 @@ type VCRConfig struct {
 // PCB stands for Printed Circuit Board. It is a structure that holds some
 // facilities that are passed to the VCR machine to modify its internals.
 type pcb struct {
-	DisableRecording      bool
 	Transport             http.RoundTripper
 	ExcludeHeaderFunc     ExcludeHeaderFunc
 	RequestBodyFilterFunc BodyFilterFunc
