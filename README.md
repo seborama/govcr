@@ -197,7 +197,7 @@ import (
 const example4CassetteName = "MyCassette4"
 
 // Example4 is an example use of govcr.
-// The request contains a customer header 'X-Custom-My-Date' which varies with every request.
+// The request contains a custom header 'X-Custom-My-Date' which varies with every request.
 // This example shows how to exclude a particular header from the request to facilitate
 // matching a previous recording.
 // Without the ExcludeHeaderFunc, the headers would not match and hence the playback would not
