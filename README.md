@@ -12,6 +12,18 @@ This project is an adaptation for Google's Go / Golang programming language.
 go get github.com/seborama/govcr
 ```
 
+You can pick a specific major release for compatibility. For example, to use a v1.x release, use this command:
+
+```bash
+go get gopkg.in/seborama/govcr.v1
+```
+
+And your source code would use this import:
+
+```go
+import "gopkg.in/seborama/govcr.v1"
+```
+
 ## Glossary of Terms
 
 **VCR**: Video Cassette Recorder. In this context, a VCR refers to the overall engine and data that this project provides. A VCR is both an HTTP recorder and player. When you use a VCR, HTTP requests are replayed from previous recordings (**tracks** saved in **cassette** files on the filesystem). When no previous recording exists for the request, it is performed live on the HTTP server the request is intended to, after what it is saved to a **track** on the **cassette**.
