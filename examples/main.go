@@ -6,7 +6,7 @@ import "github.com/seborama/govcr"
 func runExample(name, cassetteName string, f func()) {
 	fmt.Println("Running " + name + "...")
 	fmt.Println("1st run =======================================================")
-	govcr.DeleteCassette(cassetteName)
+	govcr.DeleteCassette(cassetteName, "")
 	f()
 	fmt.Println("2nd run =======================================================")
 	f()

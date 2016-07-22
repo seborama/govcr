@@ -29,7 +29,7 @@ func TestPlaybackOrder(t *testing.T) {
 
 	fmt.Println("Phase 1 ================================================")
 
-	if err := govcr.DeleteCassette(cassetteName); err != nil {
+	if err := govcr.DeleteCassette(cassetteName, ""); err != nil {
 		t.Fatalf("err from govcr.DeleteCassette(): Expected nil, got %s", err)
 	}
 
@@ -43,7 +43,7 @@ func TestPlaybackOrder(t *testing.T) {
 		// check outcome of the request
 		checkResponseForTestPlaybackOrder(t, cassetteName, vcr, resp, i)
 
-		if !govcr.CassetteExistsAndValid(cassetteName) {
+		if !govcr.CassetteExistsAndValid(cassetteName, "") {
 			t.Fatalf("CassetteExists: expected true, got false")
 		}
 
@@ -64,7 +64,7 @@ func TestPlaybackOrder(t *testing.T) {
 		// check outcome of the request
 		checkResponseForTestPlaybackOrder(t, cassetteName, vcr, resp, i)
 
-		if !govcr.CassetteExistsAndValid(cassetteName) {
+		if !govcr.CassetteExistsAndValid(cassetteName, "") {
 			t.Fatalf("CassetteExists: expected true, got false")
 		}
 
