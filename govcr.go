@@ -21,14 +21,16 @@ func (vcr *VCRControlPanel) Stats() Stats {
 	return vcrT.Cassette.Stats()
 }
 
+const defaultCassettePath = "./govcr-fixtures/"
+
 // VCRConfig holds a set of options for the VCR.
-// TODO: update README.md with details of DisableRecording and FilterFunc's
 type VCRConfig struct {
 	Client                *http.Client
 	ExcludeHeaderFunc     ExcludeHeaderFunc
 	RequestBodyFilterFunc BodyFilterFunc
 	DisableRecording      bool
 	Logging               bool
+	CassettePath          string
 }
 
 // PCB stands for Printed Circuit Board. It is a structure that holds some
@@ -39,6 +41,7 @@ type pcb struct {
 	RequestBodyFilterFunc BodyFilterFunc
 	Logger                *log.Logger
 	DisableRecording      bool
+	CassettePath          string
 }
 
 const trackNotFound = -1
@@ -135,7 +138,7 @@ func NewVCR(cassetteName string, vcrConfig *VCRConfig) *VCRControlPanel {
 	}
 
 	// load cassette
-	cassette, err := loadCassette(cassetteName)
+	cassette, err := loadCassette(cassetteName, vcrConfig.CassettePath)
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -148,6 +151,7 @@ func NewVCR(cassetteName string, vcrConfig *VCRConfig) *VCRControlPanel {
 		ExcludeHeaderFunc:     vcrConfig.ExcludeHeaderFunc,
 		RequestBodyFilterFunc: vcrConfig.RequestBodyFilterFunc,
 		Logger:                logger,
+		CassettePath:          vcrConfig.CassettePath,
 	}
 
 	// create VCR's HTTP client

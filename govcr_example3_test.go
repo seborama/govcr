@@ -58,7 +58,7 @@ func runTestEx4() {
 // http.Client suffices.
 func Example_number3HeaderExclusionVCR() {
 	// Delete cassette to enable live HTTP call
-	govcr.DeleteCassette(example3CassetteName)
+	govcr.DeleteCassette(example3CassetteName, "")
 
 	// 1st run of the test - will use live HTTP calls
 	runTestEx4()

@@ -32,7 +32,7 @@ func runTestEx1() {
 // http.Client suffices.
 func Example_number1SimpleVCR() {
 	// Delete cassette to enable live HTTP call
-	govcr.DeleteCassette(example1CassetteName)
+	govcr.DeleteCassette(example1CassetteName, "")
 
 	// 1st run of the test - will use live HTTP calls
 	runTestEx1()

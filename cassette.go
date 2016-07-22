@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -184,8 +185,8 @@ type Stats struct {
 
 // cassette contains a set of tracks.
 type cassette struct {
-	Name   string
-	Tracks []track
+	Name, Path string
+	Tracks     []track
 
 	// stats is unexported since it doesn't need serialising
 	stats Stats
@@ -225,7 +226,7 @@ func (k7 *cassette) save() error {
 	}
 
 	// write cassette to file
-	filename := cassetteNameToFilename(k7.Name)
+	filename := cassetteNameToFilename(k7.Name, k7.Path)
 	path := filepath.Dir(filename)
 	if err := os.MkdirAll(path, 0750); err != nil {
 		return err
@@ -265,8 +266,8 @@ func (k7 *cassette) numberOfTracks() int {
 }
 
 // DeleteCassette removes the cassette file from disk.
-func DeleteCassette(cassetteName string) error {
-	filename := cassetteNameToFilename(cassetteName)
+func DeleteCassette(cassetteName, cassettePath string) error {
+	filename := cassetteNameToFilename(cassetteName, cassettePath)
 
 	err := os.Remove(filename)
 	if os.IsNotExist(err) {
@@ -278,18 +279,27 @@ func DeleteCassette(cassetteName string) error {
 }
 
 // CassetteExistsAndValid verifies a cassette file exists and is seemingly valid.
-func CassetteExistsAndValid(cassetteName string) bool {
-	_, err := readCassetteFromFile(cassetteName)
+func CassetteExistsAndValid(cassetteName, cassettePath string) bool {
+	_, err := readCassetteFromFile(cassetteName, cassettePath)
 	return err == nil
 }
 
 // cassetteNameToFilename returns the filename associated to the cassette.
-func cassetteNameToFilename(cassetteName string) string {
+func cassetteNameToFilename(cassetteName, cassettePath string) string {
 	if cassetteName == "" {
 		return ""
 	}
 
-	return "./govcr-fixtures/" + cassetteName + ".cassette"
+	if cassettePath == "" {
+		cassettePath = defaultCassettePath
+	}
+
+	fpath, err := filepath.Abs(filepath.Join(cassettePath, cassetteName+".cassette"))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return fpath
 }
 
 // transformInterfacesInJSON looks for known properties in the JSON that are defined as interface{}
@@ -311,8 +321,8 @@ func transformInterfacesInJSON(jsonString []byte) ([]byte, error) {
 	return []byte(regex.ReplaceAllString(string(jsonString), `$1"$2",`)), nil
 }
 
-func loadCassette(cassetteName string) (*cassette, error) {
-	k7, err := readCassetteFromFile(cassetteName)
+func loadCassette(cassetteName, cassettePath string) (*cassette, error) {
+	k7, err := readCassetteFromFile(cassetteName, cassettePath)
 	if err != nil && !os.IsNotExist(err) {
 		return nil, err
 	}
@@ -329,8 +339,8 @@ func loadCassette(cassetteName string) (*cassette, error) {
 }
 
 // readCassetteFromFile reads the cassette file, if present.
-func readCassetteFromFile(cassetteName string) (*cassette, error) {
-	filename := cassetteNameToFilename(cassetteName)
+func readCassetteFromFile(cassetteName, cassettePath string) (*cassette, error) {
+	filename := cassetteNameToFilename(cassetteName, cassettePath)
 
 	// retrieve cassette from file
 	data, err := ioutil.ReadFile(filename)

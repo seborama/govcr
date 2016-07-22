@@ -83,7 +83,7 @@ func Example_number2CustomClientVCR1() {
 	}
 
 	// Delete cassette to enable live HTTP call
-	govcr.DeleteCassette(example2CassetteName)
+	govcr.DeleteCassette(example2CassetteName, "")
 
 	// 1st run of the test - will use live HTTP calls
 	runTestEx2(app)
