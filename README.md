@@ -49,7 +49,12 @@ When using **govcr**'s `http.Client`, the request is matched against the **track
 - The **track** is played where a matching one exists on the **cassette**,
 - or the request is executed live to the HTTP server and then recorded on **cassette** for the next time.
 
-**Cassette** recordings are saved under `./govcr-fixtures` (by default) as `*.cassette` files in JSON format. To change the location, use `VCRConfig.CassettePath`
+**Cassette** recordings are saved under `./govcr-fixtures` (by default) as `*.cassette` files in JSON format.
+
+### VCRConfig
+
+#### `VCRConfig.CassettePath` - change the location of **cassette** files
+
 Example:
 
 ```go
@@ -58,6 +63,32 @@ Example:
             CassettePath: "./govcr-fixtures",
         })
 ```
+
+#### `VCRConfig.DisableRecording` - playback or execute live without recoding
+
+Example:
+
+```go
+    vcr := govcr.NewVCR("MyCassette",
+        &govcr.VCRConfig{
+            DisableRecording: true,
+        })
+```
+
+In this configuration, govcr will still playback from **cassette** when a previously recorded **track** (HTTP interaction) exists or execute the request live if not. But in the latter case, it won't record a new **track** as per default behaviour.
+
+#### `VCRConfig.Logging` - disable logging
+
+Example:
+
+```go
+    vcr := govcr.NewVCR("MyCassette",
+        &govcr.VCRConfig{
+            Logging: false,
+        })
+```
+
+This simply redirects all **govcr** logging to the OS's standard Null device (e.g. `nul` on Windows, or `/dev/null` on UN*X, etc).
 
 ## Features
 
