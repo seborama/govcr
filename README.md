@@ -28,7 +28,7 @@ import "gopkg.in/seborama/govcr.v1"
 
 **VCR**: Video Cassette Recorder. In this context, a VCR refers to the overall engine and data that this project provides. A VCR is both an HTTP recorder and player. When you use a VCR, HTTP requests are replayed from previous recordings (**tracks** saved in **cassette** files on the filesystem). When no previous recording exists for the request, it is performed live on the HTTP server the request is intended to, after what it is saved to a **track** on the **cassette**.
 
-**cassette**: a sequential collection of **tracks**. This is in effect a JSON file saved under directory `./govcr-fixtures`. The **cassette** is given a name when creating the **VCR** which becomes the filename (with an extension of `.cassette`).
+**cassette**: a sequential collection of **tracks**. This is in effect a JSON file saved under directory `./govcr-fixtures` (default). The **cassette** is given a name when creating the **VCR** which becomes the filename (with an extension of `.cassette`).
 
 **tracks**: a record of an HTTP request. It contains the request data, the response data, if available, or the error that occurred.
 
@@ -49,7 +49,15 @@ When using **govcr**'s `http.Client`, the request is matched against the **track
 - The **track** is played where a matching one exists on the **cassette**,
 - or the request is executed live to the HTTP server and then recorded on **cassette** for the next time.
 
-**Cassette** recordings are saved under `./govcr-fixtures` as `*.cassette` files in JSON format.
+**Cassette** recordings are saved under `./govcr-fixtures` (by default) as `*.cassette` files in JSON format. To change the location, use `VCRConfig.CassettePath`
+Example:
+
+```go
+    vcr := govcr.NewVCR("MyCassette",
+        &govcr.VCRConfig{
+            CassettePath: "./govcr-fixtures",
+        })
+```
 
 ## Features
 
