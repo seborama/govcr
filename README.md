@@ -53,6 +53,8 @@ When using **govcr**'s `http.Client`, the request is matched against the **track
 
 ### VCRConfig
 
+This structure contains parameters for configuring your **govcr** recorder.
+
 #### `VCRConfig.CassettePath` - change the location of **cassette** files
 
 Example:
@@ -64,7 +66,7 @@ Example:
         })
 ```
 
-#### `VCRConfig.DisableRecording` - playback or execute live without recoding
+#### `VCRConfig.DisableRecording` - playback or execute live without recording
 
 Example:
 
