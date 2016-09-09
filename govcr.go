@@ -79,7 +79,7 @@ func (pcbr *pcb) trackMatches(cassette *cassette, trackNumber int, req *http.Req
 		pcbr.bodyResembles(track.Request.Body, bodyData)
 }
 
-// Resembles compares HTTP headers for equivalence.
+// headerResembles compares HTTP headers for equivalence.
 func (pcbr *pcb) headerResembles(header1 http.Header, header2 http.Header) bool {
 	for k, v1 := range header1 {
 		for _, v2 := range v1 {
@@ -90,11 +90,11 @@ func (pcbr *pcb) headerResembles(header1 http.Header, header2 http.Header) bool 
 	}
 
 	// finally assert the number of headers match
-	// TODO: perhaps should count how manypcb.ExcludeHeaderFunc() returned true and removes that count from the len to compare?
+	// TODO: perhaps should count how many pcb.ExcludeHeaderFunc() returned true and remove that count from the len to compare?
 	return len(header1) == len(header2)
 }
 
-// Resembles compares HTTP bodies for equivalence.
+// bodyResembles compares HTTP bodies for equivalence.
 func (pcbr *pcb) bodyResembles(body1 string, body2 string) bool {
 	return *pcbr.RequestBodyFilterFunc(body1) == *pcbr.RequestBodyFilterFunc(body2)
 }
