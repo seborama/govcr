@@ -218,9 +218,24 @@ This example shows how to handle situations where a header in the request needs 
 
 For this example, logging is switched on. This is achieved with `Logging: true` in `VCRConfig` when calling `NewVCR`.
 
-Note: `RequestBodyFilterFunc` achieves a similar purpose with the Body of the request.
-      This is useful when some of the data in the Body needs to be transformed before it
-      can be evaluated for comparison matching for playback.
+Note 1: `RequestBodyFilterFunc` achieves a similar purpose with the Body of the **request**.
+        This is useful when some of the data in the **request** Body needs to be transformed before it
+        can be evaluated for comparison matching for playback.
+
+Note 2: `ResponseBodyFilterFunc` achieves a similar purpose with the Body of the **response**.
+        This is useful when some of the data in the **response** Body needs to be transformed before it
+        is supplied for playback. Example: the request and response exchange a fingerprint via a body
+        element that must match.
+
+Note 3: `ResponseHeaderFilterFunc` achieves a similar purpose with the Header of the **response**.
+        This is useful when some of the data in the **response** Header needs to be transformed before it
+        is supplied for playback. Example: the request and response exchange a fingerprint via a header
+        that must match.
+
+Note 4: ResponseBodyFilterFunc & ResponseHeaderFilterFunc only apply to the recorded response.
+        They are **not** executed against the live response!
+
+TO DO: add an example of either ResponseHeaderFilterFunc or ResponseBodyFilterFunc.
 
 ```go
 package main
