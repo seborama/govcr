@@ -117,6 +117,16 @@ This simply redirects all **govcr** logging to the OS's standard Null device (e.
 
 - Record SSL certificates.
 
+## Filter functions
+
+### Influencing request comparison programatically at runtime.
+
+`RequestFilterFunc` receives the request Header / Body to allow their transformation. Both the live request  and the replayed request are filtered at comparison time. **Transformations are not persisted and only for the purpose of influencing comparison**.
+
+### Runtime transforming of the response before sending it back to the client.
+
+`ResponseFilterFunc` is the flip side of `RequestFilterFunc`. It receives the response Header / Body to allow their transformation. Unlike `RequestFilterFunc`, this influences the response returned from the request to the client. The request header is also passed to `ResponseFilterFunc` but read-only and solely for the purpose of extracting request data for situations where it is needed to transform the Response.
+
 ## Examples
 
 ### Example 1 - Simple VCR
