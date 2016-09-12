@@ -104,10 +104,12 @@ This simply redirects all **govcr** logging to the OS's standard Null device (e.
 
 - http / https supported and any other protocol implemented by the supplied `http.Client`'s `http.RoundTripper`.
 
-- Hook to define HTTP headers that should be excluded from the HTTP request when attemtping to retrieve a **track** for playback.
+- Hook to define HTTP headers that should be ignored from the HTTP request when attemtping to retrieve a **track** for playback.
   This is useful to deal with non-static HTTP headers (for example, containing a timestamp).
 
-- Hook to parse the Body of an HTTP request to deal with non-static data. The purpose is similar to the hook for headers described above.
+- Hook to transform the Header / Body of an HTTP request to deal with non-static data. The purpose is similar to the hook for headers described above but with the ability to modify the data.
+
+- Hook to transform the Header / Body of the HTTP response to deal with non-static data. This is similar to the request hook however, the header / body of the request are also supplied (read-only) to help match data in the response with data in the request (such as a transaction Id).
 
 - Ability to switch off automatic recordings.
   This allows to play back existing records or make
@@ -218,25 +220,6 @@ This example shows how to handle situations where a header in the request needs 
 
 For this example, logging is switched on. This is achieved with `Logging: true` in `VCRConfig` when calling `NewVCR`.
 
-Note 1: `RequestBodyFilterFunc` achieves a similar purpose with the Body of the **request**.
-        This is useful when some of the data in the **request** Body needs to be transformed before it
-        can be evaluated for comparison matching for playback.
-
-Note 2: `ResponseBodyFilterFunc` achieves a similar purpose with the Body of the **response**.
-        This is useful when some of the data in the **response** Body needs to be transformed before it
-        is supplied for playback. Example: the request and response exchange a fingerprint via a body
-        element that must match.
-
-Note 3: `ResponseHeaderFilterFunc` achieves a similar purpose with the Header of the **response**.
-        This is useful when some of the data in the **response** Header needs to be transformed before it
-        is supplied for playback. Example: the request and response exchange a fingerprint via a header
-        that must match.
-
-Note 4: ResponseBodyFilterFunc & ResponseHeaderFilterFunc only apply to the recorded response.
-        They are **not** executed against the live response!
-
-TO DO: add an example of either ResponseHeaderFilterFunc or ResponseBodyFilterFunc.
-
 ```go
 package main
 
@@ -277,6 +260,78 @@ func Example4() {
 
     // run the request
     vcr.Client.Do(req)
+    fmt.Printf("%+v\n", vcr.Stats())
+}
+```
+
+### Example 5 - Custom VCR with a ExcludeHeaderFunc and ResponseFilterFunc
+
+This example shows how to handle situations where a transaction Id in the header needs to be present in the response.
+This could be as part of a contract validation between server and client.
+
+Note: `RequestFilterFunc` achieves a similar purpose with the **request** Header / Body.
+      This is useful when some of the data in the **request** Header / Body needs to be transformed
+      before it can be evaluated for comparison for playback.
+
+```go
+package main
+
+import (
+    "fmt"
+    "strings"
+    "time"
+
+    "net/http"
+
+    "github.com/seborama/govcr"
+)
+
+const example5CassetteName = "MyCassette5"
+
+// Example5 is an example use of govcr.
+// Supposing a fictional application where the request contains a custom header
+// 'X-Transaction-Id' which must be matched in the response from the server.
+// When replaying, the request will have a different Transaction Id than that which was recorded.
+// Hence the protocol (of this fictional example) is broken.
+// To circumvent that, we inject the new request's X-Transaction-Id into the recorded response.
+// Without the ResponseFilterFunc, the X-Transaction-Id in the header would not match that
+// of the recorded response and our fictional application would reject the response on validation!
+func Example5() {
+    vcr := govcr.NewVCR(example5CassetteName,
+        &govcr.VCRConfig{
+            ExcludeHeaderFunc: func(key string) bool {
+                // ignore the X-Transaction-Id since it changes per-request
+                return strings.ToLower(key) == "x-transaction-id"
+            },
+            ResponseFilterFunc: func(respHeader http.Header, respBody string, reqHeader http.Header) (*http.Header, *string) {
+                // overwrite X-Transaction-Id in the Response with that from the Request
+                respHeader.Set("X-Transaction-Id", reqHeader.Get("X-Transaction-Id"))
+
+                return &respHeader, &respBody
+            },
+            Logging: true,
+        })
+
+    // create a request with our custom header
+    req, err := http.NewRequest("POST", "http://example.com/foo5", nil)
+    if err != nil {
+        fmt.Println(err)
+    }
+    req.Header.Add("X-Transaction-Id", time.Now().String())
+
+    // run the request
+    resp, err := vcr.Client.Do(req)
+    if err != nil {
+        fmt.Println(err)
+    }
+
+    // verify outcome
+    if req.Header.Get("X-Transaction-Id") != resp.Header.Get("X-Transaction-Id") {
+        fmt.Println("Header transaction Id verification failed - this would be the live request!")
+    } else {
+        fmt.Println("Header transaction Id verification passed - this would be the replayed track!")
+    }
+
     fmt.Printf("%+v\n", vcr.Stats())
 }
 ```
@@ -344,11 +399,24 @@ Complete ======================================================
 
 Running Example4...
 1st run =======================================================
-2016/07/17 00:08:01 INFO - Cassette 'MyCassette4' - Executing request to live server for POST http://example.com/foo
-2016/07/17 00:08:02 INFO - Cassette 'MyCassette4' - Recording new track for POST http://example.com/foo
+2016/09/12 22:22:20 INFO - Cassette 'MyCassette4' - Executing request to live server for POST http://example.com/foo
+2016/09/12 22:22:20 INFO - Cassette 'MyCassette4' - Recording new track for POST http://example.com/foo
 {TracksLoaded:0 TracksRecorded:1 TracksPlayed:0}
 2nd run =======================================================
-2016/07/17 00:08:02 INFO - Cassette 'MyCassette4' - Found a matching track for POST http://example.com/foo
+2016/09/12 22:22:20 INFO - Cassette 'MyCassette4' - Found a matching track for POST http://example.com/foo
+{TracksLoaded:1 TracksRecorded:0 TracksPlayed:1}
+Complete ======================================================
+
+
+Running Example5...
+1st run =======================================================
+2016/09/12 22:22:20 INFO - Cassette 'MyCassette5' - Executing request to live server for POST http://example.com/foo5
+2016/09/12 22:22:20 INFO - Cassette 'MyCassette5' - Recording new track for POST http://example.com/foo5
+Header transaction Id verification failed - this would be the live request!
+{TracksLoaded:0 TracksRecorded:1 TracksPlayed:0}
+2nd run =======================================================
+2016/09/12 22:22:20 INFO - Cassette 'MyCassette5' - Found a matching track for POST http://example.com/foo5
+Header transaction Id verification passed - this would be the replayed track!
 {TracksLoaded:1 TracksRecorded:0 TracksPlayed:1}
 Complete ======================================================
 ```

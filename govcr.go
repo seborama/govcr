@@ -26,17 +26,13 @@ const defaultCassettePath = "./govcr-fixtures/"
 
 // VCRConfig holds a set of options for the VCR.
 type VCRConfig struct {
-	Client                *http.Client
-	ExcludeHeaderFunc     ExcludeHeaderFunc
-	RequestBodyFilterFunc BodyFilterFunc
+	Client            *http.Client
+	ExcludeHeaderFunc ExcludeHeaderFunc
+	RequestFilterFunc RequestFilterFunc
 
-	// ResponseHeaderFilterFunc can be used to modify the header of the response.
+	// ResponseFilterFunc can be used to modify the header of the response.
 	// This is useful when a fingerprint is exchanged and expected to match between request and response.
-	ResponseHeaderFilterFunc HeaderFilterFunc
-
-	// ResponseBodyFilterFunc can be used to modify the body of the response.
-	// This is useful when a fingerprint is exchanged and expected to match between request and response.
-	ResponseBodyFilterFunc BodyFilterFunc
+	ResponseFilterFunc ResponseFilterFunc
 
 	DisableRecording bool
 	Logging          bool
@@ -46,14 +42,13 @@ type VCRConfig struct {
 // PCB stands for Printed Circuit Board. It is a structure that holds some
 // facilities that are passed to the VCR machine to modify its internals.
 type pcb struct {
-	Transport                http.RoundTripper
-	ExcludeHeaderFunc        ExcludeHeaderFunc
-	RequestBodyFilterFunc    BodyFilterFunc
-	ResponseHeaderFilterFunc HeaderFilterFunc
-	ResponseBodyFilterFunc   BodyFilterFunc
-	Logger                   *log.Logger
-	DisableRecording         bool
-	CassettePath             string
+	Transport          http.RoundTripper
+	ExcludeHeaderFunc  ExcludeHeaderFunc
+	RequestFilterFunc  RequestFilterFunc
+	ResponseFilterFunc ResponseFilterFunc
+	Logger             *log.Logger
+	DisableRecording   bool
+	CassettePath       string
 }
 
 const trackNotFound = -1
@@ -84,11 +79,16 @@ func (pcbr *pcb) trackMatches(cassette *cassette, trackNumber int, req *http.Req
 
 	track := cassette.Tracks[trackNumber]
 
+	// apply filter function to track header / body
+	filteredTrackHeader, filteredTrackBody := pcbr.RequestFilterFunc(track.Request.Header, track.Request.Body)
+	// apply filter function to request header / body
+	filteredReqHeader, filteredReqBody := pcbr.RequestFilterFunc(req.Header, bodyData)
+
 	return !track.replayed &&
 		track.Request.Method == req.Method &&
 		track.Request.URL.String() == req.URL.String() &&
-		pcbr.headerResembles(track.Request.Header, req.Header) &&
-		pcbr.bodyResembles(track.Request.Body, bodyData)
+		pcbr.headerResembles(*filteredTrackHeader, *filteredReqHeader) &&
+		pcbr.bodyResembles(*filteredTrackBody, *filteredReqBody)
 }
 
 // headerResembles compares HTTP headers for equivalence.
@@ -107,22 +107,19 @@ func (pcbr *pcb) headerResembles(header1 http.Header, header2 http.Header) bool 
 
 // bodyResembles compares HTTP bodies for equivalence.
 func (pcbr *pcb) bodyResembles(body1 string, body2 string) bool {
-	return *pcbr.RequestBodyFilterFunc(body1) == *pcbr.RequestBodyFilterFunc(body2)
+	return body1 == body2
 }
 
-func (pcbr *pcb) filterHeader(resp *http.Response, reqHdr http.Header) *http.Response {
-	resp.Header = *pcbr.ResponseHeaderFilterFunc(resp.Header, reqHdr)
-	return resp
-}
-
-func (pcbr *pcb) filterBody(resp *http.Response) *http.Response {
+func (pcbr *pcb) filterResponse(resp *http.Response, reqHdr http.Header) *http.Response {
 	body, err := readResponseBody(resp)
 	if err != nil {
 		pcbr.Logger.Printf("ERROR - Unable to filter response body so leaving it untouched: %s\n", err.Error())
 		return resp
 	}
 
-	resp.Body = toReadCloser(*pcbr.ResponseBodyFilterFunc(body))
+	newHeader, newBody := pcbr.ResponseFilterFunc(resp.Header, body, reqHdr)
+	resp.Header = *newHeader
+	resp.Body = toReadCloser(*newBody)
 
 	return resp
 }
@@ -175,21 +172,15 @@ func NewVCR(cassetteName string, vcrConfig *VCRConfig) *VCRControlPanel {
 		}
 	}
 
-	if vcrConfig.RequestBodyFilterFunc == nil {
-		vcrConfig.RequestBodyFilterFunc = func(body string) *string {
-			return &body
+	if vcrConfig.RequestFilterFunc == nil {
+		vcrConfig.RequestFilterFunc = func(header http.Header, body string) (*http.Header, *string) {
+			return &header, &body
 		}
 	}
 
-	if vcrConfig.ResponseHeaderFilterFunc == nil {
-		vcrConfig.ResponseHeaderFilterFunc = func(respHdr http.Header, reqHdr http.Header) *http.Header {
-			return &respHdr
-		}
-	}
-
-	if vcrConfig.ResponseBodyFilterFunc == nil {
-		vcrConfig.ResponseBodyFilterFunc = func(body string) *string {
-			return &body
+	if vcrConfig.ResponseFilterFunc == nil {
+		vcrConfig.ResponseFilterFunc = func(respHdr http.Header, body string, reqHdr http.Header) (*http.Header, *string) {
+			return &respHdr, &body
 		}
 	}
 
@@ -202,14 +193,13 @@ func NewVCR(cassetteName string, vcrConfig *VCRConfig) *VCRControlPanel {
 	// create PCB
 	pcbr := &pcb{
 		// TODO: create appropriate test!
-		DisableRecording:         vcrConfig.DisableRecording,
-		Transport:                vcrConfig.Client.Transport,
-		ExcludeHeaderFunc:        vcrConfig.ExcludeHeaderFunc,
-		RequestBodyFilterFunc:    vcrConfig.RequestBodyFilterFunc,
-		ResponseHeaderFilterFunc: vcrConfig.ResponseHeaderFilterFunc,
-		ResponseBodyFilterFunc:   vcrConfig.ResponseBodyFilterFunc,
-		Logger:                   logger,
-		CassettePath:             vcrConfig.CassettePath,
+		DisableRecording:   vcrConfig.DisableRecording,
+		Transport:          vcrConfig.Client.Transport,
+		ExcludeHeaderFunc:  vcrConfig.ExcludeHeaderFunc,
+		RequestFilterFunc:  vcrConfig.RequestFilterFunc,
+		ResponseFilterFunc: vcrConfig.ResponseFilterFunc,
+		Logger:             logger,
+		CassettePath:       vcrConfig.CassettePath,
 	}
 
 	// create VCR's HTTP client
@@ -238,34 +228,57 @@ func NewVCR(cassetteName string, vcrConfig *VCRConfig) *VCRControlPanel {
 // For instance, if your application sends requests with a timestamp held in a custom header,
 // you likely want to exclude it from the comparison to ensure that the request headers are
 // considered a match with those saved on the cassette's track.
+//
+// Parameters:
+//  - parameter 1 - Name of header key in the Request
+//
+// Return value:
+//  true - retain header key for comparison
+// false - ignore header key for comparison
 type ExcludeHeaderFunc func(key string) bool
 
-// BodyFilterFunc is a hook function that is used to filter the Body.
+// RequestFilterFunc is a hook function that is used to filter the Request Header / Body.
 //
-// Typically this can be used to remove / amend undesirable body elements from the request.
+// Typically this can be used to remove / amend undesirable header / body elements from the request.
 //
-// For instance, if your application sends requests with a timestamp held in a part of the body,
-// you likely want to remove it or force a static timestamp via BodyFilterFunc to
-// ensure that the request body matches those saved on the cassette's track.
-type BodyFilterFunc func(string) *string
-
-// HeaderFilterFunc is a hook function that is used to filter the Header.
-//
-// It works like BodyFilterFunc but applies to the header.
+// For instance, if your application sends requests with a timestamp held in a part of
+// the header / body, you likely want to remove it or force a static timestamp via
+// RequestFilterFunc to ensure that the request body matches those saved on the cassette's track.
 //
 // It is important to note that this differs from ExcludeHeaderFunc in that the former does not
 // modify the header (it only returns a bool) whereas this function can be used to modify the header.
-type HeaderFilterFunc func(http.Header, http.Header) *http.Header
+//
+// Parameters:
+//  - parameter 1 - Copy of http.Header of the Request
+//  - parameter 2 - Copy of string of the Request's Body
+//
+// Return values:
+//  - value 1 - Request's amended header
+//  - value 1 - Request's amended body
+type RequestFilterFunc func(http.Header, string) (*http.Header, *string)
+
+// ResponseFilterFunc is a hook function that is used to filter the Response Header / Body.
+//
+// It works similarly to RequestFilterFunc but applies to the Response and also receives a
+// copy of the Request's header (if you need to pick info from it to override the response).
+//
+// Parameters:
+//  - parameter 1 - Copy of http.Header of the Response
+//  - parameter 2 - Copy of string of the Response's Body
+//  - parameter 3 - Copy of http.Header of the Request
+//
+// Return values:
+//  - value 1 - Response's amended header
+//  - value 1 - Response's amended body
+type ResponseFilterFunc func(http.Header, string, http.Header) (*http.Header, *string)
 
 // vcrTransport is the heart of VCR. It provides
 // an http.RoundTripper that wraps over the default
 // one provided by Go's http package or a custom one
 // if specified when calling NewVCR.
 type vcrTransport struct {
-	PCB               *pcb
-	Cassette          *cassette
-	ExcludeHeaderFunc ExcludeHeaderFunc
-	RequestBodyFilter BodyFilterFunc
+	PCB      *pcb
+	Cassette *cassette
 }
 
 // RoundTrip is an implementation of http.RoundTripper.
@@ -289,7 +302,7 @@ func (t *vcrTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	// the request if one exists.
 	if trackNumber := t.PCB.seekTrack(t.Cassette, copiedReq); trackNumber != trackNotFound {
 		// only the played back response is filtered. Never the live response!
-		resp = t.PCB.filterHeader(t.PCB.filterBody(t.Cassette.replayResponse(trackNumber, copiedReq)), copiedReq.Header)
+		resp = t.PCB.filterResponse(t.Cassette.replayResponse(trackNumber, copiedReq), copiedReq.Header)
 		requestMatched = true
 	}
 
