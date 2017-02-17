@@ -42,7 +42,7 @@ func TestPlaybackOrder(t *testing.T) {
 		resp, _ := client.Get(ts.URL)
 
 		// check outcome of the request
-		checkResponseForTestPlaybackOrder(t, cassetteName, vcr, resp, i, false)
+		checkResponseForTestPlaybackOrder(t, resp, i, false)
 
 		if !govcr.CassetteExistsAndValid(cassetteName, "") {
 			t.Fatalf("CassetteExists: expected true, got false")
@@ -63,7 +63,7 @@ func TestPlaybackOrder(t *testing.T) {
 		resp, _ := client.Get(ts.URL)
 
 		// check outcome of the request
-		checkResponseForTestPlaybackOrder(t, cassetteName, vcr, resp, i, false)
+		checkResponseForTestPlaybackOrder(t, resp, i, false)
 
 		if !govcr.CassetteExistsAndValid(cassetteName, "") {
 			t.Fatalf("CassetteExists: expected true, got false")
@@ -104,7 +104,7 @@ func TestNonUtf8EncodableBinaryBody(t *testing.T) {
 		resp, _ := client.Get(ts.URL)
 
 		// check outcome of the request
-		checkResponseForTestPlaybackOrder(t, cassetteName, vcr, resp, i, true)
+		checkResponseForTestPlaybackOrder(t, resp, i, true)
 
 		if !govcr.CassetteExistsAndValid(cassetteName, "") {
 			t.Fatalf("CassetteExists: expected true, got false")
@@ -125,7 +125,7 @@ func TestNonUtf8EncodableBinaryBody(t *testing.T) {
 		resp, _ := client.Get(ts.URL)
 
 		// check outcome of the request
-		checkResponseForTestPlaybackOrder(t, cassetteName, vcr, resp, i, true)
+		checkResponseForTestPlaybackOrder(t, resp, i, true)
 
 		if !govcr.CassetteExistsAndValid(cassetteName, "") {
 			t.Fatalf("CassetteExists: expected true, got false")
@@ -149,7 +149,7 @@ func createVCR(cassetteName string, wipeCassette bool) *govcr.VCRControlPanel {
 		})
 }
 
-func checkResponseForTestPlaybackOrder(t *testing.T, cassetteName string, vcr *govcr.VCRControlPanel, resp *http.Response, i int, binary bool) {
+func checkResponseForTestPlaybackOrder(t *testing.T, resp *http.Response, i int, binary bool) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("resp.StatusCode: Expected %d, got %d", http.StatusOK, resp.StatusCode)
 	}
