@@ -42,7 +42,8 @@ func TestPlaybackOrder(t *testing.T) {
 		resp, _ := client.Get(ts.URL)
 
 		// check outcome of the request
-		checkResponseForTestPlaybackOrder(t, resp, i, false)
+		expectedBody := fmt.Sprintf("Hello, client %d", i)
+		checkResponseForTestPlaybackOrder(t, resp, expectedBody)
 
 		if !govcr.CassetteExistsAndValid(cassetteName, "") {
 			t.Fatalf("CassetteExists: expected true, got false")
@@ -63,7 +64,8 @@ func TestPlaybackOrder(t *testing.T) {
 		resp, _ := client.Get(ts.URL)
 
 		// check outcome of the request
-		checkResponseForTestPlaybackOrder(t, resp, i, false)
+		expectedBody := fmt.Sprintf("Hello, client %d", i)
+		checkResponseForTestPlaybackOrder(t, resp, expectedBody)
 
 		if !govcr.CassetteExistsAndValid(cassetteName, "") {
 			t.Fatalf("CassetteExists: expected true, got false")
@@ -104,7 +106,8 @@ func TestNonUtf8EncodableBinaryBody(t *testing.T) {
 		resp, _ := client.Get(ts.URL)
 
 		// check outcome of the request
-		checkResponseForTestPlaybackOrder(t, resp, i, true)
+		expectedBody := generateBinaryBody(i)
+		checkResponseForTestPlaybackOrder(t, resp, expectedBody)
 
 		if !govcr.CassetteExistsAndValid(cassetteName, "") {
 			t.Fatalf("CassetteExists: expected true, got false")
@@ -125,7 +128,8 @@ func TestNonUtf8EncodableBinaryBody(t *testing.T) {
 		resp, _ := client.Get(ts.URL)
 
 		// check outcome of the request
-		checkResponseForTestPlaybackOrder(t, resp, i, true)
+		expectedBody := generateBinaryBody(i)
+		checkResponseForTestPlaybackOrder(t, resp, expectedBody)
 
 		if !govcr.CassetteExistsAndValid(cassetteName, "") {
 			t.Fatalf("CassetteExists: expected true, got false")
@@ -149,7 +153,7 @@ func createVCR(cassetteName string, wipeCassette bool) *govcr.VCRControlPanel {
 		})
 }
 
-func checkResponseForTestPlaybackOrder(t *testing.T, resp *http.Response, i int, binary bool) {
+func checkResponseForTestPlaybackOrder(t *testing.T, resp *http.Response, expectedBody interface{}) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("resp.StatusCode: Expected %d, got %d", http.StatusOK, resp.StatusCode)
 	}
@@ -164,16 +168,28 @@ func checkResponseForTestPlaybackOrder(t *testing.T, resp *http.Response, i int,
 	}
 	resp.Body.Close()
 
-	if binary {
-		expectedBody := generateBinaryBody(i)
-		if bytes.Compare(bodyData, expectedBody) != 0 {
-			t.Fatalf("Body: expected '%v', got '%v'", expectedBody, bodyData)
+	var expectedBodyBytes []byte
+	switch expectedBody.(type) {
+	case []byte:
+		ok := false
+		expectedBodyBytes, ok = expectedBody.([]byte)
+		if !ok {
+			t.Fatalf("expectedBody: cannot assert to type '[]byte'")
 		}
-	} else {
-		expectedBody := fmt.Sprintf("Hello, client %d", i)
-		if string(bodyData) != expectedBody {
-			t.Fatalf("Body: expected '%s', got '%s'", expectedBody, string(bodyData))
+
+	case string:
+		expectedBodyString, ok := expectedBody.(string)
+		if !ok {
+			t.Fatalf("expectedBody: cannot assert to type 'string'")
 		}
+		expectedBodyBytes = []byte(expectedBodyString)
+
+	default:
+		t.Fatalf("Unexpected type for 'expectedBody' variable")
+	}
+
+	if bytes.Compare(bodyData, expectedBodyBytes) != 0 {
+		t.Fatalf("Body: expected '%v', got '%v'", expectedBody, bodyData)
 	}
 }
 
