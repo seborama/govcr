@@ -106,8 +106,8 @@ func (pcbr *pcb) headerResembles(header1 http.Header, header2 http.Header) bool 
 }
 
 // bodyResembles compares HTTP bodies for equivalence.
-func (pcbr *pcb) bodyResembles(body1 string, body2 string) bool {
-	return body1 == body2
+func (pcbr *pcb) bodyResembles(body1 []byte, body2 []byte) bool {
+	return bytes.Compare(body1, body2) == 0
 }
 
 func (pcbr *pcb) filterResponse(resp *http.Response, reqHdr http.Header) *http.Response {
@@ -173,13 +173,13 @@ func NewVCR(cassetteName string, vcrConfig *VCRConfig) *VCRControlPanel {
 	}
 
 	if vcrConfig.RequestFilterFunc == nil {
-		vcrConfig.RequestFilterFunc = func(header http.Header, body string) (*http.Header, *string) {
+		vcrConfig.RequestFilterFunc = func(header http.Header, body []byte) (*http.Header, *[]byte) {
 			return &header, &body
 		}
 	}
 
 	if vcrConfig.ResponseFilterFunc == nil {
-		vcrConfig.ResponseFilterFunc = func(respHdr http.Header, body string, reqHdr http.Header) (*http.Header, *string) {
+		vcrConfig.ResponseFilterFunc = func(respHdr http.Header, body []byte, reqHdr http.Header) (*http.Header, *[]byte) {
 			return &respHdr, &body
 		}
 	}
@@ -255,7 +255,7 @@ type ExcludeHeaderFunc func(key string) bool
 // Return values:
 //  - value 1 - Request's amended header
 //  - value 1 - Request's amended body
-type RequestFilterFunc func(http.Header, string) (*http.Header, *string)
+type RequestFilterFunc func(http.Header, []byte) (*http.Header, *[]byte)
 
 // ResponseFilterFunc is a hook function that is used to filter the Response Header / Body.
 //
@@ -270,7 +270,7 @@ type RequestFilterFunc func(http.Header, string) (*http.Header, *string)
 // Return values:
 //  - value 1 - Response's amended header
 //  - value 1 - Response's amended body
-type ResponseFilterFunc func(http.Header, string, http.Header) (*http.Header, *string)
+type ResponseFilterFunc func(http.Header, []byte, http.Header) (*http.Header, *[]byte)
 
 // vcrTransport is the heart of VCR. It provides
 // an http.RoundTripper that wraps over the default
@@ -381,9 +381,9 @@ func copyRequestWithoutBody(req *http.Request) *http.Request {
 
 // readRequestBody reads the Body data stream and restores its states.
 // It ensures the stream is restored to its original state and can be read from again.
-func readRequestBody(req *http.Request) (string, error) {
+func readRequestBody(req *http.Request) ([]byte, error) {
 	if req == nil || req.Body == nil {
-		return "", nil
+		return nil, nil
 	}
 
 	// dump the data
@@ -391,10 +391,10 @@ func readRequestBody(req *http.Request) (string, error) {
 
 	_, err := io.Copy(bodyWriter, req.Body)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	bodyData := bodyWriter.String()
+	bodyData := bodyWriter.Bytes()
 
 	// restore original state of the Body source stream
 	req.Body.Close()
@@ -405,9 +405,9 @@ func readRequestBody(req *http.Request) (string, error) {
 
 // readResponseBody reads the Body data stream and restores its states.
 // It ensures the stream is restored to its original state and can be read from again.
-func readResponseBody(resp *http.Response) (string, error) {
+func readResponseBody(resp *http.Response) ([]byte, error) {
 	if resp == nil || resp.Body == nil {
-		return "", nil
+		return nil, nil
 	}
 
 	// dump the data
@@ -415,11 +415,11 @@ func readResponseBody(resp *http.Response) (string, error) {
 
 	_, err := io.Copy(bodyWriter, resp.Body)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	resp.Body.Close()
 
-	bodyData := bodyWriter.String()
+	bodyData := bodyWriter.Bytes()
 
 	// restore original state of the Body source stream
 	resp.Body = toReadCloser(bodyData)
@@ -427,6 +427,6 @@ func readResponseBody(resp *http.Response) (string, error) {
 	return bodyData, nil
 }
 
-func toReadCloser(body string) io.ReadCloser {
-	return ioutil.NopCloser(bytes.NewReader([]byte(body)))
+func toReadCloser(body []byte) io.ReadCloser {
+	return ioutil.NopCloser(bytes.NewReader(body))
 }

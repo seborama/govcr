@@ -21,7 +21,7 @@ type request struct {
 	Method string
 	URL    *url.URL
 	Header http.Header
-	Body   string
+	Body   []byte
 }
 
 // response is a recorded HTTP response.
@@ -33,7 +33,7 @@ type response struct {
 	ProtoMinor int
 
 	Header           http.Header
-	Body             string
+	Body             []byte
 	ContentLength    int64
 	TransferEncoding []string
 	Trailer          http.Header

@@ -27,7 +27,7 @@ func Example5() {
 				// ignore the X-Transaction-Id since it changes per-request
 				return strings.ToLower(key) == "x-transaction-id"
 			},
-			ResponseFilterFunc: func(respHeader http.Header, respBody string, reqHeader http.Header) (*http.Header, *string) {
+			ResponseFilterFunc: func(respHeader http.Header, respBody []byte, reqHeader http.Header) (*http.Header, *[]byte) {
 				// overwrite X-Transaction-Id in the Response with that from the Request
 				respHeader.Set("X-Transaction-Id", reqHeader.Get("X-Transaction-Id"))
 
