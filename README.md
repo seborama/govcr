@@ -349,7 +349,7 @@ func Example5() {
 ### Stats
 
 VCR provides some statistics.
-The
+
 To access the stats, call `vcr.Stats()` where vcr is the `VCR` instance obtained from `NewVCR(...)`.
 
 ### Run the examples
