@@ -329,7 +329,7 @@ func loadCassette(cassetteName, cassettePath string) (*cassette, error) {
 
 	// provide an empty cassette as a minimum
 	if k7 == nil {
-		k7 = &cassette{Name: cassetteName}
+		k7 = &cassette{Name: cassetteName, Path: cassettePath}
 	}
 
 	// initial stats
