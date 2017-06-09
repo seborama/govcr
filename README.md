@@ -1,6 +1,6 @@
 # govcr
 
-Record and replay HTTP interactions for offline unit / behavioural / integration tests thereby acting as an HTTP mock.
+Records and replay HTTP interactions for offline unit / behavioural / integration tests thereby acting as an HTTP mock.
 
 This project was inspired by [php-vcr](https://github.com/php-vcr/php-vcr) which is a PHP port of [VCR](https://github.com/vcr/vcr) for ruby.
 
