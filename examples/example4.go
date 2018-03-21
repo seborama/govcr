@@ -29,7 +29,7 @@ func Example4() {
 		})
 
 	// create a request with our custom header
-	req, err := http.NewRequest("POST", "http://example.com/foo", nil)
+	req, err := http.NewRequest("POST", "http://www.example.com/foo", nil)
 	if err != nil {
 		fmt.Println(err)
 	}

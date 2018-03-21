@@ -50,6 +50,6 @@ func Example2() {
 	myapp.httpClient = vcr.Client
 
 	// Run request and display stats.
-	myapp.Get("https://example.com/foo")
+	myapp.Get("https://www.example.com/foo")
 	fmt.Printf("%+v\n", vcr.Stats())
 }

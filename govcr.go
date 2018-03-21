@@ -107,7 +107,7 @@ func (pcbr *pcb) headerResembles(header1 http.Header, header2 http.Header) bool 
 
 // bodyResembles compares HTTP bodies for equivalence.
 func (pcbr *pcb) bodyResembles(body1 []byte, body2 []byte) bool {
-	return bytes.Compare(body1, body2) == 0
+	return bytes.Equal(body1, body2)
 }
 
 func (pcbr *pcb) filterResponse(resp *http.Response, reqHdr http.Header) *http.Response {

@@ -36,7 +36,7 @@ import "gopkg.in/seborama/govcr.v1"
 
 ## Documentation
 
-**govcr** is a wrapper around the Go `http.Client` which offers the ability to run pre-recorded HTTP requests ('**tracks**') instead of live HTTP calls.
+**govcr** is a wrapper around the Go `http.Client` which offers the ability to replay pre-recorded HTTP requests ('**tracks**') instead of live HTTP calls.
 
 **govcr** can replay both successful and failed HTTP transactions.
 
@@ -451,6 +451,8 @@ go test -race -cover
 
 - When unmarshaling the cassette fails, rather than fail altogether, it would be preferable to revert to live HTTP call.
 
+- The code has a number of TODO's which should either be taken action upon or removed!
+
 ## Limitations
 
 ### Go empty interfaces (`interface{}`)
@@ -459,6 +461,10 @@ Some properties / objects in http.Response are defined as `interface{}`.
 This can cause json.Unmarshall to fail (example: when the original type was `big.Int` with a big interger indeed - `json.Unmarshal` attempts to convert to float64 and fails).
 
 Currently, this is dealt with by converting the output of the JSON produced by `json.Marshal` (big.Int is changed to a string).
+
+### Support for multiple values in HTTP headers
+
+Repeat HTTP headers may not be properly handled. A long standing TODO in the code exists but so far no one has complained :-)
 
 ### HTTP transport errors
 

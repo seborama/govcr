@@ -35,7 +35,7 @@ func runTestEx4() {
 
 	for _, td := range samples {
 		// Create a request with our custom header
-		req, _ := http.NewRequest(td.method, "http://example.com/foo", nil)
+		req, _ := http.NewRequest(td.method, "http://www.example.com/foo", nil)
 		req.Header.Add("X-Custom-My-Date", time.Now().String())
 
 		// Make http call

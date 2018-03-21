@@ -49,7 +49,7 @@ func runTestEx2(app *myApp) {
 
 	for _, td := range samples {
 		// Run HTTP call
-		resp, _ := td.f("https://example.com/foo")
+		resp, _ := td.f("https://www.example.com/foo")
 
 		// Show results
 		fmt.Printf("%d ", resp.StatusCode)

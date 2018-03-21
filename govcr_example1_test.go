@@ -14,7 +14,7 @@ const example1CassetteName = "MyCassette1"
 func runTestEx1() {
 	// Create vcr and make http call
 	vcr := govcr.NewVCR(example1CassetteName, nil)
-	resp, _ := vcr.Client.Get("http://example.com/foo")
+	resp, _ := vcr.Client.Get("http://www.example.com/foo")
 
 	// Show results
 	fmt.Printf("%d ", resp.StatusCode)

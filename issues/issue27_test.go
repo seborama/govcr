@@ -17,7 +17,7 @@ func TestIssue27(t *testing.T) {
 
 	request := gorequest.New()
 	request.Client = vcr.Client
-	resp, body, errs := request.Get("https://example.com").End()
+	resp, body, errs := request.Get("https://www.example.com").End()
 	if errs != nil {
 		t.Fatalf("Get returned an error: %+v\n", errs)
 	}

@@ -171,7 +171,7 @@ func checkResponseForTestPlaybackOrder(t *testing.T, resp *http.Response, expect
 	var expectedBodyBytes []byte
 	switch expectedBody.(type) {
 	case []byte:
-		ok := false
+		var ok bool
 		expectedBodyBytes, ok = expectedBody.([]byte)
 		if !ok {
 			t.Fatalf("expectedBody: cannot assert to type '[]byte'")
@@ -188,7 +188,7 @@ func checkResponseForTestPlaybackOrder(t *testing.T, resp *http.Response, expect
 		t.Fatalf("Unexpected type for 'expectedBody' variable")
 	}
 
-	if bytes.Compare(bodyData, expectedBodyBytes) != 0 {
+	if !bytes.Equal(bodyData, expectedBodyBytes) {
 		t.Fatalf("Body: expected '%v', got '%v'", expectedBody, bodyData)
 	}
 }
