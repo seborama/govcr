@@ -254,7 +254,7 @@ type ExcludeHeaderFunc func(key string) bool
 //
 // Return values:
 //  - value 1 - Request's amended header
-//  - value 1 - Request's amended body
+//  - value 2 - Request's amended body
 type RequestFilterFunc func(http.Header, []byte) (*http.Header, *[]byte)
 
 // ResponseFilterFunc is a hook function that is used to filter the Response Header / Body.
@@ -269,7 +269,7 @@ type RequestFilterFunc func(http.Header, []byte) (*http.Header, *[]byte)
 //
 // Return values:
 //  - value 1 - Response's amended header
-//  - value 1 - Response's amended body
+//  - value 2 - Response's amended body
 type ResponseFilterFunc func(http.Header, []byte, http.Header) (*http.Header, *[]byte)
 
 // vcrTransport is the heart of VCR. It provides
