@@ -36,6 +36,8 @@ type VCRConfig struct {
 
 	DisableRecording bool
 	Logging          bool
+	IgnoreBody       bool
+	IgnoreHeaders    bool
 	CassettePath     string
 }
 
@@ -48,6 +50,8 @@ type pcb struct {
 	ResponseFilterFunc ResponseFilterFunc
 	Logger             *log.Logger
 	DisableRecording   bool
+	IgnoreBody         bool
+	IgnoreHeaders      bool
 	CassettePath       string
 }
 
@@ -87,8 +91,8 @@ func (pcbr *pcb) trackMatches(cassette *cassette, trackNumber int, req *http.Req
 	return !track.replayed &&
 		track.Request.Method == req.Method &&
 		track.Request.URL.String() == req.URL.String() &&
-		pcbr.headerResembles(*filteredTrackHeader, *filteredReqHeader) &&
-		pcbr.bodyResembles(*filteredTrackBody, *filteredReqBody)
+		(pcbr.IgnoreHeaders || pcbr.headerResembles(*filteredTrackHeader, *filteredReqHeader)) &&
+		(pcbr.IgnoreBody || pcbr.bodyResembles(*filteredTrackBody, *filteredReqBody))
 }
 
 // headerResembles compares HTTP headers for equivalence.
@@ -194,6 +198,8 @@ func NewVCR(cassetteName string, vcrConfig *VCRConfig) *VCRControlPanel {
 	pcbr := &pcb{
 		// TODO: create appropriate test!
 		DisableRecording:   vcrConfig.DisableRecording,
+		IgnoreBody:         vcrConfig.IgnoreBody,
+		IgnoreHeaders:      vcrConfig.IgnoreHeaders,
 		Transport:          vcrConfig.Client.Transport,
 		ExcludeHeaderFunc:  vcrConfig.ExcludeHeaderFunc,
 		RequestFilterFunc:  vcrConfig.RequestFilterFunc,
