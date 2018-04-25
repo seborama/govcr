@@ -12,16 +12,18 @@ This project is an adaptation for Google's Go / Golang programming language.
 go get github.com/seborama/govcr
 ```
 
-You can pick a specific major release for compatibility. For example, to use a v1.x release, use this command:
+For all available releases, please check the [releases](https://github.com/seborama/govcr/releases) tab on github.
+
+You can pick a specific major release for compatibility. For example, to use a v2.x release, use this command:
 
 ```bash
-go get gopkg.in/seborama/govcr.v1
+go get gopkg.in/seborama/govcr.v2
 ```
 
 And your source code would use this import:
 
 ```go
-import "gopkg.in/seborama/govcr.v1"
+import "gopkg.in/seborama/govcr.v2"
 ```
 
 ## Glossary of Terms
