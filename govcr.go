@@ -233,8 +233,8 @@ func NewVCR(cassetteName string, vcrConfig *VCRConfig) *VCRControlPanel {
 //  - parameter 1 - Name of header key in the Request
 //
 // Return value:
-//  true - retain header key for comparison
-// false - ignore header key for comparison
+// true - exclude header key from comparison
+// false - retain header key for comparison
 type ExcludeHeaderFunc func(key string) bool
 
 // RequestFilterFunc is a hook function that is used to filter the Request Header / Body.
