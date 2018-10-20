@@ -3,7 +3,6 @@ package govcr_test
 import (
 	"fmt"
 	"io/ioutil"
-
 	"strings"
 
 	"github.com/seborama/govcr"
@@ -40,6 +39,6 @@ func Example_number1SimpleVCR() {
 	runTestEx1()
 
 	// Output:
-	// 404 text/html true {TracksLoaded:0 TracksRecorded:1 TracksPlayed:0}
-	// 404 text/html true {TracksLoaded:1 TracksRecorded:0 TracksPlayed:1}
+	// 404 text/html; charset=UTF-8 true {TracksLoaded:0 TracksRecorded:1 TracksPlayed:0}
+	// 404 text/html; charset=UTF-8 true {TracksLoaded:1 TracksRecorded:0 TracksPlayed:1}
 }
