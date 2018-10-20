@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"time"
-
 	"strings"
+	"time"
 
 	"github.com/seborama/govcr"
 )
@@ -66,6 +65,6 @@ func Example_number3HeaderExclusionVCR() {
 	runTestEx4()
 
 	// Output:
-	// 404 text/html true 404 text/html true 404 text/html true 404 text/html true {TracksLoaded:0 TracksRecorded:4 TracksPlayed:0}
-	// 404 text/html true 404 text/html true 404 text/html true 404 text/html true {TracksLoaded:4 TracksRecorded:0 TracksPlayed:4}
+	// 404 text/html; charset=UTF-8 true 404 text/html; charset=UTF-8 true 404 text/html; charset=UTF-8 true 404 text/html; charset=UTF-8 true {TracksLoaded:0 TracksRecorded:4 TracksPlayed:0}
+	// 404 text/html; charset=UTF-8 true 404 text/html; charset=UTF-8 true 404 text/html; charset=UTF-8 true 404 text/html; charset=UTF-8 true {TracksLoaded:4 TracksRecorded:0 TracksPlayed:4}
 }
