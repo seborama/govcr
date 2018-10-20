@@ -481,3 +481,9 @@ Objects cannot be created by name at runtime in Go. Rather than re-create the or
 In practice, the implications for you depend on how much you care about the error type. If all you need to know is that an error occurred, you won't mind this limitation.
 
 Mitigation: Support for common errors (network down) has been implemented. Support for more error types can be implemented, if there is appetite for it.
+
+## Contribute
+
+You are welcome to submit a PR to contribute.
+
+Please follow a TDD workflow: tests must be present and avoid toxic DDT (dev driven testing).

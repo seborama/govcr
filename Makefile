@@ -2,7 +2,7 @@ DEPS:=$$(go list -f '{{range .TestImports}}{{.}} {{end}}' ./...)
 MAINFILES=$$(go list -f '{{join .GoFiles " "}}')
 
 deps:
-	go get -d -v ./... $(DEPS)
+	go get -d -t -v ./... $(DEPS)
 
 test: deps
 	go test -cover -race -parallel 2 ./ ./issues/
