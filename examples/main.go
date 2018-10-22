@@ -19,4 +19,5 @@ func main() {
 	runExample("Example4", example4CassetteName, Example4)
 	runExample("Example5", example5CassetteName, Example5)
 	runExample("Example6", example6CassetteName, Example6)
+	runExample("Example7", example7CassetteName, Example7)
 }

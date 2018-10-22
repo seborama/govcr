@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/seborama/govcr"
@@ -20,54 +19,55 @@ const example6CassetteName = "MyCassette6"
 // We add headers based on request method.
 func Example6() {
 	cfg := govcr.VCRConfig{
-		ExcludeHeaderFunc: func(key string) bool {
-			// ignore the X-Transaction-Id since it changes per-request
-			return strings.ToLower(key) == "x-transaction-id"
-		},
 		Logging: true,
 	}
 
-	// RequestFilter will neutralize a value in the URL.
-	cfg.RequestFilter = func(req govcr.Request) govcr.Request {
+	// The filter will neutralize a value in the URL.
+	// In this case we rewrite /order/{random} to /order/1234
+	replacePath := govcr.RequestFilter(func(req govcr.Request) govcr.Request {
 		// Replace path with a predictable one.
-		req.URL.Path = "/foo6/1234"
+		req.URL.Path = "/order/1234"
 		return req
-	}
+	})
+	// Only execute when we match path.
+	replacePath = replacePath.OnPath(`example\.com\/order\/`)
 
-	// Rewrite /order/{random} to /order/1234
-	cfg.RequestFilter.OnPath(`example\.com\/order\/`)
+	// Add to request filters.
+	cfg.RequestFilters.Add(replacePath)
+	cfg.RequestFilters.Add(govcr.RequestDeleteHeaderKeys("X-Transaction-Id"))
 
-	// Always transfer 'X-Transaction-Id' as in example 5.
-	cfg.ResponseFilter = cfg.ResponseFilter.TransferHeaderKeys("X-Transaction-Id").
-		// Chain independent functions.
-		Chain(
-			// Change status 404 to 202.
-			func(resp govcr.Response) govcr.Response {
-				if resp.StatusCode == http.StatusNotFound {
-					resp.StatusCode = http.StatusAccepted
-				}
-				return resp
-			},
+	// Add filters to
+	cfg.ResponseFilters.Add(
+		// Always transfer 'X-Transaction-Id' as in example 5.
+		govcr.ResponseTransferHeaderKeys("X-Transaction-Id"),
 
-			// Add header if method was "GET"
-			govcr.ResponseFilter(func(resp govcr.Response) govcr.Response {
-				resp.Header.Add("method-was-get", "true")
-				return resp
-			}).OnMethod(http.MethodGet),
+		// Change status 404 to 202.
+		func(resp govcr.Response) govcr.Response {
+			if resp.StatusCode == http.StatusNotFound {
+				resp.StatusCode = http.StatusAccepted
+			}
+			return resp
+		},
 
-			// Add header if method was "POST"
-			govcr.ResponseFilter(func(resp govcr.Response) govcr.Response {
-				resp.Header.Add("method-was-post", "true")
-				return resp
-			}).OnMethod(http.MethodPost),
+		// Add header if method was "GET"
+		govcr.ResponseFilter(func(resp govcr.Response) govcr.Response {
+			resp.Header.Add("method-was-get", "true")
+			return resp
+		}).OnMethod(http.MethodGet),
 
-			// Add request URL to header.
-			govcr.ResponseFilter(func(resp govcr.Response) govcr.Response {
-				url := resp.Request().URL
-				resp.Header.Add("get-url", url.String())
-				return resp
-			}).OnMethod(http.MethodGet),
-		)
+		// Add header if method was "POST"
+		govcr.ResponseFilter(func(resp govcr.Response) govcr.Response {
+			resp.Header.Add("method-was-post", "true")
+			return resp
+		}).OnMethod(http.MethodPost),
+
+		// Add actual request URL to header.
+		govcr.ResponseFilter(func(resp govcr.Response) govcr.Response {
+			url := resp.Request().URL
+			resp.Header.Add("get-url", url.String())
+			return resp
+		}).OnMethod(http.MethodGet),
+	)
 
 	orderID := fmt.Sprint(rand.Int63())
 	vcr := govcr.NewVCR(example6CassetteName, &cfg)
@@ -106,6 +106,6 @@ func runRequest(req *http.Request, err error, vcr *govcr.VCRControlPanel) {
 	fmt.Println("Status code:", resp.StatusCode, " (should be 404 on real and 202 on replay)")
 	fmt.Println("method-was-get:", resp.Header.Get("method-was-get"), "(should never be true on GET)")
 	fmt.Println("method-was-post:", resp.Header.Get("method-was-post"), "(should be true on replay on POST)")
-	fmt.Println("get-url:", resp.Header.Get("get-url"), "(should be http://www.example.com/order/1234 on replay)")
-	fmt.Printf("%+v\n\n", vcr.Stats())
+	fmt.Println("get-url:", resp.Header.Get("get-url"), "(actual url of the request, not of the track)")
+	fmt.Printf("%+v\n", vcr.Stats())
 }

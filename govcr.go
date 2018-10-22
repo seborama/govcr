@@ -40,10 +40,10 @@ type VCRConfig struct {
 	ResponseFilterFunc ResponseFilterFunc
 
 	// Filter to run before request is matched against cassettes.
-	RequestFilter RequestFilter
+	RequestFilters RequestFilters
 
 	// Filter to run before a response is returned.
-	ResponseFilter ResponseFilter
+	ResponseFilters ResponseFilters
 
 	DisableRecording bool
 	Logging          bool
@@ -121,7 +121,7 @@ func (pcbr *pcb) filterResponse(resp *http.Response, req Request) *http.Response
 	filtResp := Response{
 		req:        req,
 		Body:       body,
-		Header:     resp.Header,
+		Header:     cloneHeader(resp.Header),
 		StatusCode: resp.StatusCode,
 	}
 	if pcbr.ResponseFilter != nil {
@@ -195,18 +195,6 @@ func NewVCR(cassetteName string, vcrConfig *VCRConfig) *VCRControlPanel {
 		}
 	}
 
-	if vcrConfig.RequestFilter == nil {
-		vcrConfig.RequestFilter = func(req Request) Request {
-			return req
-		}
-	}
-
-	if vcrConfig.ResponseFilter == nil {
-		vcrConfig.ResponseFilter = func(req Response) Response {
-			return req
-		}
-	}
-
 	// load cassette
 	cassette, err := loadCassette(cassetteName, vcrConfig.CassettePath)
 	if err != nil {
@@ -219,8 +207,8 @@ func NewVCR(cassetteName string, vcrConfig *VCRConfig) *VCRControlPanel {
 		DisableRecording:  vcrConfig.DisableRecording,
 		Transport:         vcrConfig.Client.Transport,
 		ExcludeHeaderFunc: vcrConfig.ExcludeHeaderFunc,
-		RequestFilter:     vcrConfig.RequestFilterFunc.RequestFilter().Chain(vcrConfig.RequestFilter),
-		ResponseFilter:    vcrConfig.ResponseFilterFunc.ResponseFilter().Chain(vcrConfig.ResponseFilter),
+		RequestFilter:     vcrConfig.RequestFilters.First(vcrConfig.RequestFilterFunc.RequestFilter()).combined(),
+		ResponseFilter:    vcrConfig.ResponseFilters.First(vcrConfig.ResponseFilterFunc.ResponseFilter()).combined(),
 		Logger:            logger,
 		CassettePath:      vcrConfig.CassettePath,
 	}
@@ -307,6 +295,9 @@ func (r RequestFilterFunc) RequestFilter() RequestFilter {
 // A Filter should return the request with any modified values.
 type RequestFilter func(req Request) Request
 
+// RequestFilters is a slice of RequestFilter
+type RequestFilters []RequestFilter
+
 // A Request provides the request parameters.
 type Request struct {
 	Header http.Header
@@ -343,23 +334,19 @@ func (r RequestFilter) OnPath(pathRegEx string) RequestFilter {
 	}
 }
 
-// AddHeaderValue will add a header to the request.
-func (r RequestFilter) AddHeaderValue(key, value string) RequestFilter {
+// AddHeaderValue will add or overwrite a header to the request
+// before the request is matched against the cassette.
+func RequestAddHeaderValue(key, value string) RequestFilter {
 	return func(req Request) Request {
-		if r != nil {
-			req = r(req)
-		}
 		req.Header.Add(key, value)
 		return req
 	}
 }
 
-// DeleteHeaderKeys will delete one or more header keys on the request.
-func (r RequestFilter) DeleteHeaderKeys(keys ...string) RequestFilter {
+// DeleteHeaderKeys will delete one or more header keys on the request
+// before the request is matched against the cassette.
+func RequestDeleteHeaderKeys(keys ...string) RequestFilter {
 	return func(req Request) Request {
-		if r != nil {
-			req = r(req)
-		}
 		for _, key := range keys {
 			req.Header.Del(key)
 		}
@@ -367,17 +354,31 @@ func (r RequestFilter) DeleteHeaderKeys(keys ...string) RequestFilter {
 	}
 }
 
-// Chain one or more filters after the current one and return as single filter.
-func (r RequestFilter) Chain(filters ...RequestFilter) RequestFilter {
+// Append one or more filters at the end returns the combined filters.
+// 'r' is not modified.
+func (r RequestFilters) Append(filters ...RequestFilter) RequestFilters {
+	return append(r, filters...)
+}
+
+// Add one or more filters at the end of the filter chain.
+func (r *RequestFilters) Add(filters ...RequestFilter) {
+	v := *r
+	v = append(v, filters...)
+	*r = v
+}
+
+// First one or more filters before the current ones.
+func (r RequestFilters) First(filters ...RequestFilter) RequestFilters {
+	dst := make(RequestFilters, 0, len(filters)+len(r))
+	dst = append(dst, filters...)
+	return append(dst, r...)
+}
+
+// combined returns the filters as a single filter.
+func (r RequestFilters) combined() RequestFilter {
 	return func(req Request) Request {
-		if r != nil {
-			req = r(req)
-		}
-		for _, fn := range filters {
-			if fn == nil {
-				continue
-			}
-			req = fn(req)
+		for _, filter := range r {
+			req = filter(req)
 		}
 		return req
 	}
@@ -390,6 +391,9 @@ func (r RequestFilter) Chain(filters ...RequestFilter) RequestFilter {
 //
 // Return the modified response.
 type ResponseFilter func(resp Response) Response
+
+// ResponseFilters is a slice of ResponseFilter
+type ResponseFilters []ResponseFilter
 
 // ResponseContext provides the response parameters.
 // When returned from a ResponseFilter these values will be returned instead.
@@ -448,23 +452,17 @@ func (r ResponseFilter) OnStatus(status int) ResponseFilter {
 	}
 }
 
-// AddHeaderValue will add a header to the response.
-func (r ResponseFilter) AddHeaderValue(key, value string) ResponseFilter {
+// ResponseAddHeaderValue will add/overwrite a header to the response when it is returned from vcr playback.
+func ResponseAddHeaderValue(key, value string) ResponseFilter {
 	return func(resp Response) Response {
-		if r != nil {
-			resp = r(resp)
-		}
 		resp.Header.Add(key, value)
 		return resp
 	}
 }
 
-// DeleteHeader will delete a header on the response.
-func (r ResponseFilter) DeleteHeaderKeys(keys ...string) ResponseFilter {
+// ResponseDeleteHeader will delete one or more headers on the response when returned from vcr playback.
+func ResponseDeleteHeaderKeys(keys ...string) ResponseFilter {
 	return func(resp Response) Response {
-		if r != nil {
-			resp = r(resp)
-		}
 		for _, key := range keys {
 			resp.Header.Del(key)
 		}
@@ -472,12 +470,9 @@ func (r ResponseFilter) DeleteHeaderKeys(keys ...string) ResponseFilter {
 	}
 }
 
-// TransferHeaderKeys will transfer one or more header from the Request to the Response.
-func (r ResponseFilter) TransferHeaderKeys(keys ...string) ResponseFilter {
+// ResponseTransferHeaderKeys will transfer one or more header from the Request to the Response.
+func ResponseTransferHeaderKeys(keys ...string) ResponseFilter {
 	return func(resp Response) Response {
-		if r != nil {
-			resp = r(resp)
-		}
 		for _, key := range keys {
 			resp.Header.Add(key, resp.req.Header.Get(key))
 		}
@@ -485,30 +480,42 @@ func (r ResponseFilter) TransferHeaderKeys(keys ...string) ResponseFilter {
 	}
 }
 
-// ChangeBody will allows to change the body.
-func (r ResponseFilter) ChangeBody(fn func(b []byte) []byte) ResponseFilter {
+// ResponseChangeBody will allows to change the body.
+// Supply a function that does input to output transformation.
+func ResponseChangeBody(fn func(b []byte) []byte) ResponseFilter {
 	return func(resp Response) Response {
-		if r != nil {
-			resp = r(resp)
-		}
 		resp.Body = fn(resp.Body)
 		return resp
 	}
 }
 
 // Chain one or more filters after the current one and return as single filter.
-func (r ResponseFilter) Chain(filters ...ResponseFilter) ResponseFilter {
-	return func(resp Response) Response {
-		if r != nil {
-			resp = r(resp)
+// 'r' is not modified.
+func (r ResponseFilters) Append(filters ...ResponseFilter) ResponseFilters {
+	return append(r, filters...)
+}
+
+// Add one or more filters at the end of the filter chain.
+func (r *ResponseFilters) Add(filters ...ResponseFilter) {
+	v := *r
+	v = append(v, filters...)
+	*r = v
+}
+
+// First one or more filters before the current ones.
+func (r ResponseFilters) First(filters ...ResponseFilter) ResponseFilters {
+	dst := make(ResponseFilters, 0, len(filters)+len(r))
+	dst = append(dst, filters...)
+	return append(dst, r...)
+}
+
+// combined returns the filters as a single filter.
+func (r ResponseFilters) combined() ResponseFilter {
+	return func(req Response) Response {
+		for _, filter := range r {
+			req = filter(req)
 		}
-		for _, fn := range filters {
-			if fn == nil {
-				continue
-			}
-			resp = fn(resp)
-		}
-		return resp
+		return req
 	}
 }
 
@@ -551,6 +558,19 @@ type vcrTransport struct {
 	Cassette *cassette
 }
 
+func newRequestHTTP(req *http.Request, body []byte) Request {
+	request := Request{
+		Header: cloneHeader(req.Header),
+		Body:   body,
+		Method: req.Method,
+	}
+
+	if req.URL != nil {
+		request.URL = *req.URL
+	}
+	return request
+}
+
 // RoundTrip is an implementation of http.RoundTripper.
 func (t *vcrTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	var (
@@ -558,7 +578,6 @@ func (t *vcrTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 		resp *http.Response
 
 		requestMatched bool
-		copiedReq      *http.Request
 	)
 
 	// copy the request before the body is closed by the HTTP server.
@@ -575,20 +594,14 @@ func (t *vcrTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 		return nil, err
 	}
 
-	request := Request{
-		Header: req.Header,
-		Body:   bodyData,
-		Method: req.Method,
-	}
-	if req.URL != nil {
-		request.URL = *req.URL
-	}
-	request = t.PCB.RequestFilter(request)
+
+	request := t.PCB.RequestFilter(newRequestHTTP(req, bodyData))
 
 	// attempt to use a track from the cassette that matches
 	// the request if one exists.
 	if trackNumber := t.PCB.seekTrack(t.Cassette, request); trackNumber != trackNotFound {
 		// only the played back response is filtered. Never the live response!
+		request = newRequestHTTP(req, bodyData)
 		resp = t.PCB.filterResponse(t.Cassette.replayResponse(trackNumber, copiedReq), request)
 		requestMatched = true
 	}
@@ -602,6 +615,12 @@ func (t *vcrTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 		if !t.PCB.DisableRecording {
 			// the VCR is not in read-only mode so
 			// record the filtered HTTP traffic into a new track on the cassette
+
+			copiedReq, err := copyRequest(req)
+			if err != nil {
+				t.PCB.Logger.Println(err)
+				return nil, err
+			}
 			copiedReq.URL = &request.URL
 			copiedReq.Header = request.Header
 			copiedReq.Body = ioutil.NopCloser(bytes.NewBuffer(request.Body))
@@ -667,8 +686,26 @@ func copyRequestWithoutBody(req *http.Request) *http.Request {
 		}
 		copiedReq.URL = &url
 	}
+	copiedReq.Header = cloneHeader(req.Header)
 
 	return &copiedReq
+}
+
+// cloneHeader return return a deep copy of the header.
+func cloneHeader(h http.Header) http.Header {
+	if h == nil {
+		return nil
+	}
+	// copy headers
+	copied := make(http.Header, len(h))
+	for k, v := range h {
+		vCopy := make([]string, len(v))
+		for i, value := range v {
+			vCopy[i] = value
+		}
+		copied[k] = v
+	}
+	return copied
 }
 
 // readRequestBody reads the Body data stream and restores its states.

@@ -27,10 +27,9 @@ func Example5() {
 				// ignore the X-Transaction-Id since it changes per-request
 				return strings.ToLower(key) == "x-transaction-id"
 			},
-			ResponseFilter: func(resp govcr.Response) govcr.Response {
+			ResponseFilters: govcr.ResponseFilters{
 				// overwrite X-Transaction-Id in the Response with that from the Request
-				resp.Header.Set("X-Transaction-Id", resp.Request().Header.Get("X-Transaction-Id"))
-				return resp
+				govcr.ResponseTransferHeaderKeys("X-Transaction-Id"),
 			},
 			Logging: true,
 		})
