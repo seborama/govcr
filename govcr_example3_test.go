@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"time"
-
 	"strings"
+	"time"
 
 	"github.com/seborama/govcr"
 )

@@ -3,7 +3,6 @@ package govcr_test
 import (
 	"fmt"
 	"io/ioutil"
-
 	"strings"
 
 	"github.com/seborama/govcr"
