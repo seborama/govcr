@@ -3,24 +3,21 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"net/http"
 	"strings"
 	"time"
-
-	"net/http"
 
 	"github.com/seborama/govcr"
 )
 
 const example6CassetteName = "MyCassette6"
 
-// Example5 is an example use of govcr.
-// Supposing a fictional application where the request contains a custom header
-// 'X-Transaction-Id' which must be matched in the response from the server.
-// When replaying, the request will have a different Transaction Id than that which was recorded.
-// Hence the protocol (of this fictional example) is broken.
-// To circumvent that, we inject the new request's X-Transaction-Id into the recorded response.
-// Without the ResponseFilterFunc, the X-Transaction-Id in the header would not match that
-// of the recorded response and our fictional application would reject the response on validation!
+// Example6 is an example use of govcr.
+// This will show how to do conditional rewrites.
+// For example, your request has a "/order/{random}" path
+// and we want to rewrite it to /order/1234 so we can match it later.
+// We change the response status code.
+// We add headers based on request method.
 func Example6() {
 	cfg := govcr.VCRConfig{
 		ExcludeHeaderFunc: func(key string) bool {
@@ -37,9 +34,10 @@ func Example6() {
 		return req
 	}
 
-	// Only execute POST and path contains www.example.com/order/
-	cfg.RequestFilter.OnMethod(http.MethodPost).OnPath(`example\.com\/order\/`)
+	// Rewrite /order/{random} to /order/1234
+	cfg.RequestFilter.OnPath(`example\.com\/order\/`)
 
+	// Always transfer 'X-Transaction-Id' as in example 5.
 	cfg.ResponseFilter = cfg.ResponseFilter.TransferHeaderKeys("X-Transaction-Id").
 		// Chain independent functions.
 		Chain(
@@ -68,24 +66,35 @@ func Example6() {
 				url := resp.Request().URL
 				resp.Header.Add("get-url", url.String())
 				return resp
-			}),
+			}).OnMethod(http.MethodGet),
 		)
 
+	orderID := fmt.Sprint(rand.Int63())
 	vcr := govcr.NewVCR(example6CassetteName, &cfg)
 
 	// create a request with our custom header and a random url part.
-	req, err := http.NewRequest("POST", "http://www.example.com/order/"+fmt.Sprint(rand.Int63()), nil)
+	req, err := http.NewRequest("POST", "http://www.example.com/order/"+orderID, nil)
 	if err != nil {
 		fmt.Println(err)
 	}
-	req.Header.Add("X-Transaction-Id", time.Now().String())
+	runRequest(req, err, vcr)
 
+	// create a request with our custom header and a random url part.
+	req, err = http.NewRequest("GET", "http://www.example.com/order/"+orderID, nil)
+	if err != nil {
+		fmt.Println(err)
+	}
+	runRequest(req, err, vcr)
+
+}
+
+func runRequest(req *http.Request, err error, vcr *govcr.VCRControlPanel) {
+	req.Header.Add("X-Transaction-Id", time.Now().String())
 	// run the request
 	resp, err := vcr.Client.Do(req)
 	if err != nil {
 		fmt.Println(err)
 	}
-
 	// verify outcome
 	if req.Header.Get("X-Transaction-Id") != resp.Header.Get("X-Transaction-Id") {
 		fmt.Println("Header transaction Id verification failed - this would be the live request!")
@@ -95,9 +104,8 @@ func Example6() {
 
 	// print outcome.
 	fmt.Println("Status code:", resp.StatusCode, " (should be 404 on real and 202 on replay)")
-	fmt.Println("method-was-get:", resp.Header.Get("method-was-get"), "(should never be true)")
-	fmt.Println("method-was-post:", resp.Header.Get("method-was-post"), "(should be true on replay)")
+	fmt.Println("method-was-get:", resp.Header.Get("method-was-get"), "(should never be true on GET)")
+	fmt.Println("method-was-post:", resp.Header.Get("method-was-post"), "(should be true on replay on POST)")
 	fmt.Println("get-url:", resp.Header.Get("get-url"), "(should be http://www.example.com/order/1234 on replay)")
-
-	fmt.Printf("%+v\n", vcr.Stats())
+	fmt.Printf("%+v\n\n", vcr.Stats())
 }

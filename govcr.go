@@ -130,6 +130,7 @@ func (pcbr *pcb) filterResponse(resp *http.Response, req Request) *http.Response
 	resp.Header = filtResp.Header
 	resp.Body = toReadCloser(filtResp.Body)
 	resp.StatusCode = filtResp.StatusCode
+	resp.Status = http.StatusText(resp.StatusCode)
 
 	return resp
 }
