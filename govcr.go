@@ -30,10 +30,13 @@ const defaultCassettePath = "./govcr-fixtures/"
 type VCRConfig struct {
 	Client            *http.Client
 	ExcludeHeaderFunc ExcludeHeaderFunc
+
+	// Deprecated, use RequestFilter
 	RequestFilterFunc RequestFilterFunc
 
 	// ResponseFilterFunc can be used to modify the header of the response.
 	// This is useful when a fingerprint is exchanged and expected to match between request and response.
+	// Deprecated, use ResponseFilter
 	ResponseFilterFunc ResponseFilterFunc
 
 	// Filter to run before request is matched against cassettes.
@@ -54,11 +57,9 @@ type pcb struct {
 	ExcludeHeaderFunc ExcludeHeaderFunc
 	RequestFilter     RequestFilter
 	ResponseFilter    ResponseFilter
-	//RequestFilterFunc  RequestFilterFunc
-	//ResponseFilterFunc ResponseFilterFunc
-	Logger           *log.Logger
-	DisableRecording bool
-	CassettePath     string
+	Logger            *log.Logger
+	DisableRecording  bool
+	CassettePath      string
 }
 
 const trackNotFound = -1
@@ -123,7 +124,9 @@ func (pcbr *pcb) filterResponse(resp *http.Response, req Request) *http.Response
 		Header:     resp.Header,
 		StatusCode: resp.StatusCode,
 	}
-	filtResp = pcbr.ResponseFilter(filtResp)
+	if pcbr.ResponseFilter != nil {
+		filtResp = pcbr.ResponseFilter(filtResp)
+	}
 	resp.Header = filtResp.Header
 	resp.Body = toReadCloser(filtResp.Body)
 	resp.StatusCode = filtResp.StatusCode
@@ -291,7 +294,7 @@ func (r RequestFilterFunc) RequestFilter() RequestFilter {
 	}
 }
 
-// Typically this can be used to remove / amend undesirable header / body elements from the request.
+// A RequestFilter can be used to remove / amend undesirable header / body elements from the request.
 //
 // For instance, if your application sends requests with a timestamp held in a part of
 // the header / body, you likely want to remove it or force a static timestamp via
@@ -300,11 +303,10 @@ func (r RequestFilterFunc) RequestFilter() RequestFilter {
 // It is important to note that this differs from ExcludeHeaderFunc in that the former does not
 // modify the header (it only returns a bool) whereas this function can be used to modify the header.
 //
-// Return the request with any modified values.
+// A Filter should return the request with any modified values.
 type RequestFilter func(req Request) Request
 
-// Request provides the request parameters.
-// The returned the amended values.
+// A Request provides the request parameters.
 type Request struct {
 	Header http.Header
 	Body   []byte
@@ -312,10 +314,10 @@ type Request struct {
 	URL    url.URL
 }
 
-// WithMethod will return a new filter that will only apply 'r'
+// OnMethod will return a new filter that will only apply 'r'
 // if the method of the request matches.
 // Original filter is unmodified.
-func (r RequestFilter) WithMethod(method string) RequestFilter {
+func (r RequestFilter) OnMethod(method string) RequestFilter {
 	return func(req Request) Request {
 		if req.Method != method {
 			return req
@@ -324,10 +326,10 @@ func (r RequestFilter) WithMethod(method string) RequestFilter {
 	}
 }
 
-// WithPath will return a request filter that will only apply 'r'
+// OnPath will return a request filter that will only apply 'r'
 // if the url string of the request matches the supplied regex.
 // Original filter is unmodified.
-func (r RequestFilter) WithPath(pathRegEx string) RequestFilter {
+func (r RequestFilter) OnPath(pathRegEx string) RequestFilter {
 	if pathRegEx == "" {
 		pathRegEx = "*"
 	}
@@ -343,7 +345,9 @@ func (r RequestFilter) WithPath(pathRegEx string) RequestFilter {
 // AddHeaderValue will add a header to the request.
 func (r RequestFilter) AddHeaderValue(key, value string) RequestFilter {
 	return func(req Request) Request {
-		req = r(req)
+		if r != nil {
+			req = r(req)
+		}
 		req.Header.Add(key, value)
 		return req
 	}
@@ -352,7 +356,9 @@ func (r RequestFilter) AddHeaderValue(key, value string) RequestFilter {
 // DeleteHeaderKeys will delete one or more header keys on the request.
 func (r RequestFilter) DeleteHeaderKeys(keys ...string) RequestFilter {
 	return func(req Request) Request {
-		req = r(req)
+		if r != nil {
+			req = r(req)
+		}
 		for _, key := range keys {
 			req.Header.Del(key)
 		}
@@ -363,7 +369,9 @@ func (r RequestFilter) DeleteHeaderKeys(keys ...string) RequestFilter {
 // Chain one or more filters after the current one and return as single filter.
 func (r RequestFilter) Chain(filters ...RequestFilter) RequestFilter {
 	return func(req Request) Request {
-		req = r(req)
+		if r != nil {
+			req = r(req)
+		}
 		for _, fn := range filters {
 			if fn == nil {
 				continue
@@ -400,10 +408,10 @@ func (r Response) Request() Request {
 	return r.req
 }
 
-// WithMethod will return a Response filter that will only apply 'r'
+// OnMethod will return a Response filter that will only apply 'r'
 // if the method of the response matches.
 // Original filter is unmodified.
-func (r ResponseFilter) WithMethod(method string) ResponseFilter {
+func (r ResponseFilter) OnMethod(method string) ResponseFilter {
 	return func(resp Response) Response {
 		if resp.req.Method != method {
 			return resp
@@ -412,10 +420,10 @@ func (r ResponseFilter) WithMethod(method string) ResponseFilter {
 	}
 }
 
-// WithPath will return a Response filter that will only apply 'r'
+// OnPath will return a Response filter that will only apply 'r'
 // if the url string of the Response matches the supplied regex.
 // Original filter is unmodified.
-func (r ResponseFilter) WithPath(pathRegEx string) ResponseFilter {
+func (r ResponseFilter) OnPath(pathRegEx string) ResponseFilter {
 	if pathRegEx == "" {
 		pathRegEx = "*"
 	}
@@ -428,9 +436,9 @@ func (r ResponseFilter) WithPath(pathRegEx string) ResponseFilter {
 	}
 }
 
-// WithStatus will return a Response filter that will only apply 'r'  if the response status matches.
+// OnStatus will return a Response filter that will only apply 'r'  if the response status matches.
 // Original filter is unmodified.
-func (r ResponseFilter) WithStatus(status int) ResponseFilter {
+func (r ResponseFilter) OnStatus(status int) ResponseFilter {
 	return func(resp Response) Response {
 		if resp.StatusCode != status {
 			return resp
@@ -442,7 +450,9 @@ func (r ResponseFilter) WithStatus(status int) ResponseFilter {
 // AddHeaderValue will add a header to the response.
 func (r ResponseFilter) AddHeaderValue(key, value string) ResponseFilter {
 	return func(resp Response) Response {
-		resp = r(resp)
+		if r != nil {
+			resp = r(resp)
+		}
 		resp.Header.Add(key, value)
 		return resp
 	}
@@ -451,9 +461,24 @@ func (r ResponseFilter) AddHeaderValue(key, value string) ResponseFilter {
 // DeleteHeader will delete a header on the response.
 func (r ResponseFilter) DeleteHeaderKeys(keys ...string) ResponseFilter {
 	return func(resp Response) Response {
-		resp = r(resp)
+		if r != nil {
+			resp = r(resp)
+		}
 		for _, key := range keys {
 			resp.Header.Del(key)
+		}
+		return resp
+	}
+}
+
+// TransferHeaderKeys will transfer one or more header from the Request to the Response.
+func (r ResponseFilter) TransferHeaderKeys(keys ...string) ResponseFilter {
+	return func(resp Response) Response {
+		if r != nil {
+			resp = r(resp)
+		}
+		for _, key := range keys {
+			resp.Header.Add(key, resp.req.Header.Get(key))
 		}
 		return resp
 	}
@@ -462,7 +487,9 @@ func (r ResponseFilter) DeleteHeaderKeys(keys ...string) ResponseFilter {
 // ChangeBody will allows to change the body.
 func (r ResponseFilter) ChangeBody(fn func(b []byte) []byte) ResponseFilter {
 	return func(resp Response) Response {
-		resp = r(resp)
+		if r != nil {
+			resp = r(resp)
+		}
 		resp.Body = fn(resp.Body)
 		return resp
 	}
@@ -471,7 +498,9 @@ func (r ResponseFilter) ChangeBody(fn func(b []byte) []byte) ResponseFilter {
 // Chain one or more filters after the current one and return as single filter.
 func (r ResponseFilter) Chain(filters ...ResponseFilter) ResponseFilter {
 	return func(resp Response) Response {
-		resp = r(resp)
+		if r != nil {
+			resp = r(resp)
+		}
 		for _, fn := range filters {
 			if fn == nil {
 				continue
@@ -501,7 +530,7 @@ type ResponseFilterFunc func(http.Header, []byte, http.Header) (*http.Header, *[
 // ResponseFilter returns the ResponseFilterFunc as a ResponseFilter.
 func (r ResponseFilterFunc) ResponseFilter() ResponseFilter {
 	return func(resp Response) Response {
-		header, body := r(resp.req.Header, resp.Body, resp.Header)
+		header, body := r(resp.Header, resp.Body, resp.req.Header)
 		if header != nil {
 			resp.Header = *header
 		}
@@ -553,7 +582,7 @@ func (t *vcrTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	if req.URL != nil {
 		request.URL = *req.URL
 	}
-
+	request = t.PCB.RequestFilter(request)
 
 	// attempt to use a track from the cassette that matches
 	// the request if one exists.
@@ -571,8 +600,13 @@ func (t *vcrTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 		if !t.PCB.DisableRecording {
 			// the VCR is not in read-only mode so
-			// record the HTTP traffic into a new track on the cassette
-			t.PCB.Logger.Printf("INFO - Cassette '%s' - Recording new track for %s %s\n", t.Cassette.Name, req.Method, req.URL.String())
+			// record the filtered HTTP traffic into a new track on the cassette
+			copiedReq.URL = &request.URL
+			copiedReq.Header = request.Header
+			copiedReq.Body = ioutil.NopCloser(bytes.NewBuffer(request.Body))
+			copiedReq.Method = request.Method
+
+			t.PCB.Logger.Printf("INFO - Cassette '%s' - Recording new track for %s %s as %s %s\n", t.Cassette.Name, req.Method, req.URL.String(), copiedReq.Method, copiedReq.URL)
 			if err := recordNewTrackToCassette(t.Cassette, copiedReq, resp, err); err != nil {
 				t.PCB.Logger.Println(err)
 			}

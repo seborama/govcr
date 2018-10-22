@@ -26,7 +26,7 @@ type request struct {
 
 // Request transforms internal request to a filter request.
 func (r request) Request() Request {
-	res :=  Request{
+	res := Request{
 		Header: r.Header,
 		Body:   r.Body,
 		Method: r.Method,

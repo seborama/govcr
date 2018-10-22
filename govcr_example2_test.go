@@ -91,6 +91,6 @@ func Example_number2CustomClientVCR1() {
 	runTestEx2(app)
 
 	// Output:
-	// 404 text/html true - 404 text/html true - {TracksLoaded:0 TracksRecorded:2 TracksPlayed:0}
-	// 404 text/html true - 404 text/html true - {TracksLoaded:2 TracksRecorded:0 TracksPlayed:2}
+	// 404 text/html; charset=UTF-8 true - 404 text/html; charset=UTF-8 true - {TracksLoaded:0 TracksRecorded:2 TracksPlayed:0}
+	// 404 text/html; charset=UTF-8 true - 404 text/html; charset=UTF-8 true - {TracksLoaded:2 TracksRecorded:0 TracksPlayed:2}
 }
