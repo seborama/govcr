@@ -14,6 +14,7 @@ import (
 
 const example7CassetteName = "MyCassette7"
 
+// Order is out example body we want to modify.
 type Order struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
@@ -51,7 +52,6 @@ func Example7() {
 		w.WriteHeader(200)
 		w.Write(b)
 	}
-
 	server := httptest.NewServer(http.HandlerFunc(handler))
 	defer server.Close()
 

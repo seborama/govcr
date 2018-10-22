@@ -36,7 +36,7 @@ func Example6() {
 	cfg.RequestFilters.Add(replacePath)
 	cfg.RequestFilters.Add(govcr.RequestDeleteHeaderKeys("X-Transaction-Id"))
 
-	// Add filters to
+	// Add filters
 	cfg.ResponseFilters.Add(
 		// Always transfer 'X-Transaction-Id' as in example 5.
 		govcr.ResponseTransferHeaderKeys("X-Transaction-Id"),
@@ -77,23 +77,24 @@ func Example6() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	runRequest(req, err, vcr)
+	runRequest(req, vcr)
 
 	// create a request with our custom header and a random url part.
 	req, err = http.NewRequest("GET", "http://www.example.com/order/"+orderID, nil)
 	if err != nil {
 		fmt.Println(err)
 	}
-	runRequest(req, err, vcr)
+	runRequest(req, vcr)
 
 }
 
-func runRequest(req *http.Request, err error, vcr *govcr.VCRControlPanel) {
+func runRequest(req *http.Request, vcr *govcr.VCRControlPanel) {
 	req.Header.Add("X-Transaction-Id", time.Now().String())
 	// run the request
 	resp, err := vcr.Client.Do(req)
 	if err != nil {
 		fmt.Println(err)
+		return
 	}
 	// verify outcome
 	if req.Header.Get("X-Transaction-Id") != resp.Header.Get("X-Transaction-Id") {
