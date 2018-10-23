@@ -323,7 +323,7 @@ func (r RequestFilter) OnMethod(method string) RequestFilter {
 // Original filter is unmodified.
 func (r RequestFilter) OnPath(pathRegEx string) RequestFilter {
 	if pathRegEx == "" {
-		pathRegEx = "*"
+		pathRegEx = ".*"
 	}
 	re := regexp.MustCompile(pathRegEx)
 	return func(req Request) Request {
@@ -430,7 +430,7 @@ func (r ResponseFilter) OnMethod(method string) ResponseFilter {
 // Original filter is unmodified.
 func (r ResponseFilter) OnPath(pathRegEx string) ResponseFilter {
 	if pathRegEx == "" {
-		pathRegEx = "*"
+		pathRegEx = ".*"
 	}
 	re := regexp.MustCompile(pathRegEx)
 	return func(resp Response) Response {
