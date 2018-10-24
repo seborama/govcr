@@ -42,7 +42,7 @@ func ResponseAddHeaderValue(key, value string) ResponseFilter {
 	}
 }
 
-// ResponseDeleteHeader will delete one or more headers on the response when returned from vcr playback.
+// ResponseDeleteHeaderKeys will delete one or more headers on the response when returned from vcr playback.
 func ResponseDeleteHeaderKeys(keys ...string) ResponseFilter {
 	return func(resp Response) Response {
 		for _, key := range keys {

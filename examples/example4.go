@@ -2,10 +2,8 @@ package main
 
 import (
 	"fmt"
-	"strings"
-	"time"
-
 	"net/http"
+	"time"
 
 	"github.com/seborama/govcr"
 )
@@ -21,9 +19,8 @@ const example4CassetteName = "MyCassette4"
 func Example4() {
 	vcr := govcr.NewVCR(example4CassetteName,
 		&govcr.VCRConfig{
-			ExcludeHeaderFunc: func(key string) bool {
-				// HTTP headers are case-insensitive
-				return strings.ToLower(key) == "x-custom-my-date"
+			RequestFilters: govcr.RequestFilters{
+				govcr.RequestDeleteHeaderKeys("X-Transaction-Id"),
 			},
 			Logging: true,
 		})

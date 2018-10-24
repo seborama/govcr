@@ -123,7 +123,7 @@ This simply redirects all **govcr** logging to the OS's standard Null device (e.
 
 ### Influencing request comparison programatically at runtime.
 
-`RequestFilters` receives the request Header / Body to allow their transformation. Both the live request  and the replayed request are filtered at comparison time. **Transformations are not persisted and only for the purpose of influencing comparison**.
+`RequestFilters` receives the request Header / Body to allow their transformation. Both the live request and the replayed request are filtered at comparison time. **Transformations are not persisted and only for the purpose of influencing comparison**.
 
 ### Runtime transforming of the response before sending it back to the client.
 

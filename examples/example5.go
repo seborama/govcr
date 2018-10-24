@@ -2,10 +2,8 @@ package main
 
 import (
 	"fmt"
-	"strings"
-	"time"
-
 	"net/http"
+	"time"
 
 	"github.com/seborama/govcr"
 )
@@ -23,9 +21,8 @@ const example5CassetteName = "MyCassette5"
 func Example5() {
 	vcr := govcr.NewVCR(example5CassetteName,
 		&govcr.VCRConfig{
-			ExcludeHeaderFunc: func(key string) bool {
-				// ignore the X-Transaction-Id since it changes per-request
-				return strings.ToLower(key) == "x-transaction-id"
+			RequestFilters: govcr.RequestFilters{
+				govcr.RequestDeleteHeaderKeys("X-Transaction-Id"),
 			},
 			ResponseFilters: govcr.ResponseFilters{
 				// overwrite X-Transaction-Id in the Response with that from the Request
