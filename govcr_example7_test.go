@@ -1,31 +1,32 @@
-package main
+package govcr_test
 
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/seborama/govcr"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
-
-	"github.com/seborama/govcr"
 )
 
 const example7CassetteName = "MyCassette7"
 
-// Order is out example body we want to modify.
-type Order struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-}
 
-// Example7 is an example use of govcr.
-// This will show how bodies can be rewritten.
+
+// runTestEx7 is an example use of govcr.
+/// This will show how bodies can be rewritten.
 // We will take a varying ID from the request URL, neutralize it and also change the ID in the body of the response.
-func Example7() {
+func runTestEx7(rng *rand.Rand) {
 	cfg := govcr.VCRConfig{
 		Logging: true,
+	}
+
+	// Order is out example body we want to modify.
+	type Order struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
 	}
 
 	// Regex to extract the ID from the URL.
@@ -94,7 +95,7 @@ func Example7() {
 		}).OnStatus(200),
 	)
 
-	orderID := fmt.Sprint(rand.Int63())
+	orderID := fmt.Sprint(rng.Uint64())
 	vcr := govcr.NewVCR(example7CassetteName, &cfg)
 
 	// create a request with our custom header and a random url part.
@@ -102,7 +103,6 @@ func Example7() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println("GET", req.URL.String())
 
 	// run the request
 	resp, err := vcr.Client.Do(req)
@@ -111,8 +111,37 @@ func Example7() {
 		return
 	}
 	// print outcome.
+	// Remove host name for consistent output
+	req.URL.Host="127.0.0.1"
+	fmt.Println("GET", req.URL.String())
 	fmt.Println("Status code:", resp.StatusCode)
 	body, _ := ioutil.ReadAll(resp.Body)
 	fmt.Println("Returned Body:", string(body))
 	fmt.Printf("%+v\n", vcr.Stats())
+}
+
+
+// Example_number7BodyInjection will show how bodies can be rewritten.
+//// We will take a varying ID from the request URL, neutralize it and also change the ID in the body of the response.
+func Example_number7BodyInjection() {
+	// Delete cassette to enable live HTTP call
+	govcr.DeleteCassette(example7CassetteName, "")
+
+	// We need a predictable RNG
+	rng := rand.New(rand.NewSource(7))
+
+	// 1st run of the test - will use live HTTP calls
+	runTestEx7(rng)
+	// 2nd run of the test - will use playback
+	runTestEx7(rng)
+
+	// Output:
+	//GET http://127.0.0.1/order/8475284246537043955
+	//Status code: 200
+	//Returned Body: {"id":"8475284246537043955","name":"Test Order"}
+	//{TracksLoaded:0 TracksRecorded:1 TracksPlayed:0}
+	//GET http://127.0.0.1/order/2135276795452531224
+	//Status code: 200
+	//Returned Body: {"id":"2135276795452531224","name":"Test Order"}
+	//{TracksLoaded:1 TracksRecorded:0 TracksPlayed:1}
 }

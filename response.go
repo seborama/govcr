@@ -16,7 +16,7 @@ type ResponseFilter func(resp Response) Response
 // ResponseFilters is a slice of ResponseFilter
 type ResponseFilters []ResponseFilter
 
-// ResponseContext provides the response parameters.
+// Response provides the response parameters.
 // When returned from a ResponseFilter these values will be returned instead.
 type Response struct {
 	req Request

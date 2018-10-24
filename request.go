@@ -57,7 +57,7 @@ func (r RequestFilter) OnPath(pathRegEx string) RequestFilter {
 	}
 }
 
-// AddHeaderValue will add or overwrite a header to the request
+// RequestAddHeaderValue will add or overwrite a header to the request
 // before the request is matched against the cassette.
 func RequestAddHeaderValue(key, value string) RequestFilter {
 	return func(req Request) Request {
@@ -66,7 +66,7 @@ func RequestAddHeaderValue(key, value string) RequestFilter {
 	}
 }
 
-// DeleteHeaderKeys will delete one or more header keys on the request
+// RequestDeleteHeaderKeys will delete one or more header keys on the request
 // before the request is matched against the cassette.
 func RequestDeleteHeaderKeys(keys ...string) RequestFilter {
 	return func(req Request) Request {
