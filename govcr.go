@@ -271,7 +271,6 @@ func (t *vcrTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 		return nil, err
 	}
 
-
 	request := t.PCB.RequestFilter(newRequestHTTP(req, bodyData))
 
 	// attempt to use a track from the cassette that matches

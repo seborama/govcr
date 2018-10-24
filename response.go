@@ -34,6 +34,43 @@ func (r Response) Request() Request {
 	return r.req
 }
 
+// ResponseAddHeaderValue will add/overwrite a header to the response when it is returned from vcr playback.
+func ResponseAddHeaderValue(key, value string) ResponseFilter {
+	return func(resp Response) Response {
+		resp.Header.Add(key, value)
+		return resp
+	}
+}
+
+// ResponseDeleteHeader will delete one or more headers on the response when returned from vcr playback.
+func ResponseDeleteHeaderKeys(keys ...string) ResponseFilter {
+	return func(resp Response) Response {
+		for _, key := range keys {
+			resp.Header.Del(key)
+		}
+		return resp
+	}
+}
+
+// ResponseTransferHeaderKeys will transfer one or more header from the Request to the Response.
+func ResponseTransferHeaderKeys(keys ...string) ResponseFilter {
+	return func(resp Response) Response {
+		for _, key := range keys {
+			resp.Header.Add(key, resp.req.Header.Get(key))
+		}
+		return resp
+	}
+}
+
+// ResponseChangeBody will allows to change the body.
+// Supply a function that does input to output transformation.
+func ResponseChangeBody(fn func(b []byte) []byte) ResponseFilter {
+	return func(resp Response) Response {
+		resp.Body = fn(resp.Body)
+		return resp
+	}
+}
+
 // OnMethod will return a Response filter that will only apply 'r'
 // if the method of the response matches.
 // Original filter is unmodified.
@@ -73,49 +110,6 @@ func (r ResponseFilter) OnStatus(status int) ResponseFilter {
 	}
 }
 
-// ResponseAddHeaderValue will add/overwrite a header to the response when it is returned from vcr playback.
-func ResponseAddHeaderValue(key, value string) ResponseFilter {
-	return func(resp Response) Response {
-		resp.Header.Add(key, value)
-		return resp
-	}
-}
-
-// ResponseDeleteHeader will delete one or more headers on the response when returned from vcr playback.
-func ResponseDeleteHeaderKeys(keys ...string) ResponseFilter {
-	return func(resp Response) Response {
-		for _, key := range keys {
-			resp.Header.Del(key)
-		}
-		return resp
-	}
-}
-
-// ResponseTransferHeaderKeys will transfer one or more header from the Request to the Response.
-func ResponseTransferHeaderKeys(keys ...string) ResponseFilter {
-	return func(resp Response) Response {
-		for _, key := range keys {
-			resp.Header.Add(key, resp.req.Header.Get(key))
-		}
-		return resp
-	}
-}
-
-// ResponseChangeBody will allows to change the body.
-// Supply a function that does input to output transformation.
-func ResponseChangeBody(fn func(b []byte) []byte) ResponseFilter {
-	return func(resp Response) Response {
-		resp.Body = fn(resp.Body)
-		return resp
-	}
-}
-
-// Append one or more filters after the current one and return as single filter.
-// 'r' is not modified.
-func (r ResponseFilters) Append(filters ...ResponseFilter) ResponseFilters {
-	return append(r, filters...)
-}
-
 // Add one or more filters at the end of the filter chain.
 func (r *ResponseFilters) Add(filters ...ResponseFilter) {
 	v := *r
@@ -124,10 +118,11 @@ func (r *ResponseFilters) Add(filters ...ResponseFilter) {
 }
 
 // Prepend one or more filters before the current ones.
-func (r ResponseFilters) Prepend(filters ...ResponseFilter) ResponseFilters {
-	dst := make(ResponseFilters, 0, len(filters)+len(r))
+func (r *ResponseFilters) Prepend(filters ...ResponseFilter) {
+	src := *r
+	dst := make(ResponseFilters, 0, len(filters)+len(src))
 	dst = append(dst, filters...)
-	return append(dst, r...)
+	*r = append(dst, src...)
 }
 
 // combined returns the filters as a single filter.

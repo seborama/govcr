@@ -3,17 +3,16 @@ package govcr_test
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/seborama/govcr"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
+
+	"github.com/seborama/govcr"
 )
 
 const example7CassetteName = "MyCassette7"
-
-
 
 // runTestEx7 is an example use of govcr.
 /// This will show how bodies can be rewritten.
@@ -68,7 +67,6 @@ func runTestEx7(rng *rand.Rand) {
 	// Only execute when we match path.
 	cfg.RequestFilters.Add(replacePath.OnPath(`/order/`))
 
-
 	cfg.ResponseFilters.Add(
 		govcr.ResponseFilter(func(resp govcr.Response) govcr.Response {
 			req := resp.Request()
@@ -99,7 +97,7 @@ func runTestEx7(rng *rand.Rand) {
 	vcr := govcr.NewVCR(example7CassetteName, &cfg)
 
 	// create a request with our custom header and a random url part.
-	req, err := http.NewRequest("GET", server.URL+ "/order/"+ orderID, nil)
+	req, err := http.NewRequest("GET", server.URL+"/order/"+orderID, nil)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -112,14 +110,13 @@ func runTestEx7(rng *rand.Rand) {
 	}
 	// print outcome.
 	// Remove host name for consistent output
-	req.URL.Host="127.0.0.1"
+	req.URL.Host = "127.0.0.1"
 	fmt.Println("GET", req.URL.String())
 	fmt.Println("Status code:", resp.StatusCode)
 	body, _ := ioutil.ReadAll(resp.Body)
 	fmt.Println("Returned Body:", string(body))
 	fmt.Printf("%+v\n", vcr.Stats())
 }
-
 
 // Example_number7BodyInjection will show how bodies can be rewritten.
 //// We will take a varying ID from the request URL, neutralize it and also change the ID in the body of the response.

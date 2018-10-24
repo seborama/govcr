@@ -11,7 +11,6 @@ import (
 
 const example6CassetteName = "MyCassette6"
 
-
 // Example6 is an example use of govcr.
 // This will show how to do conditional rewrites.
 // For example, your request has a "/order/{random}" path

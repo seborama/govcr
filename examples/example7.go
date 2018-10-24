@@ -67,7 +67,6 @@ func Example7() {
 	// Only execute when we match path.
 	cfg.RequestFilters.Add(replacePath.OnPath(`/order/`))
 
-
 	cfg.ResponseFilters.Add(
 		govcr.ResponseFilter(func(resp govcr.Response) govcr.Response {
 			req := resp.Request()
@@ -98,7 +97,7 @@ func Example7() {
 	vcr := govcr.NewVCR(example7CassetteName, &cfg)
 
 	// create a request with our custom header and a random url part.
-	req, err := http.NewRequest("GET", server.URL+ "/order/"+ orderID, nil)
+	req, err := http.NewRequest("GET", server.URL+"/order/"+orderID, nil)
 	if err != nil {
 		fmt.Println(err)
 	}
