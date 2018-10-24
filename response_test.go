@@ -65,7 +65,7 @@ func TestResponseAddHeaderValue(t *testing.T) {
 func TestResponseDeleteHeaderKeys(t *testing.T) {
 	r := responseTestBase()
 	r.Header.Add("a-header", "a-value")
-	r = ResponseDeleteHeaderKeys("non-existing", "a-respheader","a-header")(r)
+	r = ResponseDeleteHeaderKeys("non-existing", "a-respheader", "a-header")(r)
 	if r.Header.Get("a-respheader") != "" {
 		t.Error("'a-header' not removed")
 	}
@@ -130,7 +130,6 @@ func TestResponseFilter_OnStatus(t *testing.T) {
 	f.OnStatus(http.StatusCreated)(responseTestBase())
 	ok()
 }
-
 
 func TestResponseFilter_Add(t *testing.T) {
 	var f ResponseFilters
