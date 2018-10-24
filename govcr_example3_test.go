@@ -26,9 +26,8 @@ func runTestEx4() {
 	// Create vcr
 	vcr := govcr.NewVCR(example3CassetteName,
 		&govcr.VCRConfig{
-			ExcludeHeaderFunc: func(key string) bool {
-				// HTTP headers are case-insensitive
-				return strings.ToLower(key) == "x-custom-my-date"
+			RequestFilters: govcr.RequestFilters{
+				govcr.RequestDeleteHeaderKeys("X-Custom-My-Date"),
 			},
 		})
 

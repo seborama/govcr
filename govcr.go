@@ -26,8 +26,7 @@ const defaultCassettePath = "./govcr-fixtures/"
 
 // VCRConfig holds a set of options for the VCR.
 type VCRConfig struct {
-	Client            *http.Client
-	ExcludeHeaderFunc ExcludeHeaderFunc
+	Client *http.Client
 
 	// Filter to run before request is matched against cassettes.
 	RequestFilters RequestFilters
@@ -43,13 +42,12 @@ type VCRConfig struct {
 // PCB stands for Printed Circuit Board. It is a structure that holds some
 // facilities that are passed to the VCR machine to modify its internals.
 type pcb struct {
-	Transport         http.RoundTripper
-	ExcludeHeaderFunc ExcludeHeaderFunc
-	RequestFilter     RequestFilter
-	ResponseFilter    ResponseFilter
-	Logger            *log.Logger
-	DisableRecording  bool
-	CassettePath      string
+	Transport        http.RoundTripper
+	RequestFilter    RequestFilter
+	ResponseFilter   ResponseFilter
+	Logger           *log.Logger
+	DisableRecording bool
+	CassettePath     string
 }
 
 const trackNotFound = -1
@@ -86,13 +84,12 @@ func (pcbr *pcb) trackMatches(cassette *cassette, trackNumber int, req Request) 
 func (pcbr *pcb) headerResembles(header1 http.Header, header2 http.Header) bool {
 	for k := range header1 {
 		// TODO: a given header may have several values (and in any order)
-		if GetFirstValue(header1, k) != GetFirstValue(header2, k) && !pcbr.ExcludeHeaderFunc(k) {
+		if GetFirstValue(header1, k) != GetFirstValue(header2, k) {
 			return false
 		}
 	}
 
 	// finally assert the number of headers match
-	// TODO: perhaps should count how many pcb.ExcludeHeaderFunc() returned true and remove that count from the len to compare?
 	return len(header1) == len(header2)
 }
 
@@ -166,13 +163,6 @@ func NewVCR(cassetteName string, vcrConfig *VCRConfig) *VCRControlPanel {
 		vcrConfig.Client.Transport = http.DefaultTransport
 	}
 
-	// use a default set of FilterFunc's
-	if vcrConfig.ExcludeHeaderFunc == nil {
-		vcrConfig.ExcludeHeaderFunc = func(key string) bool {
-			return false
-		}
-	}
-
 	// load cassette
 	cassette, err := loadCassette(cassetteName, vcrConfig.CassettePath)
 	if err != nil {
@@ -182,13 +172,12 @@ func NewVCR(cassetteName string, vcrConfig *VCRConfig) *VCRControlPanel {
 	// create PCB
 	pcbr := &pcb{
 		// TODO: create appropriate test!
-		DisableRecording:  vcrConfig.DisableRecording,
-		Transport:         vcrConfig.Client.Transport,
-		ExcludeHeaderFunc: vcrConfig.ExcludeHeaderFunc,
-		RequestFilter:     vcrConfig.RequestFilters.combined(),
-		ResponseFilter:    vcrConfig.ResponseFilters.combined(),
-		Logger:            logger,
-		CassettePath:      vcrConfig.CassettePath,
+		DisableRecording: vcrConfig.DisableRecording,
+		Transport:        vcrConfig.Client.Transport,
+		RequestFilter:    vcrConfig.RequestFilters.combined(),
+		ResponseFilter:   vcrConfig.ResponseFilters.combined(),
+		Logger:           logger,
+		CassettePath:     vcrConfig.CassettePath,
 	}
 
 	// create VCR's HTTP client
@@ -209,22 +198,6 @@ func NewVCR(cassetteName string, vcrConfig *VCRConfig) *VCRControlPanel {
 		Client: vcrClient,
 	}
 }
-
-// ExcludeHeaderFunc is a hook function that is used to filter the Header.
-//
-// Typically this can be used to remove / amend undesirable custom headers from the request.
-//
-// For instance, if your application sends requests with a timestamp held in a custom header,
-// you likely want to exclude it from the comparison to ensure that the request headers are
-// considered a match with those saved on the cassette's track.
-//
-// Parameters:
-//  - parameter 1 - Name of header key in the Request
-//
-// Return value:
-// true - exclude header key from comparison
-// false - retain header key for comparison
-type ExcludeHeaderFunc func(key string) bool
 
 // vcrTransport is the heart of VCR. It provides
 // an http.RoundTripper that wraps over the default

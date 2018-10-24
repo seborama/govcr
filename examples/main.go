@@ -11,6 +11,7 @@ func runExample(name, cassetteName string, f func()) {
 	fmt.Println("2nd run =======================================================")
 	f()
 	fmt.Println("Complete ======================================================")
+	fmt.Println()
 }
 func main() {
 	runExample("Example1", example1CassetteName, Example1)
