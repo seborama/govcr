@@ -14,16 +14,16 @@ go get github.com/seborama/govcr
 
 For all available releases, please check the [releases](https://github.com/seborama/govcr/releases) tab on github.
 
-You can pick a specific major release for compatibility. For example, to use a v2.x release, use this command:
+You can pick a specific major release for compatibility. For example, to use a v3.x release, use this command:
 
 ```bash
-go get gopkg.in/seborama/govcr.v2
+go get gopkg.in/seborama/govcr.v3
 ```
 
 And your source code would use this import:
 
 ```go
-import "gopkg.in/seborama/govcr.v2"
+import "gopkg.in/seborama/govcr.v3"
 ```
 
 ## Glossary of Terms
