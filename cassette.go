@@ -24,6 +24,19 @@ type request struct {
 	Body   []byte
 }
 
+// Request transforms internal request to a filter request.
+func (r request) Request() Request {
+	res := Request{
+		Header: r.Header,
+		Body:   r.Body,
+		Method: r.Method,
+	}
+	if r.URL != nil {
+		res.URL = *r.URL
+	}
+	return res
+}
+
 // response is a recorded HTTP response.
 type response struct {
 	Status     string
@@ -38,6 +51,16 @@ type response struct {
 	TransferEncoding []string
 	Trailer          http.Header
 	TLS              *tls.ConnectionState
+}
+
+// Response returns the internal response to a filter response.
+func (r response) Response(req Request) Response {
+	return Response{
+		req:        req,
+		Body:       r.Body,
+		Header:     r.Header,
+		StatusCode: r.StatusCode,
+	}
 }
 
 // track is a recording (HTTP request + response) in a cassette.

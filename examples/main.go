@@ -10,7 +10,7 @@ func runExample(name, cassetteName string, f func()) {
 	f()
 	fmt.Println("2nd run =======================================================")
 	f()
-	fmt.Println("Complete ======================================================\n\n")
+	fmt.Println("Complete ======================================================")
 }
 func main() {
 	runExample("Example1", example1CassetteName, Example1)
@@ -18,4 +18,6 @@ func main() {
 	runExample("Example3", example3CassetteName, Example3)
 	runExample("Example4", example4CassetteName, Example4)
 	runExample("Example5", example5CassetteName, Example5)
+	runExample("Example6", example6CassetteName, Example6)
+	runExample("Example7", example7CassetteName, Example7)
 }
