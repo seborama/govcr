@@ -42,14 +42,16 @@ import "gopkg.in/seborama/govcr.v2"
 
 **govcr** can replay both successful and failed HTTP transactions.
 
-A given request may be repeated, again and again. They will be replayed in the same order as they were recorded. See the tests for an example (`TestPlaybackOrder`).
-
 The code documentation can be found on [godoc](http://godoc.org/github.com/seborama/govcr).
 
 When using **govcr**'s `http.Client`, the request is matched against the **tracks** on the '**cassette**':
 
 - The **track** is played where a matching one exists on the **cassette**,
-- or the request is executed live to the HTTP server and then recorded on **cassette** for the next time.
+- or the request is executed live to the HTTP server and then recorded on **cassette** for the next time (unless option **`DisableRecording`** is used).
+
+When  multiple matching **tracks** exist for the same request on the **cassette** (this can be crafted manually inside the **cassette** or can be simulated when using **`RequestFilters`**), the **tracks** will be replayed in the same order as they were recorded. See the tests for an example (`TestPlaybackOrder`).
+
+When the last request matching **track** has been replayed, **govcr** cycles back to the first **track** again and so on.
 
 **Cassette** recordings are saved under `./govcr-fixtures` (by default) as `*.cassette` files in JSON format.
 
@@ -121,13 +123,25 @@ This simply redirects all **govcr** logging to the OS's standard Null device (e.
 
 ## Filter functions
 
+In some scenarios, it may not possible to match **tracks** the way they were recorded.
+
+For instance, the request contains a timestamp or a dynamically changing identifier, etc.
+
+In other situations, the response needs a transformation to be receivable.
+
+Building on from the above example, the response may need to provide the same identifier that the request sent.
+
+Filters help you deal with this kind of practical aspects of dynamic exchanges.
+
 ### Influencing request comparison programatically at runtime.
 
-`RequestFilters` receives the request Header / Body to allow their transformation. Both the live request and the replayed request are filtered at comparison time. **Transformations are not persisted and only for the purpose of influencing comparison**.
+`RequestFilters` receives the **request** Header / Body to allow their transformation. Both the live request and the recorded request on **track** are filtered in order to influence their comparison (e.g. remove an HTTP header to ignore it completely when matching).
+
+**Transformations are not persisted and only for the purpose of influencing comparison**.
 
 ### Runtime transforming of the response before sending it back to the client.
 
-`ResponseFilters` is the flip side of `RequestFilters`. It receives the response Header / Body to allow their transformation. Unlike `RequestFilters`, this influences the response returned from the request to the client. The request header is also passed to `ResponseFilter` but read-only and solely for the purpose of extracting request data for situations where it is needed to transform the Response.
+`ResponseFilters` is the flip side of `RequestFilters`. It receives the **response** Header / Body to allow their transformation. Unlike `RequestFilters`, this influences the response returned from the request to the client. The request header is also passed to `ResponseFilter` but read-only and solely for the purpose of extracting request data for situations where it is needed to transform the Response (such as to retrieve an identifier that must be the same in the request and the response).
 
 ## Examples
 
@@ -155,12 +169,19 @@ func Example1() {
 ```
 
 If the **cassette** exists and a **track** matches the request, it will be played back without any real HTTP call to the live server.
+
 Otherwise, a real live HTTP call will be made and recorded in a new track added to the **cassette**.
+
+**Tip:**
+
+To experiment with this example, run it at least twice: the first time (when the **cassette** does **not** exist), it will make a live call. Subsequent executions will use the **track** on **cassette** to retrieve the recorded response instead of making a live call.
 
 ### Example 2 - Custom VCR Transport
 
 Sometimes, your application will create its own `http.Client` wrapper or will initialise the `http.Client`'s Transport (for instance when using https).
+
 In such cases, you can pass the `http.Client` object of your application to VCR.
+
 VCR will wrap your `http.Client` with its own which you can inject back into your application.
 
 ```go
@@ -224,11 +245,12 @@ func Example2() {
 ### Example 3 - Custom VCR, POST method
 
 Please refer to the source file in the `examples` directory.
+
 This example is identical to Example 2 but with a POST request rather than a GET.
 
-### Example 4 - Custom VCR with a ExcludeHeaderFunc
+### Example 4 - Custom VCR with a RequestFilters
 
-This example shows how to handle situations where a header in the request needs to be ignored.
+This example shows how to handle situations where a header in the request needs to be ignored (or the **track** would not match and hence would not be replayed).
 
 For this example, logging is switched on. This is achieved with `Logging: true` in `VCRConfig` when calling `NewVCR`.
 
@@ -251,14 +273,13 @@ const example4CassetteName = "MyCassette4"
 // The request contains a custom header 'X-Custom-My-Date' which varies with every request.
 // This example shows how to exclude a particular header from the request to facilitate
 // matching a previous recording.
-// Without the ExcludeHeaderFunc, the headers would not match and hence the playback would not
+// Without the RequestFilters, the headers would not match and hence the playback would not
 // happen!
 func Example4() {
     vcr := govcr.NewVCR(example4CassetteName,
         &govcr.VCRConfig{
-            ExcludeHeaderFunc: func(key string) bool {
-                // HTTP headers are case-insensitive
-                return strings.ToLower(key) == "x-custom-my-date"
+            RequestFilters: govcr.RequestFilters{
+                govcr.RequestDeleteHeaderKeys("X-Custom-My-Date"),
             },
             Logging: true,
         })
@@ -276,13 +297,16 @@ func Example4() {
 }
 ```
 
-### Example 5 - Custom VCR with a ExcludeHeaderFunc and ResponseFilters
+**Tip:**
+
+Remove the RequestFilters from the VCRConfig and re-run the example. Check the stats: notice how the tracks **no longer** replay.
+
+### Example 5 - Custom VCR with a RequestFilters and ResponseFilters
 
 This example shows how to handle situations where a transaction Id in the header needs to be present in the response.
 This could be as part of a contract validation between server and client.
 
-Note: `RequestFilters` achieves a similar purpose with the **request** Header / Body.
-      This is useful when some of the data in the **request** Header / Body needs to be transformed
+Note: This is useful when some of the data in the **request** Header / Body needs to be transformed
       before it can be evaluated for comparison for playback.
 
 ```go
@@ -311,9 +335,8 @@ const example5CassetteName = "MyCassette5"
 func Example5() {
     vcr := govcr.NewVCR(example5CassetteName,
         &govcr.VCRConfig{
-            ExcludeHeaderFunc: func(key string) bool {
-                // ignore the X-Transaction-Id since it changes per-request
-                return strings.ToLower(key) == "x-transaction-id"
+            RequestFilters: govcr.RequestFilters{
+                govcr.RequestDeleteHeaderKeys("X-Transaction-Id"),
             },
 			ResponseFilters: govcr.ResponseFilters{
 				// overwrite X-Transaction-Id in the Response with that from the Request
@@ -390,14 +413,12 @@ Running Example1...
 {TracksLoaded:1 TracksRecorded:0 TracksPlayed:1}
 Complete ======================================================
 
-
 Running Example2...
 1st run =======================================================
 {TracksLoaded:0 TracksRecorded:1 TracksPlayed:0}
 2nd run =======================================================
 {TracksLoaded:1 TracksRecorded:0 TracksPlayed:1}
 Complete ======================================================
-
 
 Running Example3...
 1st run =======================================================
@@ -406,26 +427,24 @@ Running Example3...
 {TracksLoaded:1 TracksRecorded:0 TracksPlayed:1}
 Complete ======================================================
 
-
 Running Example4...
 1st run =======================================================
-2016/09/12 22:22:20 INFO - Cassette 'MyCassette4' - Executing request to live server for POST http://example.com/foo
-2016/09/12 22:22:20 INFO - Cassette 'MyCassette4' - Recording new track for POST http://example.com/foo
+2018/10/25 00:12:56 INFO - Cassette 'MyCassette4' - Executing request to live server for POST http://www.example.com/foo
+2018/10/25 00:12:56 INFO - Cassette 'MyCassette4' - Recording new track for POST http://www.example.com/foo as POST http://www.example.com/foo
 {TracksLoaded:0 TracksRecorded:1 TracksPlayed:0}
 2nd run =======================================================
-2016/09/12 22:22:20 INFO - Cassette 'MyCassette4' - Found a matching track for POST http://example.com/foo
+2018/10/25 00:12:56 INFO - Cassette 'MyCassette4' - Found a matching track for POST http://www.example.com/foo
 {TracksLoaded:1 TracksRecorded:0 TracksPlayed:1}
 Complete ======================================================
 
-
 Running Example5...
 1st run =======================================================
-2016/09/12 22:22:20 INFO - Cassette 'MyCassette5' - Executing request to live server for POST http://example.com/foo5
-2016/09/12 22:22:20 INFO - Cassette 'MyCassette5' - Recording new track for POST http://example.com/foo5
+2018/10/25 00:12:56 INFO - Cassette 'MyCassette5' - Executing request to live server for POST http://www.example.com/foo5
+2018/10/25 00:12:56 INFO - Cassette 'MyCassette5' - Recording new track for POST http://www.example.com/foo5 as POST http://www.example.com/foo5
 Header transaction Id verification failed - this would be the live request!
 {TracksLoaded:0 TracksRecorded:1 TracksPlayed:0}
 2nd run =======================================================
-2016/09/12 22:22:20 INFO - Cassette 'MyCassette5' - Found a matching track for POST http://example.com/foo5
+2018/10/25 00:12:56 INFO - Cassette 'MyCassette5' - Found a matching track for POST http://www.example.com/foo5
 Header transaction Id verification passed - this would be the replayed track!
 {TracksLoaded:1 TracksRecorded:0 TracksPlayed:1}
 Complete ======================================================
