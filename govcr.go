@@ -207,8 +207,8 @@ func NewVCR(cassetteName string, vcrConfig *VCRConfig) *VCRControlPanel {
 		DisableRecording:  vcrConfig.DisableRecording,
 		Transport:         vcrConfig.Client.Transport,
 		ExcludeHeaderFunc: vcrConfig.ExcludeHeaderFunc,
-		RequestFilter:     vcrConfig.RequestFilters.First(vcrConfig.RequestFilterFunc.RequestFilter()).combined(),
-		ResponseFilter:    vcrConfig.ResponseFilters.First(vcrConfig.ResponseFilterFunc.ResponseFilter()).combined(),
+		RequestFilter:     vcrConfig.RequestFilters.Prepend(vcrConfig.RequestFilterFunc.RequestFilter()).combined(),
+		ResponseFilter:    vcrConfig.ResponseFilters.Prepend(vcrConfig.ResponseFilterFunc.ResponseFilter()).combined(),
 		Logger:            logger,
 		CassettePath:      vcrConfig.CassettePath,
 	}
@@ -367,8 +367,8 @@ func (r *RequestFilters) Add(filters ...RequestFilter) {
 	*r = v
 }
 
-// First one or more filters before the current ones.
-func (r RequestFilters) First(filters ...RequestFilter) RequestFilters {
+// Prepend one or more filters before the current ones.
+func (r RequestFilters) Prepend(filters ...RequestFilter) RequestFilters {
 	dst := make(RequestFilters, 0, len(filters)+len(r))
 	dst = append(dst, filters...)
 	return append(dst, r...)
@@ -502,8 +502,8 @@ func (r *ResponseFilters) Add(filters ...ResponseFilter) {
 	*r = v
 }
 
-// First one or more filters before the current ones.
-func (r ResponseFilters) First(filters ...ResponseFilter) ResponseFilters {
+// Prepend one or more filters before the current ones.
+func (r ResponseFilters) Prepend(filters ...ResponseFilter) ResponseFilters {
 	dst := make(ResponseFilters, 0, len(filters)+len(r))
 	dst = append(dst, filters...)
 	return append(dst, r...)
