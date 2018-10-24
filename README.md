@@ -123,11 +123,11 @@ This simply redirects all **govcr** logging to the OS's standard Null device (e.
 
 ### Influencing request comparison programatically at runtime.
 
-`RequestFilterFunc` receives the request Header / Body to allow their transformation. Both the live request  and the replayed request are filtered at comparison time. **Transformations are not persisted and only for the purpose of influencing comparison**.
+`RequestFilters` receives the request Header / Body to allow their transformation. Both the live request  and the replayed request are filtered at comparison time. **Transformations are not persisted and only for the purpose of influencing comparison**.
 
 ### Runtime transforming of the response before sending it back to the client.
 
-`ResponseFilterFunc` is the flip side of `RequestFilterFunc`. It receives the response Header / Body to allow their transformation. Unlike `RequestFilterFunc`, this influences the response returned from the request to the client. The request header is also passed to `ResponseFilterFunc` but read-only and solely for the purpose of extracting request data for situations where it is needed to transform the Response.
+`ResponseFilters` is the flip side of `RequestFilters`. It receives the response Header / Body to allow their transformation. Unlike `RequestFilters`, this influences the response returned from the request to the client. The request header is also passed to `ResponseFilter` but read-only and solely for the purpose of extracting request data for situations where it is needed to transform the Response.
 
 ## Examples
 
@@ -276,12 +276,12 @@ func Example4() {
 }
 ```
 
-### Example 5 - Custom VCR with a ExcludeHeaderFunc and ResponseFilterFunc
+### Example 5 - Custom VCR with a ExcludeHeaderFunc and ResponseFilters
 
 This example shows how to handle situations where a transaction Id in the header needs to be present in the response.
 This could be as part of a contract validation between server and client.
 
-Note: `RequestFilterFunc` achieves a similar purpose with the **request** Header / Body.
+Note: `RequestFilters` achieves a similar purpose with the **request** Header / Body.
       This is useful when some of the data in the **request** Header / Body needs to be transformed
       before it can be evaluated for comparison for playback.
 
@@ -306,7 +306,7 @@ const example5CassetteName = "MyCassette5"
 // When replaying, the request will have a different Transaction Id than that which was recorded.
 // Hence the protocol (of this fictional example) is broken.
 // To circumvent that, we inject the new request's X-Transaction-Id into the recorded response.
-// Without the ResponseFilterFunc, the X-Transaction-Id in the header would not match that
+// Without the ResponseFilters, the X-Transaction-Id in the header would not match that
 // of the recorded response and our fictional application would reject the response on validation!
 func Example5() {
     vcr := govcr.NewVCR(example5CassetteName,
@@ -315,12 +315,10 @@ func Example5() {
                 // ignore the X-Transaction-Id since it changes per-request
                 return strings.ToLower(key) == "x-transaction-id"
             },
-            ResponseFilterFunc: func(respHeader http.Header, respBody string, reqHeader http.Header) (*http.Header, *string) {
-                // overwrite X-Transaction-Id in the Response with that from the Request
-                respHeader.Set("X-Transaction-Id", reqHeader.Get("X-Transaction-Id"))
-
-                return &respHeader, &respBody
-            },
+			ResponseFilters: govcr.ResponseFilters{
+				// overwrite X-Transaction-Id in the Response with that from the Request
+				govcr.ResponseTransferHeaderKeys("X-Transaction-Id"),
+			},
             Logging: true,
         })
 
