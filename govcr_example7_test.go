@@ -15,7 +15,7 @@ import (
 const example7CassetteName = "MyCassette7"
 
 // runTestEx7 is an example use of govcr.
-/// This will show how bodies can be rewritten.
+// This will show how bodies can be rewritten.
 // We will take a varying ID from the request URL, neutralize it and also change the ID in the body of the response.
 func runTestEx7(rng *rand.Rand) {
 	cfg := govcr.VCRConfig{
@@ -119,7 +119,7 @@ func runTestEx7(rng *rand.Rand) {
 }
 
 // Example_number7BodyInjection will show how bodies can be rewritten.
-//// We will take a varying ID from the request URL, neutralize it and also change the ID in the body of the response.
+// We will take a varying ID from the request URL, neutralize it and also change the ID in the body of the response.
 func Example_number7BodyInjection() {
 	// Delete cassette to enable live HTTP call
 	govcr.DeleteCassette(example7CassetteName, "")
