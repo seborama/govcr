@@ -12,9 +12,6 @@ import (
 // the header / body, you likely want to remove it or force a static timestamp via
 // RequestFilterFunc to ensure that the request body matches those saved on the cassette's track.
 //
-// It is important to note that this differs from ExcludeHeaderFunc in that the former does not
-// modify the header (it only returns a bool) whereas this function can be used to modify the header.
-//
 // A Filter should return the request with any modified values.
 type RequestFilter func(req Request) Request
 
