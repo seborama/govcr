@@ -110,7 +110,7 @@ func ResponseChangeBody(fn func(b []byte) []byte) ResponseFilter {
 	}
 }
 
-// Chain one or more filters after the current one and return as single filter.
+// Append one or more filters after the current one and return as single filter.
 // 'r' is not modified.
 func (r ResponseFilters) Append(filters ...ResponseFilter) ResponseFilters {
 	return append(r, filters...)
