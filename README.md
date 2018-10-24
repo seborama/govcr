@@ -127,7 +127,7 @@ This simply redirects all **govcr** logging to the OS's standard Null device (e.
 
 ### Runtime transforming of the response before sending it back to the client.
 
-`ResponseFilters` is the flip side of `RequestFilters`. It receives the response Header / Body to allow their transformation. Unlike `RequestFilterFunc`, this influences the response returned from the request to the client. The request header is also passed to `ResponseFilterFunc` but read-only and solely for the purpose of extracting request data for situations where it is needed to transform the Response.
+`ResponseFilters` is the flip side of `RequestFilters`. It receives the response Header / Body to allow their transformation. Unlike `RequestFilters`, this influences the response returned from the request to the client. The request header is also passed to `ResponseFilter` but read-only and solely for the purpose of extracting request data for situations where it is needed to transform the Response.
 
 ## Examples
 
@@ -306,7 +306,7 @@ const example5CassetteName = "MyCassette5"
 // When replaying, the request will have a different Transaction Id than that which was recorded.
 // Hence the protocol (of this fictional example) is broken.
 // To circumvent that, we inject the new request's X-Transaction-Id into the recorded response.
-// Without the ResponseFilterFunc, the X-Transaction-Id in the header would not match that
+// Without the ResponseFilters, the X-Transaction-Id in the header would not match that
 // of the recorded response and our fictional application would reject the response on validation!
 func Example5() {
     vcr := govcr.NewVCR(example5CassetteName,
