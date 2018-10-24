@@ -246,7 +246,7 @@ func Example2() {
 
 ### Example 3 - Custom VCR, POST method
 
-Please refer to the source file in the `examples` directory.
+Please refer to the source file in the [examples](examples) directory.
 
 This example is identical to Example 2 but with a POST request rather than a GET.
 
