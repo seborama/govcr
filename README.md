@@ -133,6 +133,8 @@ Building on from the above example, the response may need to provide the same id
 
 Filters help you deal with this kind of practical aspects of dynamic exchanges.
 
+Refer to [examples/example6.go](examples/example6.go) for advanced examples.
+
 ### Influencing request comparison programatically at runtime.
 
 `RequestFilters` receives the **request** Header / Body to allow their transformation. Both the live request and the recorded request on **track** are filtered in order to influence their comparison (e.g. remove an HTTP header to ignore it completely when matching).
@@ -368,6 +370,12 @@ func Example5() {
     fmt.Printf("%+v\n", vcr.Stats())
 }
 ```
+
+### More examples
+
+Refer to [examples/example6.go](examples/example6.go) for advanced examples.
+
+All examples are in the [examples](examples) directory.
 
 ### Stats
 
