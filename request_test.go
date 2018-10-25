@@ -93,6 +93,35 @@ func TestRequestDeleteHeaderKeys(t *testing.T) {
 	}
 }
 
+func TestRequestExcludeHeaderFunc(t *testing.T) {
+	req := requestTestBase()
+	req.Header.Add("another-header", "yeah")
+	header1, header2 := textproto.CanonicalMIMEHeaderKey("a-header"), textproto.CanonicalMIMEHeaderKey("another-header")
+
+	// We expect both headers to be checked.
+	want := map[string]struct{}{header1:{}, header2: {}}
+	r := RequestExcludeHeaderFunc(func(key string) bool {
+		_, ok := want[key]
+		if !ok {
+			t.Errorf("got unexpected key %q", key)
+		}
+		// Delete so we check we only get key once.
+		delete(want, key)
+		// Delete 'a-header'
+		return header1 == key
+	})
+	req = r(req)
+	if len(want) > 0 {
+		t.Errorf("header was not checked: %v", want)
+	}
+	if len(req.Header) != 1 {
+		t.Fatalf("unexpected header count, want one: %v", req.Header)
+	}
+	if req.Header.Get("another-header") != "yeah" {
+		t.Errorf("unexpected header value: %s", req.Header.Get("another-header"))
+	}
+}
+
 func TestRequestFilters_Add(t *testing.T) {
 	var f RequestFilters
 	f1, ok1 := mustCallRequestFilterOnce(t)
