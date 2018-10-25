@@ -56,10 +56,12 @@ func RequestDeleteHeaderKeys(keys ...string) RequestFilter {
 //
 // Parameters:
 //  - parameter 1 - Name of header key in the Request
-///
+//
 // Return value:
 // true - exclude header key from comparison
 // false - retain header key for comparison
+//
+// Deprecated - This function will be removed on or after April 25th 2019
 func RequestExcludeHeaderFunc(fn func(key string) bool) RequestFilter {
 	return func(req Request) Request {
 		for key := range req.Header {
