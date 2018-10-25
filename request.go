@@ -46,6 +46,31 @@ func RequestDeleteHeaderKeys(keys ...string) RequestFilter {
 	}
 }
 
+// RequestExcludeHeaderFunc is a hook function that is used to filter the Header.
+//
+// Typically this can be used to remove / amend undesirable custom headers from the request.
+//
+// For instance, if your application sends requests with a timestamp held in a custom header,
+// you likely want to exclude it from the comparison to ensure that the request headers are
+// considered a match with those saved on the cassette's track.
+//
+// Parameters:
+//  - parameter 1 - Name of header key in the Request
+///
+// Return value:
+// true - exclude header key from comparison
+// false - retain header key for comparison
+func RequestExcludeHeaderFunc(fn func(key string) bool) RequestFilter {
+	return func(req Request) Request {
+		for key := range req.Header {
+			if fn(key) {
+				req.Header.Del(key)
+			}
+		}
+		return req
+	}
+}
+
 // OnMethod will return a new filter that will only apply 'r'
 // if the method of the request matches.
 // Original filter is unmodified.
