@@ -108,7 +108,7 @@ This simply redirects all **govcr** logging to the OS's standard Null device (e.
 
 - http / https supported and any other protocol implemented by the supplied `http.Client`'s `http.RoundTripper`.
 
-- Hook to define HTTP headers that should be ignored from the HTTP request when attemtping to retrieve a **track** for playback.
+- Hook to define HTTP headers that should be ignored from the HTTP request when attempting to retrieve a **track** for playback.
   This is useful to deal with non-static HTTP headers (for example, containing a timestamp).
 
 - Hook to transform the Header / Body of an HTTP request to deal with non-static data. The purpose is similar to the hook for headers described above but with the ability to modify the data.

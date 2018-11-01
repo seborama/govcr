@@ -2,10 +2,12 @@ package govcr
 
 import (
 	"bytes"
+	"compress/gzip"
 	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net"
@@ -14,6 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 )
 
 // request is a recorded HTTP request.
@@ -211,8 +214,12 @@ type cassette struct {
 	Name, Path string
 	Tracks     []track
 
-	// stats is unexported since it doesn't need serialising
+	// stats is not exported since it doesn't need serialising
 	stats Stats
+}
+
+func (k7 *cassette) isLongPlay() bool {
+	return strings.HasSuffix(k7.Name, ".gz")
 }
 
 func (k7 *cassette) replayResponse(trackNumber int, req *http.Request) *http.Response {
@@ -229,34 +236,52 @@ func (k7 *cassette) replayResponse(trackNumber int, req *http.Request) *http.Res
 
 // saveCassette writes a cassette to file.
 func (k7 *cassette) save() error {
-	// marshal
 	data, err := json.Marshal(k7)
 	if err != nil {
 		return err
 	}
 
-	// transform properties known to fail on Unmarshal
-	data, err = transformInterfacesInJSON(data)
+	tData, err := transformInterfacesInJSON(data)
 	if err != nil {
 		return err
 	}
 
 	// beautify JSON (now that the JSON text has been transformed)
 	var iData bytes.Buffer
-
-	if err := json.Indent(&iData, data, "", "  "); err != nil {
+	if err := json.Indent(&iData, tData, "", "  "); err != nil {
 		return err
 	}
 
-	// write cassette to file
 	filename := cassetteNameToFilename(k7.Name, k7.Path)
 	path := filepath.Dir(filename)
 	if err := os.MkdirAll(path, 0750); err != nil {
 		return err
 	}
 
-	err = ioutil.WriteFile(filename, iData.Bytes(), 0640)
-	return err
+	gData, err := k7.gzipFilter(iData)
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(filename, gData, 0640)
+}
+
+// gzipFilter compresses the cassette data in gzip format if the cassette
+// name ends with '.gz', otherwise data is left as is (i.e. de-compressed)
+func (k7 *cassette) gzipFilter(data bytes.Buffer) ([]byte, error) {
+	if k7.isLongPlay() {
+		return compress(data.Bytes())
+	}
+	return data.Bytes(), nil
+}
+
+// gunzipFilter de-compresses the cassette data in gzip format if the cassette
+// name ends with '.gz', otherwise data is left as is (i.e. de-compressed)
+func (k7 *cassette) gunzipFilter(data []byte) ([]byte, error) {
+	if k7.isLongPlay() {
+		return decompress(data)
+	}
+	return data, nil
 }
 
 // addTrack adds a track to a cassette.
@@ -317,16 +342,16 @@ func cassetteNameToFilename(cassetteName, cassettePath string) string {
 		cassettePath = defaultCassettePath
 	}
 
-	fpath, err := filepath.Abs(filepath.Join(cassettePath, cassetteName+".cassette"))
+	fPath, err := filepath.Abs(filepath.Join(cassettePath, cassetteName+".cassette"))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	return fpath
+	return fPath
 }
 
 // transformInterfacesInJSON looks for known properties in the JSON that are defined as interface{}
-// in their original Go structure and don't UnMarshal correctly.
+// in their original Go structure and don't Unmarshal correctly.
 //
 // Example x509.Certificate.PublicKey:
 // When the type is rsa.PublicKey, Unmarshal attempts to map property "N" to a float64 because it is a number.
@@ -346,7 +371,7 @@ func transformInterfacesInJSON(jsonString []byte) ([]byte, error) {
 
 func loadCassette(cassetteName, cassettePath string) (*cassette, error) {
 	k7, err := readCassetteFromFile(cassetteName, cassettePath)
-	if err != nil && !os.IsNotExist(err) {
+	if err != nil {
 		return nil, err
 	}
 
@@ -365,20 +390,29 @@ func loadCassette(cassetteName, cassettePath string) (*cassette, error) {
 func readCassetteFromFile(cassetteName, cassettePath string) (*cassette, error) {
 	filename := cassetteNameToFilename(cassetteName, cassettePath)
 
-	// retrieve cassette from file
+	k7 := &cassette{
+		Name: cassetteName,
+		Path: cassettePath,
+	}
+
 	data, err := ioutil.ReadFile(filename)
+	if os.IsNotExist(err) {
+		return k7, nil
+	} else if err != nil {
+		return nil, err
+	}
+
+	cData, err := k7.gunzipFilter(data)
 	if err != nil {
 		return nil, err
 	}
 
-	// unmarshal
-	cassette := &cassette{}
 	// NOTE: Properties which are of type 'interface{}' are not handled very well
-	if err := json.Unmarshal(data, cassette); err != nil {
+	if err := json.Unmarshal(cData, k7); err != nil {
 		return nil, err
 	}
 
-	return cassette, nil
+	return k7, nil
 }
 
 // recordNewTrackToCassette saves a new track to a cassette.
@@ -397,4 +431,25 @@ func recordNewTrackToCassette(cassette *cassette, req *http.Request, resp *http.
 
 	// save cassette
 	return cassette.save()
+}
+
+// compress data and returns the result
+func compress(data []byte) ([]byte, error) {
+	var out bytes.Buffer
+
+	w := gzip.NewWriter(&out)
+	if _, err := io.Copy(w, bytes.NewBuffer(data)); err != nil {
+		return nil, err
+	}
+	if err := w.Close(); err != nil {
+		return nil, err
+	}
+
+	return out.Bytes(), nil
+}
+
+// decompress data and returns the result
+func decompress(data []byte) ([]byte, error) {
+	fmt.Println("DEBUG - NOT YET WRITTEN!!!!")
+	return data, nil
 }
