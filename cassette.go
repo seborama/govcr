@@ -2,10 +2,12 @@ package govcr
 
 import (
 	"bytes"
+	"compress/gzip"
 	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net"
@@ -210,6 +212,7 @@ type Stats struct {
 type cassette struct {
 	Name, Path string
 	Tracks     []track
+	LongPlay   bool
 
 	// stats is unexported since it doesn't need serialising
 	stats Stats
@@ -241,11 +244,23 @@ func (k7 *cassette) save() error {
 		return err
 	}
 
-	// beautify JSON (now that the JSON text has been transformed)
 	var iData bytes.Buffer
-
-	if err := json.Indent(&iData, data, "", "  "); err != nil {
-		return err
+	if !k7.LongPlay {
+		// beautify JSON (now that the JSON text has been transformed)
+		if err := json.Indent(&iData, data, "", "  "); err != nil {
+			return err
+		}
+	} else {
+		// Compress instead.
+		w := gzip.NewWriter(&iData)
+		_, err = io.Copy(w, bytes.NewBuffer(data))
+		if err != nil {
+			return err
+		}
+		err = w.Close()
+		if err != nil {
+			return err
+		}
 	}
 
 	// write cassette to file
@@ -302,8 +317,8 @@ func DeleteCassette(cassetteName, cassettePath string) error {
 }
 
 // CassetteExistsAndValid verifies a cassette file exists and is seemingly valid.
-func CassetteExistsAndValid(cassetteName, cassettePath string) bool {
-	_, err := readCassetteFromFile(cassetteName, cassettePath)
+func CassetteExistsAndValid(cassetteName, cassettePath string, lp bool) bool {
+	_, err := readCassetteFromFile(cassetteName, cassettePath, lp)
 	return err == nil
 }
 
@@ -344,15 +359,15 @@ func transformInterfacesInJSON(jsonString []byte) ([]byte, error) {
 	return []byte(regex.ReplaceAllString(string(jsonString), `$1"$2",`)), nil
 }
 
-func loadCassette(cassetteName, cassettePath string) (*cassette, error) {
-	k7, err := readCassetteFromFile(cassetteName, cassettePath)
+func loadCassette(cassetteName, cassettePath string, lp bool) (*cassette, error) {
+	k7, err := readCassetteFromFile(cassetteName, cassettePath, lp)
 	if err != nil && !os.IsNotExist(err) {
 		return nil, err
 	}
 
 	// provide an empty cassette as a minimum
 	if k7 == nil {
-		k7 = &cassette{Name: cassetteName, Path: cassettePath}
+		k7 = &cassette{Name: cassetteName, Path: cassettePath, LongPlay: lp}
 	}
 
 	// initial stats
@@ -362,7 +377,7 @@ func loadCassette(cassetteName, cassettePath string) (*cassette, error) {
 }
 
 // readCassetteFromFile reads the cassette file, if present.
-func readCassetteFromFile(cassetteName, cassettePath string) (*cassette, error) {
+func readCassetteFromFile(cassetteName, cassettePath string, lp bool) (*cassette, error) {
 	filename := cassetteNameToFilename(cassetteName, cassettePath)
 
 	// retrieve cassette from file
@@ -370,7 +385,16 @@ func readCassetteFromFile(cassetteName, cassettePath string) (*cassette, error) 
 	if err != nil {
 		return nil, err
 	}
-
+	if lp {
+		r, err := gzip.NewReader(bytes.NewBuffer(data))
+		if err != nil {
+			return nil, err
+		}
+		data, err = ioutil.ReadAll(r)
+		if err != nil {
+			return nil, err
+		}
+	}
 	// unmarshal
 	cassette := &cassette{}
 	// NOTE: Properties which are of type 'interface{}' are not handled very well
