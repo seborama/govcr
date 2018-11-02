@@ -246,7 +246,6 @@ func (k7 *cassette) save() error {
 		return err
 	}
 
-	// beautify JSON (now that the JSON text has been transformed)
 	var iData bytes.Buffer
 	if err := json.Indent(&iData, tData, "", "  "); err != nil {
 		return err
@@ -433,7 +432,7 @@ func recordNewTrackToCassette(cassette *cassette, req *http.Request, resp *http.
 	return cassette.save()
 }
 
-// compress data and returns the result
+// compress data and return the result
 func compress(data []byte) ([]byte, error) {
 	var out bytes.Buffer
 
@@ -448,8 +447,16 @@ func compress(data []byte) ([]byte, error) {
 	return out.Bytes(), nil
 }
 
-// decompress data and returns the result
+// decompress data and return the result
 func decompress(data []byte) ([]byte, error) {
-	fmt.Println("DEBUG - NOT YET WRITTEN!!!!")
+	r, err := gzip.NewReader(bytes.NewBuffer(data))
+	if err != nil {
+		return nil, err
+	}
+	data, err = ioutil.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+
 	return data, nil
 }

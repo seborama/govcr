@@ -99,7 +99,7 @@ func TestRequestExcludeHeaderFunc(t *testing.T) {
 	header1, header2 := textproto.CanonicalMIMEHeaderKey("a-header"), textproto.CanonicalMIMEHeaderKey("another-header")
 
 	// We expect both headers to be checked.
-	want := map[string]struct{}{header1:{}, header2: {}}
+	want := map[string]struct{}{header1: {}, header2: {}}
 	r := RequestExcludeHeaderFunc(func(key string) bool {
 		_, ok := want[key]
 		if !ok {

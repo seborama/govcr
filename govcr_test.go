@@ -13,11 +13,6 @@ import (
 	"github.com/seborama/govcr"
 )
 
-const (
-	wipeCassette = true
-	keepCassette = false
-)
-
 func TestPlaybackOrder(t *testing.T) {
 	cassetteName := "TestPlaybackOrder"
 	clientNum := 1
@@ -34,7 +29,7 @@ func TestPlaybackOrder(t *testing.T) {
 		t.Fatalf("err from govcr.DeleteCassette(): Expected nil, got %s", err)
 	}
 
-	vcr := createVCR(cassetteName, wipeCassette)
+	vcr := createVCR(cassetteName, false)
 	client := vcr.Client
 
 	// run requests
@@ -56,7 +51,7 @@ func TestPlaybackOrder(t *testing.T) {
 	clientNum = 1
 
 	// re-run request and expect play back from vcr
-	vcr = createVCR(cassetteName, keepCassette)
+	vcr = createVCR(cassetteName, false)
 	client = vcr.Client
 
 	// run requests
@@ -98,7 +93,7 @@ func TestNonUtf8EncodableBinaryBody(t *testing.T) {
 		t.Fatalf("err from govcr.DeleteCassette(): Expected nil, got %s", err)
 	}
 
-	vcr := createVCR(cassetteName, wipeCassette)
+	vcr := createVCR(cassetteName, false)
 	client := vcr.Client
 
 	// run requests
@@ -120,7 +115,7 @@ func TestNonUtf8EncodableBinaryBody(t *testing.T) {
 	clientNum = 1
 
 	// re-run request and expect play back from vcr
-	vcr = createVCR(cassetteName, keepCassette)
+	vcr = createVCR(cassetteName, false)
 	client = vcr.Client
 
 	// run requests
@@ -139,7 +134,42 @@ func TestNonUtf8EncodableBinaryBody(t *testing.T) {
 	}
 }
 
-func createVCR(cassetteName string, wipeCassette bool) *govcr.VCRControlPanel {
+func TestLongPlay(t *testing.T) {
+	cassetteName := t.Name() + ".gz"
+	clientNum := 1
+
+	// create a test server
+	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "Hello, client %d", clientNum)
+		clientNum++
+	}))
+
+	fmt.Println("Phase 1 ================================================")
+
+	if err := govcr.DeleteCassette(cassetteName, ""); err != nil {
+		t.Fatalf("err from govcr.DeleteCassette(): Expected nil, got %s", err)
+	}
+
+	vcr := createVCR(cassetteName, true)
+	client := vcr.Client
+
+	// run requests
+	for i := 1; i <= 10; i++ {
+		resp, _ := client.Get(ts.URL)
+
+		// check outcome of the request
+		expectedBody := fmt.Sprintf("Hello, client %d", i)
+		checkResponseForTestPlaybackOrder(t, resp, expectedBody)
+
+		if !govcr.CassetteExistsAndValid(cassetteName, "") {
+			t.Fatalf("CassetteExists: expected true, got false")
+		}
+
+		checkStats(t, vcr.Stats(), 0, i, 0)
+	}
+}
+
+func createVCR(cassetteName string, lp bool) *govcr.VCRControlPanel {
 	// create a custom http.Transport.
 	tr := http.DefaultTransport.(*http.Transport)
 	tr.TLSClientConfig = &tls.Config{
@@ -149,7 +179,8 @@ func createVCR(cassetteName string, wipeCassette bool) *govcr.VCRControlPanel {
 	// create a vcr
 	return govcr.NewVCR(cassetteName,
 		&govcr.VCRConfig{
-			Client: &http.Client{Transport: tr},
+			Client:   &http.Client{Transport: tr},
+			LongPlay: lp,
 		})
 }
 

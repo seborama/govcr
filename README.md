@@ -53,7 +53,9 @@ When  multiple matching **tracks** exist for the same request on the **cassette*
 
 When the last request matching **track** has been replayed, **govcr** cycles back to the first **track** again and so on.
 
-**Cassette** recordings are saved under `./govcr-fixtures` (by default) as `*.cassette` files in JSON format.
+**Cassette** recordings are saved under `./govcr-fixtures` (by default) as `*.cassette` files in JSON format. 
+
+You can enable **LongPlay** mode that will compress the cassette content. This is enabled by using the `VCRConfig.LongPlay`.  When enabling it you must re-record your content. The compression used is standard gzip.
 
 ### VCRConfig
 

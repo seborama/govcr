@@ -34,6 +34,8 @@ type VCRConfig struct {
 	// Filter to run before a response is returned.
 	ResponseFilters ResponseFilters
 
+	// LongPlay will compress data on cassettes.
+	LongPlay         bool
 	DisableRecording bool
 	Logging          bool
 	CassettePath     string
