@@ -3,6 +3,7 @@ package govcr
 import (
 	"bytes"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -163,6 +164,40 @@ func Test_cassette_gunzipFilter(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("cassette.gunzipFilter() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_cassetteNameToFilename(t *testing.T) {
+	type args struct {
+		cassetteName string
+		cassettePath string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "Should return normal cassette name",
+			args: args{
+				cassetteName: "MyCassette",
+			},
+			want: "MyCassette.cassette",
+		},
+		{
+			name: "Should return normalised gz cassette name",
+			args: args{
+				cassetteName: "MyCassette.gz",
+			},
+			want: "MyCassette.cassette.gz",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := cassetteNameToFilename(tt.args.cassetteName, tt.args.cassettePath); !strings.HasSuffix(got, tt.want) {
+				t.Errorf("cassetteNameToFilename() = %v, want suffix %v", got, tt.want)
 			}
 		})
 	}
