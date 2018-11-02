@@ -40,7 +40,7 @@ func TestPlaybackOrder(t *testing.T) {
 		expectedBody := fmt.Sprintf("Hello, client %d", i)
 		checkResponseForTestPlaybackOrder(t, resp, expectedBody)
 
-		if !govcr.CassetteExistsAndValid(cassetteName, "", false) {
+		if !govcr.CassetteExistsAndValid(cassetteName, "") {
 			t.Fatalf("CassetteExists: expected true, got false")
 		}
 
@@ -62,7 +62,7 @@ func TestPlaybackOrder(t *testing.T) {
 		expectedBody := fmt.Sprintf("Hello, client %d", i)
 		checkResponseForTestPlaybackOrder(t, resp, expectedBody)
 
-		if !govcr.CassetteExistsAndValid(cassetteName, "", false) {
+		if !govcr.CassetteExistsAndValid(cassetteName, "") {
 			t.Fatalf("CassetteExists: expected true, got false")
 		}
 
@@ -104,7 +104,7 @@ func TestNonUtf8EncodableBinaryBody(t *testing.T) {
 		expectedBody := generateBinaryBody(i)
 		checkResponseForTestPlaybackOrder(t, resp, expectedBody)
 
-		if !govcr.CassetteExistsAndValid(cassetteName, "", false) {
+		if !govcr.CassetteExistsAndValid(cassetteName, "") {
 			t.Fatalf("CassetteExists: expected true, got false")
 		}
 
@@ -126,7 +126,7 @@ func TestNonUtf8EncodableBinaryBody(t *testing.T) {
 		expectedBody := generateBinaryBody(i)
 		checkResponseForTestPlaybackOrder(t, resp, expectedBody)
 
-		if !govcr.CassetteExistsAndValid(cassetteName, "", false) {
+		if !govcr.CassetteExistsAndValid(cassetteName, "") {
 			t.Fatalf("CassetteExists: expected true, got false")
 		}
 
@@ -135,7 +135,7 @@ func TestNonUtf8EncodableBinaryBody(t *testing.T) {
 }
 
 func TestLongPlay(t *testing.T) {
-	cassetteName := t.Name()
+	cassetteName := t.Name() + ".gz"
 	clientNum := 1
 
 	// create a test server
@@ -161,7 +161,7 @@ func TestLongPlay(t *testing.T) {
 		expectedBody := fmt.Sprintf("Hello, client %d", i)
 		checkResponseForTestPlaybackOrder(t, resp, expectedBody)
 
-		if !govcr.CassetteExistsAndValid(cassetteName, "", true) {
+		if !govcr.CassetteExistsAndValid(cassetteName, "") {
 			t.Fatalf("CassetteExists: expected true, got false")
 		}
 

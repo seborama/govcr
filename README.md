@@ -32,6 +32,8 @@ import "gopkg.in/seborama/govcr.v3"
 
 **cassette**: a sequential collection of **tracks**. This is in effect a JSON file saved under directory `./govcr-fixtures` (default). The **cassette** is given a name when creating the **VCR** which becomes the filename (with an extension of `.cassette`).
 
+**Long Play cassette**: a cassette compressed in gzip format. Such cassettes have a name that ends with '`.gz`'.
+
 **tracks**: a record of an HTTP request. It contains the request data, the response data, if available, or the error that occurred.
 
 **PCB**: Printed Circuit Board. This is an analogy that refers to the ability to supply customisations to some aspects of the behaviour of the **VCR** (for instance, disable recordings or ignore certain HTTP headers in the request when looking for a previously recorded **track**).
@@ -55,7 +57,9 @@ When the last request matching **track** has been replayed, **govcr** cycles bac
 
 **Cassette** recordings are saved under `./govcr-fixtures` (by default) as `*.cassette` files in JSON format. 
 
-You can enable **LongPlay** mode that will compress the cassette content. This is enabled by using the `VCRConfig.LongPlay`.  When enabling it you must re-record your content. The compression used is standard gzip.
+You can enable **Long Play** mode that will compress the cassette content. This is enabled by using the cassette name suffix `.gz`. The compression used is standard gzip.
+
+It should be noted that the cassette name will be of the form 'MyCassette.gz" in your code but it will appear as "MyCassette.cassette.gz" on the file system. You can use `gzip` to compress and de-compress cassettes at will. See `TestLongPlay()` in `govcr_test.go` for an example usage. After running this test, notice the presence of the file `govcr-fixtures/TestLongPlay.cassette.gz`. You can view its contents in various ways such as with the `gzcat` command.
 
 ### VCRConfig
 
