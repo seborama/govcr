@@ -34,6 +34,8 @@ type VCRConfig struct {
 	// Filter to run before a response is returned.
 	ResponseFilters ResponseFilters
 
+	// LongPlay will compress data on cassettes.
+	LongPlay         bool
 	DisableRecording bool
 	Logging          bool
 	CassettePath     string
@@ -164,7 +166,7 @@ func NewVCR(cassetteName string, vcrConfig *VCRConfig) *VCRControlPanel {
 	}
 
 	// load cassette
-	cassette, err := loadCassette(cassetteName, vcrConfig.CassettePath)
+	cassette, err := loadCassette(cassetteName, vcrConfig.CassettePath, vcrConfig.LongPlay)
 	if err != nil {
 		logger.Fatal(err)
 	}
