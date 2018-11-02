@@ -333,7 +333,7 @@ func CassetteExistsAndValid(cassetteName, cassettePath string) bool {
 
 // cassetteNameToFilename returns the filename associated to the cassette.
 func cassetteNameToFilename(cassetteName, cassettePath string) string {
-	if cassetteName == "" {
+	if cassetteName == "" || cassetteName == ".gz" {
 		return ""
 	}
 
@@ -341,12 +341,21 @@ func cassetteNameToFilename(cassetteName, cassettePath string) string {
 		cassettePath = defaultCassettePath
 	}
 
-	fPath, err := filepath.Abs(filepath.Join(cassettePath, cassetteName+".cassette"))
+	fPath, err := filepath.Abs(filepath.Join(cassettePath, adjustCassetteName(cassetteName)))
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	return fPath
+}
+
+// adjustCassetteName moves the '.gz' suffix to the end of the cassette name
+// instead of the middle
+func adjustCassetteName(cassetteName string) string {
+	if strings.HasSuffix(cassetteName, ".gz") {
+		return strings.TrimSuffix(cassetteName, ".gz") + ".cassette.gz"
+	}
+	return cassetteName + ".cassette"
 }
 
 // transformInterfacesInJSON looks for known properties in the JSON that are defined as interface{}
