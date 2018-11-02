@@ -16,6 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 )
 
 // request is a recorded HTTP request.
@@ -212,10 +213,13 @@ type Stats struct {
 type cassette struct {
 	Name, Path string
 	Tracks     []track
-	LongPlay   bool
 
-	// stats is unexported since it doesn't need serialising
+	// stats is not exported since it doesn't need serialising
 	stats Stats
+}
+
+func (k7 *cassette) isLongPlay() bool {
+	return strings.HasSuffix(k7.Name, ".gz")
 }
 
 func (k7 *cassette) replayResponse(trackNumber int, req *http.Request) *http.Response {
@@ -232,46 +236,51 @@ func (k7 *cassette) replayResponse(trackNumber int, req *http.Request) *http.Res
 
 // saveCassette writes a cassette to file.
 func (k7 *cassette) save() error {
-	// marshal
 	data, err := json.Marshal(k7)
 	if err != nil {
 		return err
 	}
 
-	// transform properties known to fail on Unmarshal
-	data, err = transformInterfacesInJSON(data)
+	tData, err := transformInterfacesInJSON(data)
 	if err != nil {
 		return err
 	}
 
 	var iData bytes.Buffer
-	if !k7.LongPlay {
-		// beautify JSON (now that the JSON text has been transformed)
-		if err := json.Indent(&iData, data, "", "  "); err != nil {
-			return err
-		}
-	} else {
-		// Compress instead.
-		w := gzip.NewWriter(&iData)
-		_, err = io.Copy(w, bytes.NewBuffer(data))
-		if err != nil {
-			return err
-		}
-		err = w.Close()
-		if err != nil {
-			return err
-		}
+	if err := json.Indent(&iData, tData, "", "  "); err != nil {
+		return err
 	}
 
-	// write cassette to file
 	filename := cassetteNameToFilename(k7.Name, k7.Path)
 	path := filepath.Dir(filename)
 	if err := os.MkdirAll(path, 0750); err != nil {
 		return err
 	}
 
-	err = ioutil.WriteFile(filename, iData.Bytes(), 0640)
-	return err
+	gData, err := k7.gzipFilter(iData)
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(filename, gData, 0640)
+}
+
+// gzipFilter compresses the cassette data in gzip format if the cassette
+// name ends with '.gz', otherwise data is left as is (i.e. de-compressed)
+func (k7 *cassette) gzipFilter(data bytes.Buffer) ([]byte, error) {
+	if k7.isLongPlay() {
+		return compress(data.Bytes())
+	}
+	return data.Bytes(), nil
+}
+
+// gunzipFilter de-compresses the cassette data in gzip format if the cassette
+// name ends with '.gz', otherwise data is left as is (i.e. de-compressed)
+func (k7 *cassette) gunzipFilter(data []byte) ([]byte, error) {
+	if k7.isLongPlay() {
+		return decompress(data)
+	}
+	return data, nil
 }
 
 // addTrack adds a track to a cassette.
@@ -317,14 +326,14 @@ func DeleteCassette(cassetteName, cassettePath string) error {
 }
 
 // CassetteExistsAndValid verifies a cassette file exists and is seemingly valid.
-func CassetteExistsAndValid(cassetteName, cassettePath string, lp bool) bool {
-	_, err := readCassetteFromFile(cassetteName, cassettePath, lp)
+func CassetteExistsAndValid(cassetteName, cassettePath string) bool {
+	_, err := readCassetteFromFile(cassetteName, cassettePath)
 	return err == nil
 }
 
 // cassetteNameToFilename returns the filename associated to the cassette.
 func cassetteNameToFilename(cassetteName, cassettePath string) string {
-	if cassetteName == "" {
+	if cassetteName == "" || cassetteName == ".gz" {
 		return ""
 	}
 
@@ -332,16 +341,25 @@ func cassetteNameToFilename(cassetteName, cassettePath string) string {
 		cassettePath = defaultCassettePath
 	}
 
-	fpath, err := filepath.Abs(filepath.Join(cassettePath, cassetteName+".cassette"))
+	fPath, err := filepath.Abs(filepath.Join(cassettePath, adjustCassetteName(cassetteName)))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	return fpath
+	return fPath
+}
+
+// adjustCassetteName moves the '.gz' suffix to the end of the cassette name
+// instead of the middle
+func adjustCassetteName(cassetteName string) string {
+	if strings.HasSuffix(cassetteName, ".gz") {
+		return strings.TrimSuffix(cassetteName, ".gz") + ".cassette.gz"
+	}
+	return cassetteName + ".cassette"
 }
 
 // transformInterfacesInJSON looks for known properties in the JSON that are defined as interface{}
-// in their original Go structure and don't UnMarshal correctly.
+// in their original Go structure and don't Unmarshal correctly.
 //
 // Example x509.Certificate.PublicKey:
 // When the type is rsa.PublicKey, Unmarshal attempts to map property "N" to a float64 because it is a number.
@@ -359,15 +377,15 @@ func transformInterfacesInJSON(jsonString []byte) ([]byte, error) {
 	return []byte(regex.ReplaceAllString(string(jsonString), `$1"$2",`)), nil
 }
 
-func loadCassette(cassetteName, cassettePath string, lp bool) (*cassette, error) {
-	k7, err := readCassetteFromFile(cassetteName, cassettePath, lp)
-	if err != nil && !os.IsNotExist(err) {
+func loadCassette(cassetteName, cassettePath string) (*cassette, error) {
+	k7, err := readCassetteFromFile(cassetteName, cassettePath)
+	if err != nil {
 		return nil, err
 	}
 
 	// provide an empty cassette as a minimum
 	if k7 == nil {
-		k7 = &cassette{Name: cassetteName, Path: cassettePath, LongPlay: lp}
+		k7 = &cassette{Name: cassetteName, Path: cassettePath}
 	}
 
 	// initial stats
@@ -377,32 +395,32 @@ func loadCassette(cassetteName, cassettePath string, lp bool) (*cassette, error)
 }
 
 // readCassetteFromFile reads the cassette file, if present.
-func readCassetteFromFile(cassetteName, cassettePath string, lp bool) (*cassette, error) {
+func readCassetteFromFile(cassetteName, cassettePath string) (*cassette, error) {
 	filename := cassetteNameToFilename(cassetteName, cassettePath)
 
-	// retrieve cassette from file
+	k7 := &cassette{
+		Name: cassetteName,
+		Path: cassettePath,
+	}
+
 	data, err := ioutil.ReadFile(filename)
+	if os.IsNotExist(err) {
+		return k7, nil
+	} else if err != nil {
+		return nil, err
+	}
+
+	cData, err := k7.gunzipFilter(data)
 	if err != nil {
 		return nil, err
 	}
-	if lp {
-		r, err := gzip.NewReader(bytes.NewBuffer(data))
-		if err != nil {
-			return nil, err
-		}
-		data, err = ioutil.ReadAll(r)
-		if err != nil {
-			return nil, err
-		}
-	}
-	// unmarshal
-	cassette := &cassette{}
+
 	// NOTE: Properties which are of type 'interface{}' are not handled very well
-	if err := json.Unmarshal(data, cassette); err != nil {
+	if err := json.Unmarshal(cData, k7); err != nil {
 		return nil, err
 	}
 
-	return cassette, nil
+	return k7, nil
 }
 
 // recordNewTrackToCassette saves a new track to a cassette.
@@ -421,4 +439,33 @@ func recordNewTrackToCassette(cassette *cassette, req *http.Request, resp *http.
 
 	// save cassette
 	return cassette.save()
+}
+
+// compress data and return the result
+func compress(data []byte) ([]byte, error) {
+	var out bytes.Buffer
+
+	w := gzip.NewWriter(&out)
+	if _, err := io.Copy(w, bytes.NewBuffer(data)); err != nil {
+		return nil, err
+	}
+	if err := w.Close(); err != nil {
+		return nil, err
+	}
+
+	return out.Bytes(), nil
+}
+
+// decompress data and return the result
+func decompress(data []byte) ([]byte, error) {
+	r, err := gzip.NewReader(bytes.NewBuffer(data))
+	if err != nil {
+		return nil, err
+	}
+	data, err = ioutil.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
 }

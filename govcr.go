@@ -166,7 +166,7 @@ func NewVCR(cassetteName string, vcrConfig *VCRConfig) *VCRControlPanel {
 	}
 
 	// load cassette
-	cassette, err := loadCassette(cassetteName, vcrConfig.CassettePath, vcrConfig.LongPlay)
+	cassette, err := loadCassette(cassetteName, vcrConfig.CassettePath)
 	if err != nil {
 		logger.Fatal(err)
 	}
