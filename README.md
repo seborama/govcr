@@ -53,7 +53,9 @@ When  multiple matching **tracks** exist for the same request on the **cassette*
 
 When the last request matching **track** has been replayed, **govcr** cycles back to the first **track** again and so on.
 
-**Cassette** recordings are saved under `./govcr-fixtures` (by default) as `*.cassette` files in JSON format.
+**Cassette** recordings are saved under `./govcr-fixtures` (by default) as `*.cassette` files in JSON format. 
+
+You can enable **LongPlay** mode that will compress the cassette content. This is enabled by using the `VCRConfig.LongPlay`.  When enabling it you must re-record your content. The compression used is standard gzip.
 
 ### VCRConfig
 
@@ -108,7 +110,7 @@ This simply redirects all **govcr** logging to the OS's standard Null device (e.
 
 - http / https supported and any other protocol implemented by the supplied `http.Client`'s `http.RoundTripper`.
 
-- Hook to define HTTP headers that should be ignored from the HTTP request when attemtping to retrieve a **track** for playback.
+- Hook to define HTTP headers that should be ignored from the HTTP request when attempting to retrieve a **track** for playback.
   This is useful to deal with non-static HTTP headers (for example, containing a timestamp).
 
 - Hook to transform the Header / Body of an HTTP request to deal with non-static data. The purpose is similar to the hook for headers described above but with the ability to modify the data.
