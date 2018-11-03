@@ -12,7 +12,7 @@ import (
 
 const example3CassetteName = "MyCassette3"
 
-func runTestEx4() {
+func runTestEx3() {
 	var samples = []struct {
 		method string
 		body   string
@@ -59,9 +59,9 @@ func Example_number3HeaderExclusionVCR() {
 	govcr.DeleteCassette(example3CassetteName, "")
 
 	// 1st run of the test - will use live HTTP calls
-	runTestEx4()
+	runTestEx3()
 	// 2nd run of the test - will use playback
-	runTestEx4()
+	runTestEx3()
 
 	// Output:
 	// 404 text/html; charset=UTF-8 true 404 text/html; charset=UTF-8 true 404 text/html; charset=UTF-8 true 404 text/html; charset=UTF-8 true {TracksLoaded:0 TracksRecorded:4 TracksPlayed:0}
