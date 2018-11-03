@@ -47,7 +47,7 @@ func TestPlaybackOrder(t *testing.T) {
 		checkStats(t, vcr.Stats(), 0, i, 0)
 	}
 
-	fmt.Println("Phase 2 ================================================")
+	fmt.Println("Phase 2 - Playback =====================================")
 	clientNum = 1
 
 	// re-run request and expect play back from vcr
@@ -111,7 +111,7 @@ func TestNonUtf8EncodableBinaryBody(t *testing.T) {
 		checkStats(t, vcr.Stats(), 0, i, 0)
 	}
 
-	fmt.Println("Phase 2 ================================================")
+	fmt.Println("Phase 2 - Playback =====================================")
 	clientNum = 1
 
 	// re-run request and expect play back from vcr
@@ -167,13 +167,35 @@ func TestLongPlay(t *testing.T) {
 
 		checkStats(t, vcr.Stats(), 0, i, 0)
 	}
+
+	fmt.Println("Phase 2 - Playback =====================================")
+	clientNum = 1
+
+	// re-run request and expect play back from vcr
+	vcr = createVCR(cassetteName, false)
+	client = vcr.Client
+
+	// run requests
+	for i := 1; i <= 10; i++ {
+		resp, _ := client.Get(ts.URL)
+
+		// check outcome of the request
+		expectedBody := fmt.Sprintf("Hello, client %d", i)
+		checkResponseForTestPlaybackOrder(t, resp, expectedBody)
+
+		if !govcr.CassetteExistsAndValid(cassetteName, "") {
+			t.Fatalf("CassetteExists: expected true, got false")
+		}
+
+		checkStats(t, vcr.Stats(), 10, 0, i)
+	}
 }
 
 func createVCR(cassetteName string, lp bool) *govcr.VCRControlPanel {
 	// create a custom http.Transport.
 	tr := http.DefaultTransport.(*http.Transport)
 	tr.TLSClientConfig = &tls.Config{
-		InsecureSkipVerify: true, // just an example, not recommended
+		InsecureSkipVerify: true, // just an example, strongly discouraged
 	}
 
 	// create a vcr
