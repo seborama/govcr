@@ -127,10 +127,10 @@ func (r *ResponseFilters) Prepend(filters ...ResponseFilter) {
 
 // combined returns the filters as a single filter.
 func (r ResponseFilters) combined() ResponseFilter {
-	return func(req Response) Response {
+	return func(resp Response) Response {
 		for _, filter := range r {
-			req = filter(req)
+			resp = filter(resp)
 		}
-		return req
+		return resp
 	}
 }

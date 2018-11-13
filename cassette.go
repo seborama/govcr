@@ -27,7 +27,7 @@ type request struct {
 	Body   []byte
 }
 
-// Request transforms internal request to a filter request.
+// Request transforms internal "request" to a filter "Request".
 func (r request) Request() Request {
 	res := Request{
 		Header: r.Header,
@@ -53,17 +53,8 @@ type response struct {
 	ContentLength    int64
 	TransferEncoding []string
 	Trailer          http.Header
+	Request          *Request
 	TLS              *tls.ConnectionState
-}
-
-// Response returns the internal response to a filter response.
-func (r response) Response(req Request) Response {
-	return Response{
-		req:        req,
-		Body:       r.Body,
-		Header:     r.Header,
-		StatusCode: r.StatusCode,
-	}
 }
 
 // track is a recording (HTTP request + response) in a cassette.
@@ -211,8 +202,9 @@ type Stats struct {
 
 // cassette contains a set of tracks.
 type cassette struct {
-	Name, Path string
-	Tracks     []track
+	Name   string
+	Path   string `json:"-"`
+	Tracks []track
 
 	// stats is not exported since it doesn't need serialising
 	stats Stats
