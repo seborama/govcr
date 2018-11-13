@@ -53,8 +53,17 @@ type response struct {
 	ContentLength    int64
 	TransferEncoding []string
 	Trailer          http.Header
-	Request          *Request
 	TLS              *tls.ConnectionState
+}
+
+// Response returns the internal "response" to a filter "Response".
+func (r response) Response(req Request) Response {
+	return Response{
+		req:        req,
+		Body:       r.Body,
+		Header:     r.Header,
+		StatusCode: r.StatusCode,
+	}
 }
 
 // track is a recording (HTTP request + response) in a cassette.
