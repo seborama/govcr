@@ -350,9 +350,7 @@ func cloneHeader(h http.Header) http.Header {
 
 	copied := make(http.Header, len(h))
 	for k, v := range h {
-		vCopy := make([]string, len(v))
-		copy(vCopy, v)
-		copied[k] = vCopy
+		copied[k] = append([]string{}, v...)
 	}
 	return copied
 }
