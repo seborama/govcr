@@ -114,7 +114,6 @@ func (r *RequestFilters) Prepend(filters ...RequestFilter) {
 	dst := make(RequestFilters, 0, len(filters)+len(src))
 	dst = append(dst, filters...)
 	*r = append(dst, src...)
-	return
 }
 
 // combined returns the filters as a single filter.
