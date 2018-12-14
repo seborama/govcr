@@ -215,7 +215,8 @@ type cassette struct {
 	Tracks     []track
 
 	// stats is not exported since it doesn't need serialising
-	stats Stats
+	stats     Stats
+	removeTLS bool
 }
 
 func (k7 *cassette) isLongPlay() bool {
@@ -285,6 +286,9 @@ func (k7 *cassette) gunzipFilter(data []byte) ([]byte, error) {
 
 // addTrack adds a track to a cassette.
 func (k7 *cassette) addTrack(track *track) {
+	if k7.removeTLS {
+		track.Response.TLS = nil
+	}
 	k7.Tracks = append(k7.Tracks, *track)
 }
 
