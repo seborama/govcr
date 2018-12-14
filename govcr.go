@@ -39,6 +39,10 @@ type VCRConfig struct {
 	DisableRecording bool
 	Logging          bool
 	CassettePath     string
+
+	// RemoveTLS will remove TLS from the Response when recording.
+	// TLS information is rarely needed and takes up a lot of space.
+	RemoveTLS bool
 }
 
 // PCB stands for Printed Circuit Board. It is a structure that holds some
@@ -170,6 +174,7 @@ func NewVCR(cassetteName string, vcrConfig *VCRConfig) *VCRControlPanel {
 	if err != nil {
 		logger.Fatal(err)
 	}
+	cassette.removeTLS = vcrConfig.RemoveTLS
 
 	// create PCB
 	pcbr := &pcb{
