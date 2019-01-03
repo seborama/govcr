@@ -2,6 +2,7 @@ package govcr
 
 import (
 	"bytes"
+	"crypto/tls"
 	"reflect"
 	"strings"
 	"testing"
@@ -198,6 +199,90 @@ func Test_cassetteNameToFilename(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := cassetteNameToFilename(tt.args.cassetteName, tt.args.cassettePath); !strings.HasSuffix(got, tt.want) {
 				t.Errorf("cassetteNameToFilename() = %v, want suffix %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_cassette_addTrack(t *testing.T) {
+	type fields struct {
+		removeTLS bool
+	}
+	type args struct {
+		track track
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+	}{
+		{
+			name: "with tls, keep",
+			fields: fields{
+				removeTLS: false,
+			},
+			args: args{
+				track: track{
+					Response: response{
+						TLS: &tls.ConnectionState{},
+					},
+				},
+			},
+		},
+		{
+			name: "with tls, remove",
+			fields: fields{
+				removeTLS: true,
+			},
+			args: args{
+				track: track{
+					Response: response{
+						TLS: &tls.ConnectionState{},
+					},
+				},
+			},
+		},
+		{
+			name: "without tls, keep",
+			fields: fields{
+				removeTLS: false,
+			},
+			args: args{
+				track: track{
+					Response: response{
+						TLS: nil,
+					},
+				},
+			},
+		},
+		{
+			name: "without tls, remove",
+			fields: fields{
+				removeTLS: true,
+			},
+			args: args{
+				track: track{
+					Response: response{
+						TLS: nil,
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			k7 := &cassette{
+				Name:      tt.name,
+				Path:      tt.name,
+				removeTLS: tt.fields.removeTLS,
+			}
+			k7.addTrack(&tt.args.track)
+			gotTLS := k7.Tracks[0].Response.TLS != nil
+			if gotTLS && tt.fields.removeTLS {
+				t.Errorf("got TLS, but it should have been removed")
+			}
+			if !gotTLS && !tt.fields.removeTLS && tt.args.track.Response.TLS != nil {
+				t.Errorf("tls was removed, but shouldn't")
 			}
 		})
 	}
