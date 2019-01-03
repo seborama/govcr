@@ -102,6 +102,19 @@ Example:
 
 This simply redirects all **govcr** logging to the OS's standard Null device (e.g. `nul` on Windows, or `/dev/null` on UN*X, etc).
 
+#### `VCRConfig.RemoveTLS` - disable TLS recording
+
+Example:
+
+```go
+    vcr := govcr.NewVCR("MyCassette",
+        &govcr.VCRConfig{
+            RemoveTLS: true,
+        })
+```
+
+As RemoveTLS is enabled, **govcr** will not record the TLS data from the HTTP response on the cassette track.
+
 ## Features
 
 - Record extensive details about the request, response or error (network error, timeout, etc) to provide as accurate a playback as possible compared to the live HTTP request.
