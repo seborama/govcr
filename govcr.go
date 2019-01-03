@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 )
@@ -223,19 +224,16 @@ func newRequestHTTP(req *http.Request, body []byte) Request {
 	}
 
 	if req.URL != nil {
-		request.URL = *req.URL
+		request.URL = *copyURL(req.URL)
 	}
+
 	return request
 }
 
 // RoundTrip is an implementation of http.RoundTripper.
 func (t *vcrTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	var (
-		// Note: by convention resp should be nil if an error occurs with HTTP
-		resp *http.Response
-
-		requestMatched bool
-	)
+	// Note: by convention resp should be nil if an error occurs with HTTP
+	var resp *http.Response
 
 	// copy the request before the body is closed by the HTTP server.
 	copiedReq, err := copyRequest(req)
@@ -259,10 +257,7 @@ func (t *vcrTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 		// only the played back response is filtered. Never the live response!
 		request = newRequestHTTP(req, bodyData)
 		resp = t.PCB.filterResponse(t.Cassette.replayResponse(trackNumber, copiedReq), request)
-		requestMatched = true
-	}
-
-	if !requestMatched {
+	} else {
 		// no recorded track was found so execute the request live
 		t.PCB.Logger.Printf("INFO - Cassette '%s' - Executing request to live server for %s %s\n", t.Cassette.Name, req.Method, req.URL.String())
 
@@ -271,15 +266,9 @@ func (t *vcrTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 		if !t.PCB.DisableRecording {
 			// the VCR is not in read-only mode so
 			// record the filtered HTTP traffic into a new track on the cassette
-
-			copiedReq, err := copyRequest(req)
-			if err != nil {
-				t.PCB.Logger.Println(err)
-				return nil, err
-			}
 			copiedReq.URL = &request.URL
 			copiedReq.Header = request.Header
-			copiedReq.Body = ioutil.NopCloser(bytes.NewBuffer(request.Body))
+			copiedReq.Body = toReadCloser(request.Body)
 			copiedReq.Method = request.Method
 
 			t.PCB.Logger.Printf("INFO - Cassette '%s' - Recording new track for %s %s as %s %s\n", t.Cassette.Name, req.Method, req.URL.String(), copiedReq.Method, copiedReq.URL)
@@ -330,21 +319,26 @@ func copyRequestWithoutBody(req *http.Request) *http.Request {
 	// remove the channel reference
 	copiedReq.Cancel = nil
 
-	// deal with the body
-	copiedReq.Body = nil
-
-	// deal with the URL (BEWARE obj == &*obj in Go, with obj being a pointer)
+	// deal with the URL
 	if req.URL != nil {
-		url := *req.URL
-		if req.URL.User != nil {
-			userInfo := *req.URL.User
-			url.User = &userInfo
-		}
-		copiedReq.URL = &url
+		copiedReq.URL = copyURL(req.URL)
 	}
 	copiedReq.Header = cloneHeader(req.Header)
 
 	return &copiedReq
+}
+
+func copyURL(url *url.URL) *url.URL {
+	// shallow copy
+	copiedURL := *url
+
+	if url.User != nil {
+		// BEWARE: obj == &*obj in Go, with obj being a pointer
+		userInfo := *url.User
+		copiedURL.User = &userInfo
+	}
+
+	return &copiedURL
 }
 
 // cloneHeader return return a deep copy of the header.

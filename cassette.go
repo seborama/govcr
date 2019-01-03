@@ -35,7 +35,8 @@ func (r request) Request() Request {
 		Method: r.Method,
 	}
 	if r.URL != nil {
-		res.URL = *r.URL
+		// res.URL = *r.URL
+		res.URL = *copyURL(r.URL)
 	}
 	return res
 }
