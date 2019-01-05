@@ -108,10 +108,16 @@ func NewVCR(cassetteName string, vcrConfig *VCRConfig) *VCRControlPanel {
 	}
 }
 
-func newRequestHTTP(req *http.Request, body []byte) Request {
+func newRequest(req *http.Request, logger *log.Logger) (Request, error) {
+	bodyData, err := readRequestBody(req)
+	if err != nil {
+		logger.Println(err)
+		return Request{}, err
+	}
+
 	request := Request{
 		Header: cloneHeader(req.Header),
-		Body:   body,
+		Body:   bodyData,
 		Method: req.Method,
 	}
 
@@ -119,7 +125,7 @@ func newRequestHTTP(req *http.Request, body []byte) Request {
 		request.URL = *copyURL(req.URL)
 	}
 
-	return request
+	return request, nil
 }
 
 // GetFirstValue is a utility function that extracts the first value of a header key.

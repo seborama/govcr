@@ -23,20 +23,17 @@ func (t *vcrTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 		return nil, err
 	}
 
-	// get body data safely
-	bodyData, err := readRequestBody(req)
+	request, err := newRequest(req, t.PCB.Logger)
 	if err != nil {
-		t.PCB.Logger.Println(err)
 		return nil, err
 	}
-
-	request := t.PCB.RequestFilter(newRequestHTTP(req, bodyData))
+	request = t.PCB.RequestFilter(request)
 
 	// attempt to use a track from the cassette that matches
 	// the request if one exists.
 	if trackNumber := t.PCB.seekTrack(t.Cassette, request); trackNumber != trackNotFound {
 		// only the played back response is filtered. Never the live response!
-		request = newRequestHTTP(req, bodyData)
+		request, _ = newRequest(req, t.PCB.Logger)
 		resp = t.PCB.filterResponse(t.Cassette.replayResponse(trackNumber, copiedReq), request)
 	} else {
 		// no recorded track was found so execute the request live
