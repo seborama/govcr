@@ -41,8 +41,8 @@ func (pcbr *pcb) trackMatches(cassette *cassette, trackNumber int, req Request) 
 	filteredReq := pcbr.RequestFilter(req)
 
 	return !track.replayed &&
-		track.Request.Method == req.Method &&
-		track.Request.URL.String() == req.URL.String() &&
+		filteredTrackRequest.Method == req.Method &&
+		filteredTrackRequest.URL.String() == req.URL.String() &&
 		pcbr.headerResembles(filteredTrackRequest.Header, filteredReq.Header) &&
 		pcbr.bodyResembles(filteredTrackRequest.Body, filteredReq.Body)
 }

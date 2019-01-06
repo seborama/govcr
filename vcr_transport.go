@@ -1,6 +1,8 @@
 package govcr
 
-import "net/http"
+import (
+	"net/http"
+)
 
 // vcrTransport is the heart of VCR. It provides
 // an http.RoundTripper that wraps over the default
@@ -32,7 +34,8 @@ func (t *vcrTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	// attempt to use a track from the cassette that matches
 	// the request if one exists.
 	if trackNumber := t.PCB.seekTrack(t.Cassette, request); trackNumber != trackNotFound {
-		// only the played back response is filtered. Never the live response!
+		// Only the played back response is filtered.
+		// The live request and response should NOT EVER be changed!
 		request, _ = newRequest(req, t.PCB.Logger)
 		resp = t.PCB.filterResponse(t.Cassette.replayResponse(trackNumber, copiedReq), request)
 	} else {
@@ -43,12 +46,7 @@ func (t *vcrTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 		if !t.PCB.DisableRecording {
 			// the VCR is not in read-only mode so
-			// record the filtered HTTP traffic into a new track on the cassette
-			copiedReq.URL = &request.URL
-			copiedReq.Header = request.Header
-			copiedReq.Body = toReadCloser(request.Body)
-			copiedReq.Method = request.Method
-
+			// record the HTTP traffic into a new track on the cassette
 			t.PCB.Logger.Printf("INFO - Cassette '%s' - Recording new track for %s %s as %s %s\n", t.Cassette.Name, req.Method, req.URL.String(), copiedReq.Method, copiedReq.URL)
 			if err := recordNewTrackToCassette(t.Cassette, copiedReq, resp, err); err != nil {
 				t.PCB.Logger.Println(err)
