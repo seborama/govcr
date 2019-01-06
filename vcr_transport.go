@@ -25,31 +25,28 @@ func (t *vcrTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 		return nil, err
 	}
 
-	request, err := newRequest(req, t.PCB.Logger)
-	if err != nil {
-		return nil, err
-	}
-	request = t.PCB.RequestFilter(request)
+	// request, err := newRequest(req, t.PCB.Logger)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// request = t.PCB.RequestFilter(request)
 
 	// attempt to use a track from the cassette that matches
 	// the request if one exists.
-	if trackNumber := t.PCB.seekTrack(t.Cassette, request); trackNumber != trackNotFound {
+	if trackNumber := t.PCB.seekTrack(t.Cassette, copiedReq); trackNumber != trackNotFound {
 		// Only the played back response is filtered.
 		// The live request and response should NOT EVER be changed!
-		request, _ = newRequest(req, t.PCB.Logger)
+		request, _ := newRequest(req, t.PCB.Logger)
 		resp = t.PCB.filterResponse(t.Cassette.replayResponse(trackNumber, copiedReq), request)
 
 		return resp, err
 	}
 
-	// no recorded track was found so execute the request live
 	t.PCB.Logger.Printf("INFO - Cassette '%s' - Executing request to live server for %s %s\n", t.Cassette.Name, req.Method, req.URL.String())
-
 	resp, err = t.PCB.Transport.RoundTrip(req)
 
 	if !t.PCB.DisableRecording {
 		// the VCR is not in read-only mode so
-		// record the HTTP traffic into a new track on the cassette
 		t.PCB.Logger.Printf("INFO - Cassette '%s' - Recording new track for %s %s as %s %s\n", t.Cassette.Name, req.Method, req.URL.String(), copiedReq.Method, copiedReq.URL)
 		if err := recordNewTrackToCassette(t.Cassette, copiedReq, resp, err); err != nil {
 			t.PCB.Logger.Println(err)

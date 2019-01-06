@@ -19,9 +19,15 @@ type pcb struct {
 
 const trackNotFound = -1
 
-func (pcbr *pcb) seekTrack(cassette *cassette, req Request) int {
+func (pcbr *pcb) seekTrack(cassette *cassette, req *http.Request) int {
+	request, err := newRequest(req, pcbr.Logger)
+	if err != nil {
+		return trackNotFound
+	}
+	request = pcbr.RequestFilter(request)
+
 	for idx := range cassette.Tracks {
-		if pcbr.trackMatches(cassette, idx, req) {
+		if pcbr.trackMatches(cassette, idx, request) {
 			pcbr.Logger.Printf("INFO - Cassette '%s' - Found a matching track for %s %s\n", cassette.Name, req.Method, req.URL.String())
 			return idx
 		}
@@ -31,20 +37,17 @@ func (pcbr *pcb) seekTrack(cassette *cassette, req Request) int {
 }
 
 // Matches checks whether the track is a match for the supplied request.
-func (pcbr *pcb) trackMatches(cassette *cassette, trackNumber int, req Request) bool {
+func (pcbr *pcb) trackMatches(cassette *cassette, trackNumber int, request Request) bool {
 	track := cassette.Tracks[trackNumber]
 
 	// apply filter function to track header / body
 	filteredTrackRequest := pcbr.RequestFilter(track.Request.Request())
 
-	// apply filter function to request header / body
-	filteredReq := pcbr.RequestFilter(req)
-
 	return !track.replayed &&
-		filteredTrackRequest.Method == req.Method &&
-		filteredTrackRequest.URL.String() == req.URL.String() &&
-		pcbr.headerResembles(filteredTrackRequest.Header, filteredReq.Header) &&
-		pcbr.bodyResembles(filteredTrackRequest.Body, filteredReq.Body)
+		filteredTrackRequest.Method == request.Method &&
+		filteredTrackRequest.URL.String() == request.URL.String() &&
+		pcbr.headerResembles(filteredTrackRequest.Header, request.Header) &&
+		pcbr.bodyResembles(filteredTrackRequest.Body, request.Body)
 }
 
 // headerResembles compares HTTP headers for equivalence.

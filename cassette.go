@@ -226,7 +226,7 @@ func (k7 *cassette) isLongPlay() bool {
 }
 
 func (k7 *cassette) replayResponse(trackNumber int, req *http.Request) *http.Response {
-	if trackNumber == trackNotFound || trackNumber >= len(k7.Tracks) {
+	if trackNumber >= len(k7.Tracks) {
 		return nil
 	}
 	track := &k7.Tracks[trackNumber]
