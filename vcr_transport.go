@@ -38,19 +38,21 @@ func (t *vcrTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 		// The live request and response should NOT EVER be changed!
 		request, _ = newRequest(req, t.PCB.Logger)
 		resp = t.PCB.filterResponse(t.Cassette.replayResponse(trackNumber, copiedReq), request)
-	} else {
-		// no recorded track was found so execute the request live
-		t.PCB.Logger.Printf("INFO - Cassette '%s' - Executing request to live server for %s %s\n", t.Cassette.Name, req.Method, req.URL.String())
 
-		resp, err = t.PCB.Transport.RoundTrip(req)
+		return resp, err
+	}
 
-		if !t.PCB.DisableRecording {
-			// the VCR is not in read-only mode so
-			// record the HTTP traffic into a new track on the cassette
-			t.PCB.Logger.Printf("INFO - Cassette '%s' - Recording new track for %s %s as %s %s\n", t.Cassette.Name, req.Method, req.URL.String(), copiedReq.Method, copiedReq.URL)
-			if err := recordNewTrackToCassette(t.Cassette, copiedReq, resp, err); err != nil {
-				t.PCB.Logger.Println(err)
-			}
+	// no recorded track was found so execute the request live
+	t.PCB.Logger.Printf("INFO - Cassette '%s' - Executing request to live server for %s %s\n", t.Cassette.Name, req.Method, req.URL.String())
+
+	resp, err = t.PCB.Transport.RoundTrip(req)
+
+	if !t.PCB.DisableRecording {
+		// the VCR is not in read-only mode so
+		// record the HTTP traffic into a new track on the cassette
+		t.PCB.Logger.Printf("INFO - Cassette '%s' - Recording new track for %s %s as %s %s\n", t.Cassette.Name, req.Method, req.URL.String(), copiedReq.Method, copiedReq.URL)
+		if err := recordNewTrackToCassette(t.Cassette, copiedReq, resp, err); err != nil {
+			t.PCB.Logger.Println(err)
 		}
 	}
 
