@@ -1,12 +1,19 @@
 package main
 
-import "fmt"
-import "github.com/seborama/govcr"
+import (
+	"fmt"
+	"os"
+
+	"github.com/seborama/govcr"
+)
 
 func runExample(name, cassetteName string, f func()) {
 	fmt.Println("Running " + name + "...")
 	fmt.Println("1st run =======================================================")
-	govcr.DeleteCassette(cassetteName, "")
+	if err := govcr.DeleteCassette(cassetteName, ""); err != nil {
+		fmt.Printf("Error deleting cassette '%s' - %s\n", cassetteName, err.Error())
+		os.Exit(10)
+	}
 	f()
 	fmt.Println("2nd run =======================================================")
 	f()

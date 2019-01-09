@@ -98,7 +98,7 @@ func runExample6Request(req *http.Request, vcr *govcr.VCRControlPanel) {
 	}
 	// verify outcome
 	if req.Header.Get("X-Transaction-Id") != resp.Header.Get("X-Transaction-Id") {
-		fmt.Println("Header transaction Id verification failed - this would be the live request!")
+		fmt.Println("Header transaction Id verification FAILED - this would be the live request!")
 	} else {
 		fmt.Println("Header transaction Id verification passed - this would be the replayed track!")
 	}
@@ -127,13 +127,13 @@ func Example_number6ConditionalRewrites() {
 	runTestEx6(rng)
 
 	// Output:
-	//Header transaction Id verification failed - this would be the live request!
+	//Header transaction Id verification FAILED - this would be the live request!
 	//Status code: 404  (should be 404 on real and 202 on replay)
 	//method-was-get:  (should never be true on GET)
 	//method-was-post:  (should be true on replay on POST)
 	//get-url:  (actual url of the request, not of the track)
 	//{TracksLoaded:0 TracksRecorded:1 TracksPlayed:0}
-	//Header transaction Id verification failed - this would be the live request!
+	//Header transaction Id verification FAILED - this would be the live request!
 	//Status code: 404  (should be 404 on real and 202 on replay)
 	//method-was-get:  (should never be true on GET)
 	//method-was-post:  (should be true on replay on POST)

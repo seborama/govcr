@@ -225,6 +225,8 @@ func (k7 *cassette) isLongPlay() bool {
 	return strings.HasSuffix(k7.Name, ".gz")
 }
 
+// TODO - this is wrong - the cassette should just replay, not replace the track resp.req with the live req
+//        if it must be done, then it should be done somewhere else, either vcrTransport (or PCB, to be confirmed)
 func (k7 *cassette) replayResponse(trackNumber int, req *http.Request) *http.Response {
 	if trackNumber >= len(k7.Tracks) {
 		return nil
