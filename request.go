@@ -19,11 +19,33 @@ type RequestFilter func(req Request) Request
 type RequestFilters []RequestFilter
 
 // A Request provides the request parameters.
+// Notice of warning:
+// 'Request' contains fields that are subject to shallow copy:
+//  - url.URL which itself contains a pointer.
+//  - Header which is a map.
+//  - Body which is a slice.
+// As a result, when copying a 'Request', the shallow copy
+// shares those above mentioned fields' data!
+// A change to the (shallow) copy will also change the source object!
 type Request struct {
 	Header http.Header
 	Body   []byte
 	Method string
 	URL    url.URL
+}
+
+func copyGovcrRequest(req *Request) Request {
+	bodyData := make([]byte, len(req.Body))
+	copy(bodyData, req.Body)
+
+	copiedReq := Request{
+		Header: cloneHeader(req.Header),
+		Body:   bodyData,
+		Method: req.Method,
+		URL:    *copyURL(&req.URL),
+	}
+
+	return copiedReq
 }
 
 // RequestAddHeaderValue will add or overwrite a header to the request

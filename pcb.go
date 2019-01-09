@@ -19,21 +19,30 @@ type pcb struct {
 
 const trackNotFound = -1
 
-func (pcbr *pcb) seekTrack(cassette *cassette, req *http.Request) int {
-	request, err := newRequest(req, pcbr.Logger)
+func (pcbr *pcb) seekTrack(cassette *cassette, req *http.Request) (*http.Response, int) {
+	filteredRequest, err := newRequest(req, pcbr.Logger)
 	if err != nil {
-		return trackNotFound
+		return nil, trackNotFound
 	}
-	request = pcbr.RequestFilter(request)
+	// See warning in govcr.Request definition comment.
+	filteredRequest = pcbr.RequestFilter(filteredRequest)
 
-	for idx := range cassette.Tracks {
-		if pcbr.trackMatches(cassette, idx, request) {
+	for trackNumber := range cassette.Tracks {
+		if pcbr.trackMatches(cassette, trackNumber, filteredRequest) {
 			pcbr.Logger.Printf("INFO - Cassette '%s' - Found a matching track for %s %s\n", cassette.Name, req.Method, req.URL.String())
-			return idx
+
+			// See warning in govcr.Request definition comment.
+			request, err := newRequest(req, pcbr.Logger)
+			if err != nil {
+				return nil, trackNotFound
+			}
+			resp := pcbr.filterResponse(cassette.replayResponse(trackNumber, req), request)
+
+			return resp, trackNumber
 		}
 	}
 
-	return trackNotFound
+	return nil, trackNotFound
 }
 
 // Matches checks whether the track is a match for the supplied request.
@@ -68,6 +77,7 @@ func (pcbr *pcb) bodyResembles(body1 []byte, body2 []byte) bool {
 	return bytes.Equal(body1, body2)
 }
 
+// filterResponse applies the PCB ResponseFilter filter functions to the Response.
 func (pcbr *pcb) filterResponse(resp *http.Response, req Request) *http.Response {
 	body, err := readResponseBody(resp)
 	if err != nil {
@@ -76,12 +86,13 @@ func (pcbr *pcb) filterResponse(resp *http.Response, req Request) *http.Response
 	}
 
 	filtResp := Response{
-		req:        req,
+		req:        copyGovcrRequest(&req), // See warning in govcr.Request definition comment.
 		Body:       body,
 		Header:     cloneHeader(resp.Header),
 		StatusCode: resp.StatusCode,
 	}
 	if pcbr.ResponseFilter != nil {
+		// See warning in govcr.Request definition comment, for req.Request.
 		filtResp = pcbr.ResponseFilter(filtResp)
 	}
 	resp.Header = filtResp.Header

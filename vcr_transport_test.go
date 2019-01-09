@@ -1,7 +1,6 @@
 package govcr
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -12,7 +11,6 @@ import (
 type mockRoundTripper struct{}
 
 func (t *mockRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	fmt.Printf("DEBUG - RoundTripping with req.URL.Host=%s\n", req.URL.Host)
 	return &http.Response{
 		Request:    req,
 		StatusCode: http.StatusMovedPermanently,

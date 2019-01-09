@@ -219,6 +219,7 @@ func cloneHeader(h http.Header) http.Header {
 
 // readRequestBody reads the Body data stream and restores its states.
 // It ensures the stream is restored to its original state and can be read from again.
+// TODO - readRequestBody and readResponseBody are so similar - perhaps create a new interface Bodyer and extend http.Request and http.Response to implement it. This would allow to merge readRequestBody and readResponseBody
 func readRequestBody(req *http.Request) ([]byte, error) {
 	if req == nil || req.Body == nil {
 		return nil, nil
