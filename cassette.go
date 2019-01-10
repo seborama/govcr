@@ -290,6 +290,7 @@ func (k7 *cassette) gunzipFilter(data []byte) ([]byte, error) {
 
 // addTrack adds a track to a cassette.
 func (k7 *cassette) addTrack(track *track) {
+	// TODO: refactor this to be handled by the PCB?
 	if k7.removeTLS {
 		track.Response.TLS = nil
 	}
