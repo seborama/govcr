@@ -19,10 +19,10 @@ type pcb struct {
 
 const trackNotFound = -1
 
-func (pcbr *pcb) seekTrack(cassette *cassette, req *http.Request) (*http.Response, int) {
+func (pcbr *pcb) seekTrack(cassette *cassette, req *http.Request) (*http.Response, int, error) {
 	filteredRequest, err := newRequest(req, pcbr.Logger)
 	if err != nil {
-		return nil, trackNotFound
+		return nil, trackNotFound, nil
 	}
 	// See warning in govcr.Request definition comment.
 	filteredRequest = pcbr.RequestFilter(filteredRequest)
@@ -34,15 +34,16 @@ func (pcbr *pcb) seekTrack(cassette *cassette, req *http.Request) (*http.Respons
 			// See warning in govcr.Request definition comment.
 			request, err := newRequest(req, pcbr.Logger)
 			if err != nil {
-				return nil, trackNotFound
+				return nil, trackNotFound, nil
 			}
-			resp := pcbr.filterResponse(cassette.replayResponse(trackNumber, req), request)
+			replayedResponse, err := cassette.replayResponse(trackNumber, req)
+			filteredResp := pcbr.filterResponse(replayedResponse, request)
 
-			return resp, trackNumber
+			return filteredResp, trackNumber, err
 		}
 	}
 
-	return nil, trackNotFound
+	return nil, trackNotFound, nil
 }
 
 // Matches checks whether the track is a match for the supplied request.
