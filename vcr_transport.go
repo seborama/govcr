@@ -27,13 +27,12 @@ func (t *vcrTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 	// attempt to use a track from the cassette that matches
 	// the request if one exists.
-	if recordedResp, trackNumber := t.PCB.seekTrack(t.Cassette, copiedReq); trackNumber != trackNotFound {
+	if filteredResp, trackNumber, err := t.PCB.seekTrack(t.Cassette, copiedReq); trackNumber != trackNotFound {
 		// Only the played back response is filtered.
 		// The live request and response should NOT EVER be changed!
 
-		// TODO: SHOULD REPLAY THE err TOO!
-
-		return recordedResp, err
+		// TODO: add a test to confirm err is replaying errors correctly (see cassette_test.go / Test_trackReplaysError)
+		return filteredResp, err
 	}
 
 	t.PCB.Logger.Printf("INFO - Cassette '%s' - Executing request to live server for %s %s\n", t.Cassette.Name, req.Method, req.URL.String())

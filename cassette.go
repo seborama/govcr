@@ -78,7 +78,7 @@ type track struct {
 	replayed bool
 }
 
-func (t *track) response(req *http.Request) *http.Response {
+func (t *track) response(req *http.Request) (*http.Response, error) {
 	var (
 		err  error
 		resp = &http.Response{}
@@ -108,7 +108,7 @@ func (t *track) response(req *http.Request) *http.Response {
 		// No need to parse the response.
 		// By convention, when an HTTP error occurred, the response should be empty
 		// (or Go's http package will show a warning message at runtime).
-		return resp
+		return resp, err
 	}
 
 	// re-create the response object from track record
@@ -131,7 +131,7 @@ func (t *track) response(req *http.Request) *http.Response {
 
 	resp.TLS = tls
 
-	return resp
+	return resp, nil
 }
 
 // newTrack creates a new track from an HTTP request and response.
@@ -227,9 +227,9 @@ func (k7 *cassette) isLongPlay() bool {
 
 // TODO - this is wrong - the cassette should just replay, not replace the track resp.req with the live req
 //        if it must be done, then it should be done somewhere else, either vcrTransport (or PCB, to be confirmed)
-func (k7 *cassette) replayResponse(trackNumber int, req *http.Request) *http.Response {
+func (k7 *cassette) replayResponse(trackNumber int, req *http.Request) (*http.Response, error) {
 	if trackNumber >= len(k7.Tracks) {
-		return nil
+		return nil, nil
 	}
 	track := &k7.Tracks[trackNumber]
 

@@ -3,10 +3,25 @@ package govcr
 import (
 	"bytes"
 	"crypto/tls"
+	"net/http"
 	"reflect"
 	"strings"
 	"testing"
 )
+
+func Test_trackReplaysError(t *testing.T) {
+	t1 := track{
+		ErrType:  "*net.OpError",
+		ErrMsg:   "Some test error",
+		Response: response{},
+	}
+
+	_, err := t1.response(&http.Request{})
+	want := "govcr govcr: *net.OpError: Some test error"
+	if err != nil && err.Error() != want {
+		t.Errorf("got error '%s', want '%s'\n", err.Error(), want)
+	}
+}
 
 func Test_cassette_gzipFilter(t *testing.T) {
 	type fields struct {
