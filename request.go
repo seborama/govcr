@@ -1,6 +1,8 @@
 package govcr
 
 import (
+	"github.com/tidwall/sjson"
+	"log"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -68,6 +70,44 @@ func RequestDeleteHeaderKeys(keys ...string) RequestFilter {
 	}
 }
 
+func IgnoreBodyKey(keys ...string) RequestFilter {
+	return func(req Request) Request {
+		switch req.Header.Get("Content-Type") {
+		case "application/x-www-form-urlencoded":
+			log.Println("govcr--> x-www-form-urlencoded")
+			v, err := url.ParseQuery(string(req.Body))
+			if err != nil {
+				log.Printf("url.ParseQuery error: %s", err.Error())
+				return req
+			}
+			log.Println("govcr--> ",v)
+			for _, k := range keys {
+				v.Set(k, "")
+			}
+			log.Println("govcr new--> ",v)
+			req.Body = []byte(v.Encode())
+		case "application/json":
+			log.Println("govcr--> json")
+			for _, k := range keys {
+				_, err := sjson.Set(string(req.Body), k, "")
+				if err != nil {
+					log.Printf("application/json set error: %s", err.Error())
+				}
+			}
+		case "application/xml":
+			log.Printf("not support xml")
+		}
+		return req
+	}
+}
+
+
+func IgnoreBody()RequestFilter{
+	return func(req Request) Request {
+		req.Body = []byte("null")
+		return req
+	}
+}
 // RequestExcludeHeaderFunc is a hook function that is used to filter the Header.
 //
 // Typically this can be used to remove / amend undesirable custom headers from the request.

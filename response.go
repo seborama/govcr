@@ -1,8 +1,12 @@
 package govcr
 
 import (
+	"fmt"
+	"log"
 	"net/http"
+	"net/url"
 	"regexp"
+	"github.com/tidwall/sjson"
 )
 
 // ResponseFilter is a hook function that is used to filter the Response Header / Body.
@@ -70,7 +74,34 @@ func ResponseChangeBody(fn func(b []byte) []byte) ResponseFilter {
 		return resp
 	}
 }
-
+func ResponseReplaceKey(keys map[string]interface{}) ResponseFilter {
+	return func(resp Response) Response {
+		switch resp.Header.Get("Content-Type") {
+		case "application/x-www-form-urlencoded":
+			log.Println("govcr--> x-www-form-urlencoded")
+			vals, err := url.ParseQuery(string(resp.Body))
+			if err != nil {
+				log.Printf("url.ParseQuery error: %s", err.Error())
+				return resp
+			}
+			for k, v := range keys {
+				vals.Set(k, fmt.Sprint(v))
+			}
+			resp.Body = []byte(vals.Encode())
+		case "application/json":
+			log.Println("govcr--> json")
+			for k, v := range keys {
+				_, err := sjson.Set(string(resp.Body), k, v)
+				if err != nil {
+					log.Printf("application/json set error: %s", err.Error())
+				}
+			}
+		case "application/xml":
+			log.Printf("not support xml")
+		}
+		return resp
+	}
+}
 // OnMethod will return a Response filter that will only apply 'r'
 // if the method of the response matches.
 // Original filter is unmodified.
