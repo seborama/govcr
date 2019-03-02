@@ -230,8 +230,8 @@ func (k7 *cassette) isLongPlay() bool {
 
 // TODO - this feels wrong - the cassette should just replay, not replace the track resp.req with the live req
 //        if it must be done, then it should be done somewhere else, either vcrTransport (or PCB, to be confirmed)
-func (k7 *cassette) replayResponse(trackNumber int, req *http.Request) (*http.Response, error) {
-	if trackNumber >= len(k7.Tracks) {
+func (k7 *cassette) replayResponse(trackNumber int32, req *http.Request) (*http.Response, error) {
+	if trackNumber >= k7.NumberOfTracks() {
 		return nil, nil
 	}
 	track := &k7.Tracks[trackNumber]
@@ -308,7 +308,7 @@ func (k7 *cassette) Stats() Stats {
 	stats := Stats{}
 
 	stats.TracksLoaded = atomic.LoadInt32(&k7.tracksLoaded)
-	stats.TracksRecorded = k7.numberOfTracks() - stats.TracksLoaded
+	stats.TracksRecorded = k7.NumberOfTracks() - stats.TracksLoaded
 	stats.TracksPlayed = k7.tracksPlayed() - stats.TracksRecorded
 
 	return stats
@@ -331,7 +331,7 @@ func (k7 *cassette) tracksPlayed() int32 {
 	return replayed
 }
 
-func (k7 *cassette) numberOfTracks() int32 {
+func (k7 *cassette) NumberOfTracks() int32 {
 	k7.trackSliceMutex.RLock()
 	defer k7.trackSliceMutex.RUnlock()
 
@@ -419,7 +419,7 @@ func loadCassette(cassetteName, cassettePath string) (*cassette, error) {
 	}
 
 	// initial stats
-	k7.tracksLoaded = k7.numberOfTracks()
+	k7.tracksLoaded = k7.NumberOfTracks()
 
 	return k7, nil
 }

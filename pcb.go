@@ -19,7 +19,7 @@ type pcb struct {
 
 const trackNotFound = -1
 
-func (pcbr *pcb) seekTrack(cassette *cassette, req *http.Request) (*http.Response, int, error) {
+func (pcbr *pcb) seekTrack(cassette *cassette, req *http.Request) (*http.Response, int32, error) {
 	filteredRequest, err := newRequest(req, pcbr.Logger)
 	if err != nil {
 		return nil, trackNotFound, nil
@@ -27,7 +27,8 @@ func (pcbr *pcb) seekTrack(cassette *cassette, req *http.Request) (*http.Respons
 	// See warning in govcr.Request definition comment.
 	filteredRequest = pcbr.RequestFilter(filteredRequest)
 
-	for trackNumber := range cassette.Tracks {
+	numberOfTracksInCassette := cassette.NumberOfTracks()
+	for trackNumber := int32(1); trackNumber < numberOfTracksInCassette; trackNumber++ {
 		if pcbr.trackMatches(cassette, trackNumber, filteredRequest) {
 			pcbr.Logger.Printf("INFO - Cassette '%s' - Found a matching track for %s %s\n", cassette.Name, req.Method, req.URL.String())
 
@@ -47,7 +48,7 @@ func (pcbr *pcb) seekTrack(cassette *cassette, req *http.Request) (*http.Respons
 }
 
 // Matches checks whether the track is a match for the supplied request.
-func (pcbr *pcb) trackMatches(cassette *cassette, trackNumber int, request Request) bool {
+func (pcbr *pcb) trackMatches(cassette *cassette, trackNumber int32, request Request) bool {
 	track := cassette.Tracks[trackNumber]
 
 	// apply filter function to track header / body
