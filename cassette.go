@@ -114,7 +114,7 @@ func (t *track) response(req *http.Request) (*http.Response, error) {
 	}
 
 	// re-create the response object from track record
-	tls := t.Response.TLS
+	respTLS := t.Response.TLS
 
 	resp.Status = t.Response.Status
 	resp.StatusCode = t.Response.StatusCode
@@ -131,7 +131,7 @@ func (t *track) response(req *http.Request) (*http.Response, error) {
 	// See notes on http.Response.Request - Body is nil because it has already been consumed
 	resp.Request = copyRequestWithoutBody(req)
 
-	resp.TLS = tls
+	resp.TLS = respTLS
 
 	return resp, nil
 }
@@ -293,10 +293,13 @@ func (k7 *cassette) gunzipFilter(data []byte) ([]byte, error) {
 
 // addTrack adds a track to a cassette.
 func (k7 *cassette) addTrack(track *track) {
-	// TODO: refactor this to be handled by the PCB?
-	if k7.removeTLS {
+	if k7.removeTLS { // TODO: refactor this to be handled by the PCB?
 		track.Response.TLS = nil
 	}
+
+	k7.trackSliceMutex.Lock()
+	defer k7.trackSliceMutex.Unlock()
+
 	k7.Tracks = append(k7.Tracks, *track)
 }
 
