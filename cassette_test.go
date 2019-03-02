@@ -66,10 +66,10 @@ func Test_cassette_gzipFilter(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			k7 := &cassette{
-				Name:   tt.fields.Name,
-				Path:   tt.fields.Path,
-				Tracks: tt.fields.Tracks,
-				stats:  tt.fields.stats,
+				Name:         tt.fields.Name,
+				Path:         tt.fields.Path,
+				Tracks:       tt.fields.Tracks,
+				tracksLoaded: tt.fields.stats.TracksLoaded,
 			}
 			got, err := k7.gzipFilter(tt.args.data)
 			if (err != nil) != tt.wantErr {
@@ -113,10 +113,10 @@ func Test_cassette_isLongPlay(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			k7 := &cassette{
-				Name:   tt.fields.Name,
-				Path:   tt.fields.Path,
-				Tracks: tt.fields.Tracks,
-				stats:  tt.fields.stats,
+				Name:         tt.fields.Name,
+				Path:         tt.fields.Path,
+				Tracks:       tt.fields.Tracks,
+				tracksLoaded: tt.fields.stats.TracksLoaded,
 			}
 			if got := k7.isLongPlay(); got != tt.want {
 				t.Errorf("cassette.isLongPlay() = %v, want %v", got, tt.want)
@@ -168,10 +168,10 @@ func Test_cassette_gunzipFilter(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			k7 := &cassette{
-				Name:   tt.fields.Name,
-				Path:   tt.fields.Path,
-				Tracks: tt.fields.Tracks,
-				stats:  tt.fields.stats,
+				Name:         tt.fields.Name,
+				Path:         tt.fields.Path,
+				Tracks:       tt.fields.Tracks,
+				tracksLoaded: tt.fields.stats.TracksLoaded,
 			}
 			got, err := k7.gunzipFilter(tt.args.data)
 			if (err != nil) != tt.wantErr {

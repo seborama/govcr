@@ -33,7 +33,7 @@ func TestPlaybackOrder(t *testing.T) {
 	client := vcr.Client
 
 	// run requests
-	for i := 1; i <= 10; i++ {
+	for i := int32(1); i <= 10; i++ {
 		resp, _ := client.Get(ts.URL)
 
 		// check outcome of the request
@@ -55,7 +55,7 @@ func TestPlaybackOrder(t *testing.T) {
 	client = vcr.Client
 
 	// run requests
-	for i := 1; i <= 10; i++ {
+	for i := int32(1); i <= 10; i++ {
 		resp, _ := client.Get(ts.URL)
 
 		// check outcome of the request
@@ -72,7 +72,7 @@ func TestPlaybackOrder(t *testing.T) {
 
 func TestNonUtf8EncodableBinaryBody(t *testing.T) {
 	cassetteName := "TestNonUtf8EncodableBinaryBody"
-	clientNum := 1
+	clientNum := int32(1)
 
 	// create a test server
 	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -97,7 +97,7 @@ func TestNonUtf8EncodableBinaryBody(t *testing.T) {
 	client := vcr.Client
 
 	// run requests
-	for i := 1; i <= 10; i++ {
+	for i := int32(1); i <= 10; i++ {
 		resp, _ := client.Get(ts.URL)
 
 		// check outcome of the request
@@ -119,7 +119,7 @@ func TestNonUtf8EncodableBinaryBody(t *testing.T) {
 	client = vcr.Client
 
 	// run requests
-	for i := 1; i <= 10; i++ {
+	for i := int32(1); i <= 10; i++ {
 		resp, _ := client.Get(ts.URL)
 
 		// check outcome of the request
@@ -154,7 +154,7 @@ func TestLongPlay(t *testing.T) {
 	client := vcr.Client
 
 	// run requests
-	for i := 1; i <= 10; i++ {
+	for i := int32(1); i <= 10; i++ {
 		resp, _ := client.Get(ts.URL)
 
 		// check outcome of the request
@@ -176,7 +176,7 @@ func TestLongPlay(t *testing.T) {
 	client = vcr.Client
 
 	// run requests
-	for i := 1; i <= 10; i++ {
+	for i := int32(1); i <= 10; i++ {
 		resp, _ := client.Get(ts.URL)
 
 		// check outcome of the request
@@ -246,7 +246,7 @@ func checkResponseForTestPlaybackOrder(t *testing.T, resp *http.Response, expect
 	}
 }
 
-func checkStats(t *testing.T, actualStats govcr.Stats, expectedTracksLoaded, expectedTracksRecorded, expectedTrackPlayed int) {
+func checkStats(t *testing.T, actualStats govcr.Stats, expectedTracksLoaded, expectedTracksRecorded, expectedTrackPlayed int32) {
 	if actualStats.TracksLoaded != expectedTracksLoaded {
 		t.Fatalf("Expected %d track loaded, got %d", expectedTracksLoaded, actualStats.TracksLoaded)
 	}
@@ -260,7 +260,7 @@ func checkStats(t *testing.T, actualStats govcr.Stats, expectedTracksLoaded, exp
 	}
 }
 
-func generateBinaryBody(sequence int) []byte {
+func generateBinaryBody(sequence int32) []byte {
 	data := make([]byte, 256, 257)
 	for i := range data {
 		data[i] = byte(i)

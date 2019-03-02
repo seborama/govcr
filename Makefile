@@ -5,7 +5,7 @@ deps:
 	go get -d -t -v ./... $(DEPS)
 
 test: deps
-	go test -cover -race -parallel 2 ./...
+	go test -cover -race -parallel 100 ./...
 
 examples: deps
 	go run ./examples/*.go

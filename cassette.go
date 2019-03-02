@@ -17,6 +17,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
+	"sync/atomic"
 )
 
 // request is a recorded HTTP request.
@@ -200,25 +202,26 @@ func newTrack(req *http.Request, resp *http.Response, reqErr error) (*track, err
 // VCR runtime.
 type Stats struct {
 	// TracksLoaded is the number of tracks that were loaded from the cassette.
-	TracksLoaded int
+	TracksLoaded int32
 
 	// TracksRecorded is the number of new tracks recorded by VCR.
-	TracksRecorded int
+	TracksRecorded int32
 
 	// TracksPlayed is the number of tracks played back straight from the cassette.
 	// I.e. tracks that were already present on the cassette and were played back.
-	TracksPlayed int
+	TracksPlayed int32
 }
 
 // cassette contains a set of tracks.
 type cassette struct {
-	Name   string
-	Path   string `json:"-"`
-	Tracks []track
+	Name            string
+	Path            string `json:"-"`
+	Tracks          []track
+	trackSliceMutex *sync.RWMutex
 
-	// stats is not exported since it doesn't need serialising
-	stats     Stats
-	removeTLS bool
+	// the following variables are not exported as they are not serialised
+	tracksLoaded int32
+	removeTLS    bool
 }
 
 func (k7 *cassette) isLongPlay() bool {
@@ -299,26 +302,37 @@ func (k7 *cassette) addTrack(track *track) {
 
 // Stats returns the cassette's Stats.
 func (k7 *cassette) Stats() Stats {
-	k7.stats.TracksRecorded = k7.numberOfTracks() - k7.stats.TracksLoaded
-	k7.stats.TracksPlayed = k7.tracksPlayed() - k7.stats.TracksRecorded
+	stats := Stats{}
 
-	return k7.stats
+	stats.TracksLoaded = atomic.LoadInt32(&k7.tracksLoaded)
+	stats.TracksRecorded = k7.numberOfTracks() - stats.TracksLoaded
+	stats.TracksPlayed = k7.tracksPlayed() - stats.TracksRecorded
+
+	return stats
 }
 
-func (k7 *cassette) tracksPlayed() int {
-	replayed := 0
+func (k7 *cassette) tracksPlayed() int32 {
+	replayed := int32(0)
 
-	for _, t := range k7.Tracks {
-		if t.replayed {
-			replayed++
+	{
+		k7.trackSliceMutex.RLock()
+		defer k7.trackSliceMutex.RUnlock()
+
+		for _, t := range k7.Tracks {
+			if t.replayed {
+				replayed++
+			}
 		}
 	}
 
 	return replayed
 }
 
-func (k7 *cassette) numberOfTracks() int {
-	return len(k7.Tracks)
+func (k7 *cassette) numberOfTracks() int32 {
+	k7.trackSliceMutex.RLock()
+	defer k7.trackSliceMutex.RUnlock()
+
+	return int32(len(k7.Tracks))
 }
 
 // DeleteCassette removes the cassette file from disk.
@@ -394,11 +408,15 @@ func loadCassette(cassetteName, cassettePath string) (*cassette, error) {
 
 	// provide an empty cassette as a minimum
 	if k7 == nil {
-		k7 = &cassette{Name: cassetteName, Path: cassettePath}
+		k7 = &cassette{
+			Name:            cassetteName,
+			Path:            cassettePath,
+			trackSliceMutex: &sync.RWMutex{},
+		}
 	}
 
 	// initial stats
-	k7.stats.TracksLoaded = len(k7.Tracks)
+	k7.tracksLoaded = k7.numberOfTracks()
 
 	return k7, nil
 }
@@ -408,8 +426,9 @@ func readCassetteFromFile(cassetteName, cassettePath string) (*cassette, error) 
 	filename := cassetteNameToFilename(cassetteName, cassettePath)
 
 	k7 := &cassette{
-		Name: cassetteName,
-		Path: cassettePath,
+		Name:            cassetteName,
+		Path:            cassettePath,
+		trackSliceMutex: &sync.RWMutex{},
 	}
 
 	data, err := ioutil.ReadFile(filename)
