@@ -242,7 +242,7 @@ func checkResponseForTestPlaybackOrder(t *testing.T, resp *http.Response, expect
 	}
 
 	if !bytes.Equal(bodyData, expectedBodyBytes) {
-		t.Fatalf("Body: expected '%v', got '%v'", expectedBody, bodyData)
+		t.Fatalf("Body: expected '%s', got '%s'", expectedBody, bodyData)
 	}
 }
 

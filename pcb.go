@@ -28,7 +28,7 @@ func (pcbr *pcb) seekTrack(cassette *cassette, req *http.Request) (*http.Respons
 	filteredRequest = pcbr.RequestFilter(filteredRequest)
 
 	numberOfTracksInCassette := cassette.NumberOfTracks()
-	for trackNumber := int32(1); trackNumber < numberOfTracksInCassette; trackNumber++ {
+	for trackNumber := int32(0); trackNumber < numberOfTracksInCassette; trackNumber++ {
 		if pcbr.trackMatches(cassette, trackNumber, filteredRequest) {
 			pcbr.Logger.Printf("INFO - Cassette '%s' - Found a matching track for %s %s\n", cassette.Name, req.Method, req.URL.String())
 

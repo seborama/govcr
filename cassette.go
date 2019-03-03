@@ -224,6 +224,10 @@ type cassette struct {
 	removeTLS    bool
 }
 
+func NewCassette(name string, path string) *cassette {
+	return &cassette{Name: name, Path: path, trackSliceMutex: &sync.RWMutex{}}
+}
+
 func (k7 *cassette) isLongPlay() bool {
 	return strings.HasSuffix(k7.Name, ".gz")
 }
@@ -234,6 +238,10 @@ func (k7 *cassette) replayResponse(trackNumber int32, req *http.Request) (*http.
 	if trackNumber >= k7.NumberOfTracks() {
 		return nil, nil
 	}
+
+	k7.trackSliceMutex.Lock()
+	defer k7.trackSliceMutex.Unlock()
+
 	track := &k7.Tracks[trackNumber]
 
 	// mark the track as replayed so it doesn't get re-used
@@ -244,6 +252,9 @@ func (k7 *cassette) replayResponse(trackNumber int32, req *http.Request) (*http.
 
 // saveCassette writes a cassette to file.
 func (k7 *cassette) save() error {
+	k7.trackSliceMutex.Lock()
+	defer k7.trackSliceMutex.Unlock()
+
 	data, err := json.Marshal(k7)
 	if err != nil {
 		return err
@@ -411,11 +422,7 @@ func loadCassette(cassetteName, cassettePath string) (*cassette, error) {
 
 	// provide an empty cassette as a minimum
 	if k7 == nil {
-		k7 = &cassette{
-			Name:            cassetteName,
-			Path:            cassettePath,
-			trackSliceMutex: &sync.RWMutex{},
-		}
+		k7 = NewCassette(cassetteName, cassettePath)
 	}
 
 	// initial stats
@@ -428,11 +435,7 @@ func loadCassette(cassetteName, cassettePath string) (*cassette, error) {
 func readCassetteFromFile(cassetteName, cassettePath string) (*cassette, error) {
 	filename := cassetteNameToFilename(cassetteName, cassettePath)
 
-	k7 := &cassette{
-		Name:            cassetteName,
-		Path:            cassettePath,
-		trackSliceMutex: &sync.RWMutex{},
-	}
+	k7 := NewCassette(cassetteName, cassettePath)
 
 	data, err := ioutil.ReadFile(filename)
 	if os.IsNotExist(err) {
