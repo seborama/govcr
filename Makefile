@@ -14,7 +14,7 @@ lint: deps
 	@-echo "NOTE: some linters (gotype) require a recent 'go install'"
 	go get -u github.com/alecthomas/gometalinter
 	gometalinter --install --update
-	gometalinter --deadline=300s --disable=dupl --concurrency=2 ./...
+	gometalinter --deadline=300s --disable=dupl --concurrency=4
 
 goconvey:
 	@-killall goconvey

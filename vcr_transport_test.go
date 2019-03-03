@@ -52,7 +52,7 @@ func Test_vcrTransport_RoundTrip_doesNotChangeLiveReqOrLiveResp(t *testing.T) {
 			Logger:           logger,
 			CassettePath:     "",
 		},
-		Cassette: NewCassette("", ""),
+		Cassette: newCassette("", ""),
 	}
 
 	req, err := http.NewRequest("GET", "https://example.com/path?query", toReadCloser([]byte("Lorem ipsum dolor sit amet")))

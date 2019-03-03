@@ -65,7 +65,7 @@ func Test_cassette_gzipFilter(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			k7 := NewCassette(tt.fields.Name, tt.fields.Path)
+			k7 := newCassette(tt.fields.Name, tt.fields.Path)
 			k7.Tracks = tt.fields.Tracks
 			k7.tracksLoaded = tt.fields.stats.TracksLoaded
 
@@ -110,7 +110,7 @@ func Test_cassette_isLongPlay(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			k7 := NewCassette(tt.fields.Name, tt.fields.Path)
+			k7 := newCassette(tt.fields.Name, tt.fields.Path)
 			k7.Tracks = tt.fields.Tracks
 			k7.tracksLoaded = tt.fields.stats.TracksLoaded
 
@@ -163,7 +163,7 @@ func Test_cassette_gunzipFilter(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			k7 := NewCassette(tt.fields.Name, tt.fields.Path)
+			k7 := newCassette(tt.fields.Name, tt.fields.Path)
 			k7.Tracks = tt.fields.Tracks
 			k7.tracksLoaded = tt.fields.stats.TracksLoaded
 
@@ -280,7 +280,7 @@ func Test_cassette_addTrack(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			k7 := NewCassette(tt.name, tt.name)
+			k7 := newCassette(tt.name, tt.name)
 			k7.removeTLS = tt.fields.removeTLS
 
 			k7.addTrack(&tt.args.track)

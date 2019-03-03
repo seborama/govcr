@@ -224,10 +224,12 @@ type cassette struct {
 	removeTLS    bool
 }
 
-func NewCassette(name string, path string) *cassette {
+// newCassette creates a ready to use new cassette.
+func newCassette(name string, path string) *cassette {
 	return &cassette{Name: name, Path: path, trackSliceMutex: &sync.RWMutex{}}
 }
 
+// isLongPlay returns true if the cassette content is compressed.
 func (k7 *cassette) isLongPlay() bool {
 	return strings.HasSuffix(k7.Name, ".gz")
 }
@@ -428,7 +430,7 @@ func loadCassette(cassetteName, cassettePath string) (*cassette, error) {
 
 	// provide an empty cassette as a minimum
 	if k7 == nil {
-		k7 = NewCassette(cassetteName, cassettePath)
+		k7 = newCassette(cassetteName, cassettePath)
 	}
 
 	// initial stats
@@ -441,7 +443,7 @@ func loadCassette(cassetteName, cassettePath string) (*cassette, error) {
 func readCassetteFromFile(cassetteName, cassettePath string) (*cassette, error) {
 	filename := cassetteNameToFilename(cassetteName, cassettePath)
 
-	k7 := NewCassette(cassetteName, cassettePath)
+	k7 := newCassette(cassetteName, cassettePath)
 
 	data, err := ioutil.ReadFile(filename)
 	if os.IsNotExist(err) {
