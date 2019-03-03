@@ -5,17 +5,19 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
-	"testing"
-
 	"net/http/httptest"
+	"strconv"
+	"testing"
+	"time"
 
 	"github.com/seborama/govcr"
 )
 
 func TestPlaybackOrder(t *testing.T) {
 	cassetteName := "TestPlaybackOrder"
-	clientNum := 1
+	clientNum := int8(1)
 
 	// create a test server
 	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -38,13 +40,17 @@ func TestPlaybackOrder(t *testing.T) {
 
 		// check outcome of the request
 		expectedBody := fmt.Sprintf("Hello, client %d", i)
-		checkResponseForTestPlaybackOrder(t, resp, expectedBody)
+		if err := validateResponseForTestPlaybackOrder(resp, expectedBody); err != nil {
+			t.Fatal(err.Error())
+		}
 
 		if !govcr.CassetteExistsAndValid(cassetteName, "") {
 			t.Fatalf("CassetteExists: expected true, got false")
 		}
 
-		checkStats(t, vcr.Stats(), 0, i, 0)
+		if err := validateStats(vcr.Stats(), 0, i, 0); err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 
 	fmt.Println("Phase 2 - Playback =====================================")
@@ -60,19 +66,23 @@ func TestPlaybackOrder(t *testing.T) {
 
 		// check outcome of the request
 		expectedBody := fmt.Sprintf("Hello, client %d", i)
-		checkResponseForTestPlaybackOrder(t, resp, expectedBody)
+		if err := validateResponseForTestPlaybackOrder(resp, expectedBody); err != nil {
+			t.Fatal(err.Error())
+		}
 
 		if !govcr.CassetteExistsAndValid(cassetteName, "") {
 			t.Fatalf("CassetteExists: expected true, got false")
 		}
 
-		checkStats(t, vcr.Stats(), 10, 0, i)
+		if err := validateStats(vcr.Stats(), 10, 0, i); err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 }
 
 func TestNonUtf8EncodableBinaryBody(t *testing.T) {
 	cassetteName := "TestNonUtf8EncodableBinaryBody"
-	clientNum := int32(1)
+	clientNum := int8(1)
 
 	// create a test server
 	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -97,18 +107,22 @@ func TestNonUtf8EncodableBinaryBody(t *testing.T) {
 	client := vcr.Client
 
 	// run requests
-	for i := int32(1); i <= 10; i++ {
+	for i := int8(1); i <= 10; i++ {
 		resp, _ := client.Get(ts.URL)
 
 		// check outcome of the request
 		expectedBody := generateBinaryBody(i)
-		checkResponseForTestPlaybackOrder(t, resp, expectedBody)
+		if err := validateResponseForTestPlaybackOrder(resp, expectedBody); err != nil {
+			t.Fatal(err.Error())
+		}
 
 		if !govcr.CassetteExistsAndValid(cassetteName, "") {
 			t.Fatalf("CassetteExists: expected true, got false")
 		}
 
-		checkStats(t, vcr.Stats(), 0, i, 0)
+		if err := validateStats(vcr.Stats(), 0, int32(i), 0); err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 
 	fmt.Println("Phase 2 - Playback =====================================")
@@ -123,20 +137,24 @@ func TestNonUtf8EncodableBinaryBody(t *testing.T) {
 		resp, _ := client.Get(ts.URL)
 
 		// check outcome of the request
-		expectedBody := generateBinaryBody(i)
-		checkResponseForTestPlaybackOrder(t, resp, expectedBody)
+		expectedBody := generateBinaryBody(int8(i))
+		if err := validateResponseForTestPlaybackOrder(resp, expectedBody); err != nil {
+			t.Fatal(err.Error())
+		}
 
 		if !govcr.CassetteExistsAndValid(cassetteName, "") {
 			t.Fatalf("CassetteExists: expected true, got false")
 		}
 
-		checkStats(t, vcr.Stats(), 10, 0, i)
+		if err := validateStats(vcr.Stats(), 10, 0, i); err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 }
 
 func TestLongPlay(t *testing.T) {
 	cassetteName := t.Name() + ".gz"
-	clientNum := 1
+	clientNum := int8(1)
 
 	// create a test server
 	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -159,13 +177,17 @@ func TestLongPlay(t *testing.T) {
 
 		// check outcome of the request
 		expectedBody := fmt.Sprintf("Hello, client %d", i)
-		checkResponseForTestPlaybackOrder(t, resp, expectedBody)
+		if err := validateResponseForTestPlaybackOrder(resp, expectedBody); err != nil {
+			t.Fatal(err.Error())
+		}
 
 		if !govcr.CassetteExistsAndValid(cassetteName, "") {
 			t.Fatalf("CassetteExists: expected true, got false")
 		}
 
-		checkStats(t, vcr.Stats(), 0, i, 0)
+		if err := validateStats(vcr.Stats(), 0, i, 0); err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 
 	fmt.Println("Phase 2 - Playback =====================================")
@@ -181,13 +203,112 @@ func TestLongPlay(t *testing.T) {
 
 		// check outcome of the request
 		expectedBody := fmt.Sprintf("Hello, client %d", i)
-		checkResponseForTestPlaybackOrder(t, resp, expectedBody)
+		if err := validateResponseForTestPlaybackOrder(resp, expectedBody); err != nil {
+			t.Fatal(err.Error())
+		}
 
 		if !govcr.CassetteExistsAndValid(cassetteName, "") {
 			t.Fatalf("CassetteExists: expected true, got false")
 		}
 
-		checkStats(t, vcr.Stats(), 10, 0, i)
+		if err := validateStats(vcr.Stats(), 10, 0, i); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+}
+
+func TestConcurrencySafety(t *testing.T) {
+	cassetteName := "TestConcurrencySafety"
+	threadMax := int8(50)
+
+	// create a test server
+	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(time.Millisecond * time.Duration(rand.Intn(50)))
+
+		clientNum, _ := strconv.ParseInt(r.URL.Query().Get("num"), 0, 8)
+
+		data := generateBinaryBody(int8(clientNum))
+		written, err := w.Write(data)
+		if written != len(data) {
+			t.Fatalf("** Only %d bytes out of %d were written", written, len(data))
+		}
+		if err != nil {
+			t.Fatalf("err from w.Write(): Expected nil, got %s", err)
+		}
+	}))
+
+	fmt.Println("Phase 1 ================================================")
+
+	if err := govcr.DeleteCassette(cassetteName, ""); err != nil {
+		t.Fatalf("err from govcr.DeleteCassette(): Expected nil, got %s", err)
+	}
+
+	vcr := createVCR(cassetteName, false)
+	client := vcr.Client
+
+	t.Run("main - phase 1", func(t *testing.T) {
+		// run requests
+		for i := int8(1); i <= threadMax; i++ {
+			func(i1 int8) {
+				t.Run(fmt.Sprintf("i=%d", i), func(t *testing.T) {
+					t.Parallel()
+
+					func() {
+						resp, _ := client.Get(fmt.Sprintf("%s?num=%d", ts.URL, i1))
+
+						// check outcome of the request
+						expectedBody := generateBinaryBody(i1)
+						if err := validateResponseForTestPlaybackOrder(resp, expectedBody); err != nil {
+							t.Fatalf(err.Error())
+						}
+
+						if !govcr.CassetteExistsAndValid(cassetteName, "") {
+							t.Fatalf("CassetteExists: expected true, got false")
+						}
+					}()
+				})
+			}(i)
+		}
+	})
+
+	if err := validateStats(vcr.Stats(), 0, int32(threadMax), 0); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	fmt.Println("Phase 2 - Playback =====================================")
+
+	// re-run request and expect play back from vcr
+	vcr = createVCR(cassetteName, false)
+	client = vcr.Client
+
+	// run requests
+	t.Run("main - phase 1", func(t *testing.T) {
+		// run requests
+		for i := int8(1); i <= threadMax; i++ {
+			func(i1 int8) {
+				t.Run(fmt.Sprintf("i=%d", i), func(t *testing.T) {
+					t.Parallel()
+
+					func() {
+						resp, _ := client.Get(fmt.Sprintf("%s?num=%d", ts.URL, i1))
+
+						// check outcome of the request
+						expectedBody := generateBinaryBody(i1)
+						if err := validateResponseForTestPlaybackOrder(resp, expectedBody); err != nil {
+							t.Fatalf(err.Error())
+						}
+
+						if !govcr.CassetteExistsAndValid(cassetteName, "") {
+							t.Fatalf("CassetteExists: expected true, got false")
+						}
+					}()
+				})
+			}(i)
+		}
+	})
+
+	if err := validateStats(vcr.Stats(), int32(threadMax), 0, int32(threadMax)); err != nil {
+		t.Fatal(err.Error())
 	}
 }
 
@@ -206,18 +327,18 @@ func createVCR(cassetteName string, lp bool) *govcr.VCRControlPanel {
 		})
 }
 
-func checkResponseForTestPlaybackOrder(t *testing.T, resp *http.Response, expectedBody interface{}) {
+func validateResponseForTestPlaybackOrder(resp *http.Response, expectedBody interface{}) error {
 	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("resp.StatusCode: Expected %d, got %d", http.StatusOK, resp.StatusCode)
+		return fmt.Errorf("resp.StatusCode: Expected %d, got %d", http.StatusOK, resp.StatusCode)
 	}
 
 	if resp.Body == nil {
-		t.Fatalf("resp.Body: Expected non-nil, got nil")
+		return fmt.Errorf("resp.Body: Expected non-nil, got nil")
 	}
 
 	bodyData, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		t.Fatalf("err from ioutil.ReadAll(): Expected nil, got %s", err)
+		return fmt.Errorf("err from ioutil.ReadAll(): Expected nil, got %s", err)
 	}
 	resp.Body.Close()
 
@@ -227,40 +348,44 @@ func checkResponseForTestPlaybackOrder(t *testing.T, resp *http.Response, expect
 		var ok bool
 		expectedBodyBytes, ok = expectedBody.([]byte)
 		if !ok {
-			t.Fatalf("expectedBody: cannot assert to type '[]byte'")
+			return fmt.Errorf("expectedBody: cannot assert to type '[]byte'")
 		}
 
 	case string:
 		expectedBodyString, ok := expectedBody.(string)
 		if !ok {
-			t.Fatalf("expectedBody: cannot assert to type 'string'")
+			return fmt.Errorf("expectedBody: cannot assert to type 'string'")
 		}
 		expectedBodyBytes = []byte(expectedBodyString)
 
 	default:
-		t.Fatalf("Unexpected type for 'expectedBody' variable")
+		return fmt.Errorf("Unexpected type for 'expectedBody' variable")
 	}
 
 	if !bytes.Equal(bodyData, expectedBodyBytes) {
-		t.Fatalf("Body: expected '%s', got '%s'", expectedBody, bodyData)
+		return fmt.Errorf("Body: expected '%v', got '%v'", expectedBody, bodyData)
 	}
+
+	return nil
 }
 
-func checkStats(t *testing.T, actualStats govcr.Stats, expectedTracksLoaded, expectedTracksRecorded, expectedTrackPlayed int32) {
+func validateStats(actualStats govcr.Stats, expectedTracksLoaded, expectedTracksRecorded, expectedTrackPlayed int32) error {
 	if actualStats.TracksLoaded != expectedTracksLoaded {
-		t.Fatalf("Expected %d track loaded, got %d", expectedTracksLoaded, actualStats.TracksLoaded)
+		return fmt.Errorf("Expected %d track loaded, got %d", expectedTracksLoaded, actualStats.TracksLoaded)
 	}
 
 	if actualStats.TracksRecorded != expectedTracksRecorded {
-		t.Fatalf("Expected %d track recorded, got %d", expectedTracksRecorded, actualStats.TracksRecorded)
+		return fmt.Errorf("Expected %d track recorded, got %d", expectedTracksRecorded, actualStats.TracksRecorded)
 	}
 
 	if actualStats.TracksPlayed != expectedTrackPlayed {
-		t.Fatalf("Expected %d track played, got %d", expectedTrackPlayed, actualStats.TracksPlayed)
+		return fmt.Errorf("Expected %d track played, got %d", expectedTrackPlayed, actualStats.TracksPlayed)
 	}
+
+	return nil
 }
 
-func generateBinaryBody(sequence int32) []byte {
+func generateBinaryBody(sequence int8) []byte {
 	data := make([]byte, 256, 257)
 	for i := range data {
 		data[i] = byte(i)

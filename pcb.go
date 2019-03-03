@@ -49,7 +49,7 @@ func (pcbr *pcb) seekTrack(cassette *cassette, req *http.Request) (*http.Respons
 
 // Matches checks whether the track is a match for the supplied request.
 func (pcbr *pcb) trackMatches(cassette *cassette, trackNumber int32, request Request) bool {
-	track := cassette.Tracks[trackNumber]
+	track := cassette.Track(trackNumber)
 
 	// apply filter function to track header / body
 	filteredTrackRequest := pcbr.RequestFilter(track.Request.Request())

@@ -314,6 +314,14 @@ func (k7 *cassette) addTrack(track *track) {
 	k7.Tracks = append(k7.Tracks, *track)
 }
 
+// Track retrieves the requested track number.
+// '0' is the first track.
+func (k7 *cassette) Track(trackNumber int32) track {
+	k7.trackSliceMutex.RLock()
+	defer k7.trackSliceMutex.RUnlock()
+	return k7.Tracks[trackNumber]
+}
+
 // Stats returns the cassette's Stats.
 func (k7 *cassette) Stats() Stats {
 	stats := Stats{}
@@ -328,14 +336,12 @@ func (k7 *cassette) Stats() Stats {
 func (k7 *cassette) tracksPlayed() int32 {
 	replayed := int32(0)
 
-	{
-		k7.trackSliceMutex.RLock()
-		defer k7.trackSliceMutex.RUnlock()
+	k7.trackSliceMutex.RLock()
+	defer k7.trackSliceMutex.RUnlock()
 
-		for _, t := range k7.Tracks {
-			if t.replayed {
-				replayed++
-			}
+	for _, t := range k7.Tracks {
+		if t.replayed {
+			replayed++
 		}
 	}
 
