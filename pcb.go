@@ -12,6 +12,7 @@ type pcb struct {
 	Transport        http.RoundTripper
 	RequestFilter    RequestFilter
 	ResponseFilter   ResponseFilter
+	SaveFilter       ResponseFilter
 	Logger           *log.Logger
 	DisableRecording bool
 	CassettePath     string
@@ -25,7 +26,9 @@ func (pcbr *pcb) seekTrack(cassette *cassette, req *http.Request) (*http.Respons
 		return nil, trackNotFound, nil
 	}
 	// See warning in govcr.Request definition comment.
-	filteredRequest = pcbr.RequestFilter(filteredRequest)
+	if pcbr.RequestFilter != nil {
+		filteredRequest = pcbr.RequestFilter(filteredRequest)
+	}
 
 	numberOfTracksInCassette := cassette.NumberOfTracks()
 	for trackNumber := int32(0); trackNumber < numberOfTracksInCassette; trackNumber++ {
@@ -81,26 +84,26 @@ func (pcbr *pcb) bodyResembles(body1 []byte, body2 []byte) bool {
 
 // filterResponse applies the PCB ResponseFilter filter functions to the Response.
 func (pcbr *pcb) filterResponse(resp *http.Response, req Request) *http.Response {
-	body, err := readResponseBody(resp)
-	if err != nil {
-		pcbr.Logger.Printf("ERROR - Unable to filter response body so leaving it untouched: %s\n", err.Error())
-		return resp
-	}
-
-	filtResp := Response{
-		req:        copyGovcrRequest(&req), // See warning in govcr.Request definition comment.
-		Body:       body,
-		Header:     cloneHeader(resp.Header),
-		StatusCode: resp.StatusCode,
-	}
 	if pcbr.ResponseFilter != nil {
+		body, err := readResponseBody(resp)
+		if err != nil {
+			pcbr.Logger.Printf("ERROR - Unable to filter response body so leaving it untouched: %s\n", err.Error())
+			return resp
+		}
+
+		filtResp := Response{
+			req:           copyGovcrRequest(&req), // See warning in govcr.Request definition comment.
+			Body:          body,
+			ContentLength: int64(len(body)),
+			Header:        cloneHeader(resp.Header),
+			StatusCode:    resp.StatusCode,
+			Trailer:       cloneHeader(resp.Trailer),
+			TLS:           resp.TLS,
+		}
 		// See warning in govcr.Request definition comment, for req.Request.
 		filtResp = pcbr.ResponseFilter(filtResp)
+		resp = filtResp.apply(resp)
 	}
-	resp.Header = filtResp.Header
-	resp.Body = toReadCloser(filtResp.Body)
-	resp.StatusCode = filtResp.StatusCode
-	resp.Status = http.StatusText(resp.StatusCode)
 
 	return resp
 }

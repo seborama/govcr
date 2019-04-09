@@ -35,6 +35,9 @@ type VCRConfig struct {
 	// Filter to run before a response is returned.
 	ResponseFilters ResponseFilters
 
+	// Filter to run before a response is recorded to cassette.
+	SaveFilters ResponseFilters
+
 	// LongPlay will compress data on cassettes.
 	LongPlay         bool
 	DisableRecording bool
@@ -76,7 +79,12 @@ func NewVCR(cassetteName string, vcrConfig *VCRConfig) *VCRControlPanel {
 	if err != nil {
 		logger.Fatal(err)
 	}
-	cassette.removeTLS = vcrConfig.RemoveTLS
+
+	// support legacy RemoveTLS
+	saveFilters := vcrConfig.SaveFilters
+	if vcrConfig.RemoveTLS {
+		saveFilters.Prepend(ResponseSetTLS(nil))
+	}
 
 	// create PCB
 	pcbr := &pcb{
@@ -85,6 +93,7 @@ func NewVCR(cassetteName string, vcrConfig *VCRConfig) *VCRControlPanel {
 		Transport:        vcrConfig.Client.Transport,
 		RequestFilter:    vcrConfig.RequestFilters.combined(),
 		ResponseFilter:   vcrConfig.ResponseFilters.combined(),
+		SaveFilter:       saveFilters.combined(),
 		Logger:           logger,
 		CassettePath:     vcrConfig.CassettePath,
 	}
@@ -266,6 +275,11 @@ func readResponseBody(resp *http.Response) ([]byte, error) {
 	return bodyData, nil
 }
 
+// toReadCloser wraps the body.
+// Returns nil if body is nil.
 func toReadCloser(body []byte) io.ReadCloser {
+	if body == nil {
+		return nil
+	}
 	return ioutil.NopCloser(bytes.NewReader(body))
 }

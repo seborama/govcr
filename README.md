@@ -164,6 +164,12 @@ Refer to [examples/example6.go](examples/example6.go) for advanced examples.
 
 `ResponseFilters` is the flip side of `RequestFilters`. It receives the **response** Header / Body to allow their transformation. Unlike `RequestFilters`, this influences the response returned from the request to the client. The request header is also passed to `ResponseFilter` but read-only and solely for the purpose of extracting request data for situations where it is needed to transform the Response (such as to retrieve an identifier that must be the same in the request and the response).
 
+### Runtime transforming of the response before saving.
+
+`SaveFilters` receives the **response** Header / Body to allow their transformation even before they are saved. 
+This will allow you to filter out sensitive information returned and not have it stored.
+Otherwise they behave the same as `ResponseFilters`.
+
 ## Examples
 
 ### Example 1 - Simple VCR

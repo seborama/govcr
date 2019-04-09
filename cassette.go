@@ -62,10 +62,13 @@ type response struct {
 // Response returns the internal "response" to a filter "Response".
 func (r response) Response(req Request) Response {
 	return Response{
-		req:        req,
-		Body:       r.Body,
-		Header:     r.Header,
-		StatusCode: r.StatusCode,
+		req:           req,
+		Body:          r.Body,
+		Header:        r.Header,
+		StatusCode:    r.StatusCode,
+		Trailer:       r.Trailer,
+		TLS:           r.TLS,
+		ContentLength: r.ContentLength,
 	}
 }
 
@@ -221,7 +224,6 @@ type cassette struct {
 
 	// the following variables are not exported as they are not serialised
 	tracksLoaded int32
-	removeTLS    bool
 }
 
 // newCassette creates a ready to use new cassette.
@@ -306,13 +308,8 @@ func (k7 *cassette) gunzipFilter(data []byte) ([]byte, error) {
 
 // addTrack adds a track to a cassette.
 func (k7 *cassette) addTrack(track *track) {
-	if k7.removeTLS { // TODO: refactor this to be handled by the PCB?
-		track.Response.TLS = nil
-	}
-
 	k7.trackSliceMutex.Lock()
 	defer k7.trackSliceMutex.Unlock()
-
 	k7.Tracks = append(k7.Tracks, *track)
 }
 
@@ -463,24 +460,6 @@ func readCassetteFromFile(cassetteName, cassettePath string) (*cassette, error) 
 	}
 
 	return k7, nil
-}
-
-// recordNewTrackToCassette saves a new track to a cassette.
-func recordNewTrackToCassette(cassette *cassette, req *http.Request, resp *http.Response, httpErr error) error {
-	// create track
-	track, err := newTrack(req, resp, httpErr)
-	if err != nil {
-		return err
-	}
-
-	// mark track as replayed since it's coming from a live request!
-	track.replayed = true
-
-	// add track to cassette
-	cassette.addTrack(track)
-
-	// save cassette
-	return cassette.save()
 }
 
 // compress data and return the result

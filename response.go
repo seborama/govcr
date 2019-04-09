@@ -1,6 +1,7 @@
 package govcr
 
 import (
+	"crypto/tls"
 	"net/http"
 	"regexp"
 )
@@ -22,9 +23,12 @@ type Response struct {
 	req Request
 
 	// The content returned in the response.
-	Body       []byte
-	Header     http.Header
-	StatusCode int
+	Body          []byte
+	ContentLength int64
+	Header        http.Header
+	StatusCode    int
+	Trailer       http.Header
+	TLS           *tls.ConnectionState
 }
 
 // Request returns the request.
@@ -32,6 +36,30 @@ type Response struct {
 func (r Response) Request() Request {
 	// Copied to avoid modifications.
 	return r.req
+}
+
+// apply the response to an http response.
+func (r Response) apply(resp *http.Response) *http.Response {
+	resp.Header = r.Header
+	resp.Body = toReadCloser(r.Body)
+	resp.ContentLength = r.ContentLength
+	resp.StatusCode = r.StatusCode
+	resp.Status = http.StatusText(resp.StatusCode)
+	resp.Trailer = r.Trailer
+	resp.TLS = r.TLS
+	return resp
+}
+
+// apply the response to an http response.
+func (r Response) applyRecorded(resp response) response {
+	resp.Header = r.Header
+	resp.Body = r.Body
+	resp.ContentLength = r.ContentLength
+	resp.StatusCode = r.StatusCode
+	resp.Status = http.StatusText(resp.StatusCode)
+	resp.Trailer = r.Trailer
+	resp.TLS = r.TLS
+	return resp
 }
 
 // ResponseAddHeaderValue will add/overwrite a header to the response when it is returned from vcr playback.
@@ -64,9 +92,19 @@ func ResponseTransferHeaderKeys(keys ...string) ResponseFilter {
 
 // ResponseChangeBody will allows to change the body.
 // Supply a function that does input to output transformation.
+// ContentLength is automatically updated.
 func ResponseChangeBody(fn func(b []byte) []byte) ResponseFilter {
 	return func(resp Response) Response {
 		resp.Body = fn(resp.Body)
+		resp.ContentLength = int64(len(resp.Body))
+		return resp
+	}
+}
+
+// ResponseSetTLS allows to override or remove the TLS on the response.
+func ResponseSetTLS(tls *tls.ConnectionState) ResponseFilter {
+	return func(resp Response) Response {
+		resp.TLS = tls
 		return resp
 	}
 }
