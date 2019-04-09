@@ -96,14 +96,16 @@ func RequestExcludeHeaderFunc(fn func(key string) bool) RequestFilter {
 }
 
 // OnMethod will return a new filter that will only apply 'r'
-// if the method of the request matches.
+// if the method of the request matches on of the supplied methods.
 // Original filter is unmodified.
-func (r RequestFilter) OnMethod(method string) RequestFilter {
+func (r RequestFilter) OnMethod(method ...string) RequestFilter {
 	return func(req Request) Request {
-		if req.Method != method {
-			return req
+		for _, m := range method {
+			if m == req.Method {
+				return r(req)
+			}
 		}
-		return r(req)
+		return req
 	}
 }
 

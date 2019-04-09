@@ -72,14 +72,16 @@ func ResponseChangeBody(fn func(b []byte) []byte) ResponseFilter {
 }
 
 // OnMethod will return a Response filter that will only apply 'r'
-// if the method of the response matches.
+// if the method of the response matches one of the supplied.
 // Original filter is unmodified.
-func (r ResponseFilter) OnMethod(method string) ResponseFilter {
+func (r ResponseFilter) OnMethod(method ...string) ResponseFilter {
 	return func(resp Response) Response {
-		if resp.req.Method != method {
-			return resp
+		for _, m := range method {
+			if m == resp.req.Method {
+				return r(resp)
+			}
 		}
-		return r(resp)
+		return resp
 	}
 }
 
@@ -99,14 +101,17 @@ func (r ResponseFilter) OnPath(pathRegEx string) ResponseFilter {
 	}
 }
 
-// OnStatus will return a Response filter that will only apply 'r'  if the response status matches.
+// OnStatus will return a Response filter that will only apply 'r'  if the response status
+// matches one of the supplied statuses.
 // Original filter is unmodified.
-func (r ResponseFilter) OnStatus(status int) ResponseFilter {
+func (r ResponseFilter) OnStatus(status ...int) ResponseFilter {
 	return func(resp Response) Response {
-		if resp.StatusCode != status {
-			return resp
+		for _, s := range status {
+			if resp.StatusCode == s {
+				return r(resp)
+			}
 		}
-		return r(resp)
+		return resp
 	}
 }
 
