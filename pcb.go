@@ -12,6 +12,7 @@ type pcb struct {
 	Transport        http.RoundTripper
 	RequestFilter    RequestFilter
 	ResponseFilter   ResponseFilter
+	TrackFilter      TrackFilter
 	Logger           *log.Logger
 	DisableRecording bool
 	CassettePath     string
