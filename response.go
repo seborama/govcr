@@ -72,7 +72,8 @@ func ResponseChangeBody(fn func(b []byte) []byte) ResponseFilter {
 }
 
 // OnMethod will return a Response filter that will only apply 'r'
-// if the method of the response matches one of the supplied.
+// if the request method matches one of the specified methods
+// in the argument list..
 // Original filter is unmodified.
 func (r ResponseFilter) OnMethod(method ...string) ResponseFilter {
 	return func(resp Response) Response {

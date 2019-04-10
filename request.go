@@ -95,8 +95,9 @@ func RequestExcludeHeaderFunc(fn func(key string) bool) RequestFilter {
 	}
 }
 
-// OnMethod will return a new filter that will only apply 'r'
-// if the method of the request matches on of the supplied methods.
+// OnMethod will return a request filter that will only apply 'r'
+// if the request method matches one of the specified methods
+// in the argument list.
 // Original filter is unmodified.
 func (r RequestFilter) OnMethod(method ...string) RequestFilter {
 	return func(req Request) Request {
