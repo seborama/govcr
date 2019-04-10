@@ -99,11 +99,11 @@ func TestResponseChangeBody(t *testing.T) {
 }
 
 func TestResponseFilter_OnMethod(t *testing.T) {
-	f := failIfCalledResponseFilter(t).OnMethod(http.MethodPost)
+	f := failIfCalledResponseFilter(t).OnMethod(http.MethodPost, http.MethodPatch)
 	f(responseTestBase())
 
 	f, ok := mustCallResponseFilterOnce(t)
-	f.OnMethod(http.MethodGet)(responseTestBase())
+	f.OnMethod(http.MethodPost, http.MethodGet)(responseTestBase())
 	ok()
 }
 
@@ -123,11 +123,11 @@ func TestResponseFilter_OnPath(t *testing.T) {
 }
 
 func TestResponseFilter_OnStatus(t *testing.T) {
-	f := failIfCalledResponseFilter(t).OnStatus(http.StatusNotFound)
+	f := failIfCalledResponseFilter(t).OnStatus(http.StatusNotFound, http.StatusAccepted)
 	f(responseTestBase())
 
 	f, ok := mustCallResponseFilterOnce(t)
-	f.OnStatus(http.StatusCreated)(responseTestBase())
+	f.OnStatus(http.StatusNotFound, http.StatusCreated)(responseTestBase())
 	ok()
 }
 

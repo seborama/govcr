@@ -47,11 +47,11 @@ func requestTestBase() Request {
 }
 
 func TestRequestFilter_OnMethod(t *testing.T) {
-	f := failIfCalledRequestFilter(t).OnMethod(http.MethodPost)
+	f := failIfCalledRequestFilter(t).OnMethod(http.MethodPost, http.MethodPatch)
 	f(requestTestBase())
 
 	f, ok := mustCallRequestFilterOnce(t)
-	f = f.OnMethod(http.MethodGet)
+	f = f.OnMethod(http.MethodPost, http.MethodGet)
 	f(requestTestBase())
 	ok()
 }
