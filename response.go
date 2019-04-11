@@ -50,7 +50,7 @@ func (r Response) apply(resp *http.Response) *http.Response {
 	return resp
 }
 
-// apply the response to an http response.
+// apply the response to an internal response.
 func (r Response) applyRecorded(resp response) response {
 	resp.Header = r.Header
 	resp.Body = r.Body
