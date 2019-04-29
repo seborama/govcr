@@ -1,395 +1,184 @@
 package govcr_test
 
 import (
-	"bytes"
-	"crypto/tls"
 	"fmt"
 	"io/ioutil"
-	"math/rand"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strconv"
 	"testing"
-	"time"
+
+	"github.com/stretchr/testify/suite"
 
 	"github.com/seborama/govcr"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestPlaybackOrder(t *testing.T) {
-	cassetteName := "TestPlaybackOrder"
-	clientNum := int8(1)
-
-	// create a test server
-	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Hello, client %d", clientNum)
-		clientNum++
-	}))
-
-	fmt.Println("Phase 1 ================================================")
-
-	if err := govcr.DeleteCassette(cassetteName, ""); err != nil {
-		t.Fatalf("err from govcr.DeleteCassette(): Expected nil, got %s", err)
-	}
-
-	vcr := createVCR(cassetteName, false)
-	client := vcr.Client
-
-	// run requests
-	for i := int32(1); i <= 10; i++ {
-		resp, _ := client.Get(ts.URL)
-
-		// check outcome of the request
-		expectedBody := fmt.Sprintf("Hello, client %d", i)
-		if err := validateResponseForTestPlaybackOrder(resp, expectedBody); err != nil {
-			t.Fatal(err.Error())
-		}
-
-		if !govcr.CassetteExistsAndValid(cassetteName, "") {
-			t.Fatalf("CassetteExists: expected true, got false")
-		}
-
-		if err := validateStats(vcr.Stats(), 0, i, 0); err != nil {
-			t.Fatal(err.Error())
-		}
-	}
-
-	fmt.Println("Phase 2 - Playback =====================================")
-	clientNum = 1
-
-	// re-run request and expect play back from vcr
-	vcr = createVCR(cassetteName, false)
-	client = vcr.Client
-
-	// run requests
-	for i := int32(1); i <= 10; i++ {
-		resp, _ := client.Get(ts.URL)
-
-		// check outcome of the request
-		expectedBody := fmt.Sprintf("Hello, client %d", i)
-		if err := validateResponseForTestPlaybackOrder(resp, expectedBody); err != nil {
-			t.Fatal(err.Error())
-		}
-
-		if !govcr.CassetteExistsAndValid(cassetteName, "") {
-			t.Fatalf("CassetteExists: expected true, got false")
-		}
-
-		if err := validateStats(vcr.Stats(), 10, 0, i); err != nil {
-			t.Fatal(err.Error())
-		}
-	}
+func TestNewVCR(t *testing.T) {
+	unit := govcr.NewVCR()
+	assert.NotNil(t, unit.Player())
 }
 
-func TestNonUtf8EncodableBinaryBody(t *testing.T) {
-	cassetteName := "TestNonUtf8EncodableBinaryBody"
-	clientNum := int8(1)
-
-	// create a test server
-	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		data := generateBinaryBody(clientNum)
-		written, err := w.Write(data)
-		if written != len(data) {
-			t.Fatalf("** Only %d bytes out of %d were written", written, len(data))
-		}
-		if err != nil {
-			t.Fatalf("err from w.Write(): Expected nil, got %s", err)
-		}
-		clientNum++
-	}))
-
-	fmt.Println("Phase 1 ================================================")
-
-	if err := govcr.DeleteCassette(cassetteName, ""); err != nil {
-		t.Fatalf("err from govcr.DeleteCassette(): Expected nil, got %s", err)
-	}
-
-	vcr := createVCR(cassetteName, false)
-	client := vcr.Client
-
-	// run requests
-	for i := int8(1); i <= 10; i++ {
-		resp, _ := client.Get(ts.URL)
-
-		// check outcome of the request
-		expectedBody := generateBinaryBody(i)
-		if err := validateResponseForTestPlaybackOrder(resp, expectedBody); err != nil {
-			t.Fatal(err.Error())
-		}
-
-		if !govcr.CassetteExistsAndValid(cassetteName, "") {
-			t.Fatalf("CassetteExists: expected true, got false")
-		}
-
-		if err := validateStats(vcr.Stats(), 0, int32(i), 0); err != nil {
-			t.Fatal(err.Error())
-		}
-	}
-
-	fmt.Println("Phase 2 - Playback =====================================")
-	clientNum = 1
-
-	// re-run request and expect play back from vcr
-	vcr = createVCR(cassetteName, false)
-	client = vcr.Client
-
-	// run requests
-	for i := int32(1); i <= 10; i++ {
-		resp, _ := client.Get(ts.URL)
-
-		// check outcome of the request
-		expectedBody := generateBinaryBody(int8(i))
-		if err := validateResponseForTestPlaybackOrder(resp, expectedBody); err != nil {
-			t.Fatal(err.Error())
-		}
-
-		if !govcr.CassetteExistsAndValid(cassetteName, "") {
-			t.Fatalf("CassetteExists: expected true, got false")
-		}
-
-		if err := validateStats(vcr.Stats(), 10, 0, i); err != nil {
-			t.Fatal(err.Error())
-		}
-	}
+func TestVCRControlPanel_LoadCassette_NewCassette(t *testing.T) {
+	unit := govcr.NewVCR()
+	err := unit.LoadCassette("govcr-fixtures/my.cassette")
+	assert.NoError(t, err)
 }
 
-func TestLongPlay(t *testing.T) {
-	cassetteName := t.Name() + ".gz"
-	clientNum := int8(1)
+func TestVCRControlPanel_LoadCassette_WhenOneIsAlreadyLoaded(t *testing.T) {
+	unit := govcr.NewVCR()
+	err := unit.LoadCassette("govcr-fixtures/my.cassette")
+	assert.NoError(t, err)
 
-	// create a test server
-	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Hello, client %d", clientNum)
-		clientNum++
-	}))
-
-	fmt.Println("Phase 1 ================================================")
-
-	if err := govcr.DeleteCassette(cassetteName, ""); err != nil {
-		t.Fatalf("err from govcr.DeleteCassette(): Expected nil, got %s", err)
-	}
-
-	vcr := createVCR(cassetteName, true)
-	client := vcr.Client
-
-	// run requests
-	for i := int32(1); i <= 10; i++ {
-		resp, _ := client.Get(ts.URL)
-
-		// check outcome of the request
-		expectedBody := fmt.Sprintf("Hello, client %d", i)
-		if err := validateResponseForTestPlaybackOrder(resp, expectedBody); err != nil {
-			t.Fatal(err.Error())
-		}
-
-		if !govcr.CassetteExistsAndValid(cassetteName, "") {
-			t.Fatalf("CassetteExists: expected true, got false")
-		}
-
-		if err := validateStats(vcr.Stats(), 0, i, 0); err != nil {
-			t.Fatal(err.Error())
-		}
-	}
-
-	fmt.Println("Phase 2 - Playback =====================================")
-	clientNum = 1
-
-	// re-run request and expect play back from vcr
-	vcr = createVCR(cassetteName, false)
-	client = vcr.Client
-
-	// run requests
-	for i := int32(1); i <= 10; i++ {
-		resp, _ := client.Get(ts.URL)
-
-		// check outcome of the request
-		expectedBody := fmt.Sprintf("Hello, client %d", i)
-		if err := validateResponseForTestPlaybackOrder(resp, expectedBody); err != nil {
-			t.Fatal(err.Error())
-		}
-
-		if !govcr.CassetteExistsAndValid(cassetteName, "") {
-			t.Fatalf("CassetteExists: expected true, got false")
-		}
-
-		if err := validateStats(vcr.Stats(), 10, 0, i); err != nil {
-			t.Fatal(err.Error())
-		}
-	}
+	err = unit.LoadCassette("govcr-fixtures/my-other.cassette")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "already loaded")
 }
 
-func TestConcurrencySafety(t *testing.T) {
-	cassetteName := "TestConcurrencySafety"
-	threadMax := int8(50)
-
-	// create a test server
-	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		time.Sleep(time.Millisecond * time.Duration(rand.Intn(50)))
-
-		clientNum, _ := strconv.ParseInt(r.URL.Query().Get("num"), 0, 8)
-
-		data := generateBinaryBody(int8(clientNum))
-		written, err := w.Write(data)
-		if written != len(data) {
-			t.Fatalf("** Only %d bytes out of %d were written", written, len(data))
-		}
-		if err != nil {
-			t.Fatalf("err from w.Write(): Expected nil, got %s", err)
-		}
-	}))
-
-	fmt.Println("Phase 1 ================================================")
-
-	if err := govcr.DeleteCassette(cassetteName, ""); err != nil {
-		t.Fatalf("err from govcr.DeleteCassette(): Expected nil, got %s", err)
-	}
-
-	vcr := createVCR(cassetteName, false)
-	client := vcr.Client
-
-	t.Run("main - phase 1", func(t *testing.T) {
-		// run requests
-		for i := int8(1); i <= threadMax; i++ {
-			func(i1 int8) {
-				t.Run(fmt.Sprintf("i=%d", i), func(t *testing.T) {
-					t.Parallel()
-
-					func() {
-						resp, _ := client.Get(fmt.Sprintf("%s?num=%d", ts.URL, i1))
-
-						// check outcome of the request
-						expectedBody := generateBinaryBody(i1)
-						if err := validateResponseForTestPlaybackOrder(resp, expectedBody); err != nil {
-							t.Fatalf(err.Error())
-						}
-
-						if !govcr.CassetteExistsAndValid(cassetteName, "") {
-							t.Fatalf("CassetteExists: expected true, got false")
-						}
-					}()
-				})
-			}(i)
-		}
-	})
-
-	if err := validateStats(vcr.Stats(), 0, int32(threadMax), 0); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	fmt.Println("Phase 2 - Playback =====================================")
-
-	// re-run request and expect play back from vcr
-	vcr = createVCR(cassetteName, false)
-	client = vcr.Client
-
-	// run requests
-	t.Run("main - phase 1", func(t *testing.T) {
-		// run requests
-		for i := int8(1); i <= threadMax; i++ {
-			func(i1 int8) {
-				t.Run(fmt.Sprintf("i=%d", i), func(t *testing.T) {
-					t.Parallel()
-
-					func() {
-						resp, _ := client.Get(fmt.Sprintf("%s?num=%d", ts.URL, i1))
-
-						// check outcome of the request
-						expectedBody := generateBinaryBody(i1)
-						if err := validateResponseForTestPlaybackOrder(resp, expectedBody); err != nil {
-							t.Fatalf(err.Error())
-						}
-
-						if !govcr.CassetteExistsAndValid(cassetteName, "") {
-							t.Fatalf("CassetteExists: expected true, got false")
-						}
-					}()
-				})
-			}(i)
-		}
-	})
-
-	if err := validateStats(vcr.Stats(), int32(threadMax), 0, int32(threadMax)); err != nil {
-		t.Fatal(err.Error())
-	}
+func TestVCRControlPanel_LoadCassette_InvalidCassette(t *testing.T) {
+	unit := govcr.NewVCR()
+	err := unit.LoadCassette("test-fixtures/bad.cassette")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to interpret cassette data")
 }
 
-func createVCR(cassetteName string, lp bool) *govcr.VCRControlPanel {
-	// create a custom http.Transport.
-	tr := http.DefaultTransport.(*http.Transport)
-	tr.TLSClientConfig = &tls.Config{
-		InsecureSkipVerify: true, // just an example, strongly discouraged
-	}
-
-	// create a vcr
-	return govcr.NewVCR(cassetteName,
-		&govcr.VCRConfig{
-			Client:   &http.Client{Transport: tr},
-			LongPlay: lp,
-		})
+func TestVCRControlPanel_LoadCassette_ValidBlankCassette(t *testing.T) {
+	unit := govcr.NewVCR()
+	err := unit.LoadCassette("test-fixtures/good_blank.cassette")
+	assert.NoError(t, err)
 }
 
-func validateResponseForTestPlaybackOrder(resp *http.Response, expectedBody interface{}) error {
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("resp.StatusCode: Expected %d, got %d", http.StatusOK, resp.StatusCode)
-	}
+func TestVCRControlPanel_LoadCassette_UnreadableCassette(t *testing.T) {
+	removeUnreadableCassette(t)
+	createUnreadableCassette(t)
 
-	if resp.Body == nil {
-		return fmt.Errorf("resp.Body: Expected non-nil, got nil")
-	}
+	unit := govcr.NewVCR()
+	err := unit.LoadCassette("test-fixtures/unreadable.cassette")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to read cassette data from file")
 
-	bodyData, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("err from ioutil.ReadAll(): Expected nil, got %s", err)
-	}
-	resp.Body.Close()
-
-	var expectedBodyBytes []byte
-	switch expectedBody.(type) {
-	case []byte:
-		var ok bool
-		expectedBodyBytes, ok = expectedBody.([]byte)
-		if !ok {
-			return fmt.Errorf("expectedBody: cannot assert to type '[]byte'")
-		}
-
-	case string:
-		expectedBodyString, ok := expectedBody.(string)
-		if !ok {
-			return fmt.Errorf("expectedBody: cannot assert to type 'string'")
-		}
-		expectedBodyBytes = []byte(expectedBodyString)
-
-	default:
-		return fmt.Errorf("Unexpected type for 'expectedBody' variable")
-	}
-
-	if !bytes.Equal(bodyData, expectedBodyBytes) {
-		return fmt.Errorf("Body: expected '%v', got '%v'", expectedBody, bodyData)
-	}
-
-	return nil
+	removeUnreadableCassette(t)
 }
 
-func validateStats(actualStats govcr.Stats, expectedTracksLoaded, expectedTracksRecorded, expectedTrackPlayed int32) error {
-	if actualStats.TracksLoaded != expectedTracksLoaded {
-		return fmt.Errorf("Expected %d track loaded, got %d", expectedTracksLoaded, actualStats.TracksLoaded)
-	}
-
-	if actualStats.TracksRecorded != expectedTracksRecorded {
-		return fmt.Errorf("Expected %d track recorded, got %d", expectedTracksRecorded, actualStats.TracksRecorded)
-	}
-
-	if actualStats.TracksPlayed != expectedTrackPlayed {
-		return fmt.Errorf("Expected %d track played, got %d", expectedTrackPlayed, actualStats.TracksPlayed)
-	}
-
-	return nil
+func createUnreadableCassette(t *testing.T) {
+	err := ioutil.WriteFile("test-fixtures/unreadable.cassette", nil, 0111)
+	require.NoError(t, err)
 }
 
-func generateBinaryBody(sequence int8) []byte {
-	data := make([]byte, 256, 257)
-	for i := range data {
-		data[i] = byte(i)
+func removeUnreadableCassette(t *testing.T) {
+	err := os.Chmod("test-fixtures/unreadable.cassette", 0711)
+	if os.IsNotExist(err) {
+		return
 	}
-	data = append(data, byte(sequence))
-	return data
+	require.NoError(t, err)
+
+	err = os.Remove("test-fixtures/unreadable.cassette")
+	require.NoError(t, err)
+}
+
+func TestVCRControlPanel_Player(t *testing.T) {
+	vcr := govcr.NewVCR()
+	unit := vcr.Player()
+	assert.IsType(t, (*http.Client)(nil), unit)
+}
+
+type GoVCRTestSuite struct {
+	suite.Suite
+
+	vcr          *govcr.ControlPanel
+	testServer   *httptest.Server
+	cassetteName string
+}
+
+func TestHandlerTestSuite(t *testing.T) {
+	suite.Run(t, new(GoVCRTestSuite))
+}
+func (suite *GoVCRTestSuite) SetupTest() {
+	func() {
+		counter := 1
+		suite.testServer = httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_, _ = fmt.Fprintf(w, "Hello, from server: %d", counter)
+			counter++
+		}))
+	}()
+
+	suite.vcr = govcr.NewVCR(govcr.WithClient(suite.testServer.Client()))
+	suite.cassetteName = "test-fixtures/TestRecordsTrack.cassette"
+	_ = os.Remove(suite.cassetteName)
+}
+
+func (suite *GoVCRTestSuite) TearDownTest() {
+	_ = os.Remove(suite.cassetteName)
+}
+
+func (suite *GoVCRTestSuite) TestRoundTrip_ReplaysResponse() {
+	actualStats := suite.makeHTTPCalls()
+	expectedStats := govcr.Stats{
+		TracksLoaded:   0,
+		TracksRecorded: 2,
+		TracksPlayed:   0,
+	}
+	suite.EqualValues(expectedStats, actualStats)
+	suite.Require().FileExists(suite.cassetteName)
+
+	actualStats = suite.makeHTTPCalls()
+	expectedStats = govcr.Stats{
+		TracksLoaded:   2,
+		TracksRecorded: 0,
+		TracksPlayed:   2,
+	}
+	suite.EqualValues(expectedStats, actualStats)
+}
+
+func (suite *GoVCRTestSuite) makeHTTPCalls() govcr.Stats {
+	err := suite.vcr.LoadCassette(suite.cassetteName)
+	fmt.Printf("DEBUG - %#v\n", suite.vcr.Stats())
+	suite.Require().NoError(err)
+
+	for i := 1; i <= 2; i++ {
+		resp, err := suite.vcr.Player().Get(suite.testServer.URL + fmt.Sprintf("?i=%d", i))
+		suite.Require().NoError(err)
+
+		suite.Equal(http.StatusOK, resp.StatusCode)
+		suite.EqualValues(strconv.Itoa(20+len(strconv.Itoa(i))), resp.Header.Get("Content-Length"))
+		suite.EqualValues("text/plain; charset=utf-8", resp.Header.Get("Content-Type"))
+		suite.NotEmpty(resp.Header.Get("Date"))
+		suite.EqualValues(resp.Trailer, http.Header(nil))
+
+		bodyBytes, err := ioutil.ReadAll(resp.Body)
+		suite.Require().NoError(err)
+		resp.Body.Close()
+		suite.Equal(fmt.Sprintf("Hello, from server: %d", i), string(bodyBytes))
+
+		suite.Equal(int64(20+len(strconv.Itoa(i))), resp.ContentLength)
+		suite.NotNil(resp.Request)
+		suite.NotNil(resp.TLS)
+	}
+
+	suite.EqualValues(2, suite.vcr.NumberOfTracks())
+
+	actualStats := *suite.vcr.Stats()
+	suite.vcr.EjectCassette()
+
+	return actualStats
+}
+
+func (suite *GoVCRTestSuite) TestRoundTrip_DefaultRequestMatcher() {
+}
+
+func (suite *GoVCRTestSuite) TestRoundTrip_DefaultHeaderMatcher() {
+}
+
+func (suite *GoVCRTestSuite) TestRoundTrip_DefaultMethodMatcher() {
+}
+
+func (suite *GoVCRTestSuite) TestRoundTrip_DefaultURLMatcher() {
+}
+
+func (suite *GoVCRTestSuite) TestRoundTrip_DefaultBodyMatcher() {
+}
+
+func (suite *GoVCRTestSuite) TestRoundTrip_DefaultTrailerMatcher() {
 }
