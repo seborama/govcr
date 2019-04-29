@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -100,6 +99,7 @@ func (k7 *cassette) save() error {
 		return err
 	}
 
+	// TODO: this may not be required anymore...
 	tData, err := transformInterfacesInJSON(data)
 	if err != nil {
 		return err
@@ -144,7 +144,6 @@ func transformInterfacesInJSON(jsonString []byte) ([]byte, error) {
 
 // recordNewTrackToCassette saves a new track to a cassette.
 func recordNewTrackToCassette(cassette *cassette, req *request, resp *response, httpErr error) error {
-	log.Println("recording new track")
 	// create track
 	track, err := newTrack(req, resp, httpErr)
 	if err != nil {

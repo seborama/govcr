@@ -1,7 +1,6 @@
 package govcr
 
 import (
-	"log"
 	"net/http"
 )
 
@@ -11,7 +10,6 @@ import (
 type pcb struct{}
 
 func (pcbr *pcb) seekTrack(k7 *cassette, httpRequest *http.Request) (*http.Response, error) {
-	log.Println("seeking existing track")
 	request := fromHTTPRequest(httpRequest)
 
 	numberOfTracksInCassette := k7.NumberOfTracks()

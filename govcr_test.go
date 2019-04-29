@@ -134,7 +134,6 @@ func (suite *GoVCRTestSuite) TestRoundTrip_ReplaysResponse() {
 
 func (suite *GoVCRTestSuite) makeHTTPCalls() govcr.Stats {
 	err := suite.vcr.LoadCassette(suite.cassetteName)
-	fmt.Printf("DEBUG - %#v\n", suite.vcr.Stats())
 	suite.Require().NoError(err)
 
 	for i := 1; i <= 2; i++ {
