@@ -5,11 +5,23 @@ import (
 	"net/url"
 )
 
-type HeaderMatcher func(headers *http.Header) bool
-type MethodMatcher func(method string) bool
-type URLMatcher func(url *url.URL) bool
-type BodyMatcher func(body string) bool
-type TrailerMatcher func(trailers *http.Header) bool
+// RequestMatcher is a function that performs request comparison.
+type RequestMatcher func(httpRequest *request, trackRequest *request) bool
+
+// HeaderMatcher is a function that performs header comparison.
+type HeaderMatcher func(httpHeaders, trackHeaders http.Header) bool
+
+// MethodMatcher is a function that performs method name comparison.
+type MethodMatcher func(httpMethod, trackMethod string) bool
+
+// URLMatcher is a function that performs URL comparison.
+type URLMatcher func(httpURL, trackURL *url.URL) bool
+
+// BodyMatcher is a function that performs body comparison.
+type BodyMatcher func(httpBody, trackBody []byte) bool
+
+// TrailerMatcher is a function that performs trailer comparison.
+type TrailerMatcher func(httpTrailers, trackTrailers http.Header) bool
 
 func DefaultRequestMatcher(httpRequest *request, trackRequest *request) bool {
 	return DefaultHeaderMatcher(httpRequest.Header, trackRequest.Header) &&

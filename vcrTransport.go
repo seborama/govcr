@@ -63,6 +63,7 @@ func (t *vcrTransport) stats() *Stats {
 	return t.cassette.Stats()
 }
 
+// NumberOfTracks returns the number of tracks contained in the cassette.
 func (t *vcrTransport) NumberOfTracks() int32 {
 	return t.cassette.NumberOfTracks()
 }
