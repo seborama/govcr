@@ -23,6 +23,10 @@ type request struct {
 }
 
 func fromHTTPRequest(httpRequest *http.Request) *request {
+	if httpRequest == nil {
+		return nil
+	}
+
 	headerClone := cloneHeader(httpRequest.Header)
 	trailerClone := cloneHeader(httpRequest.Trailer)
 	bodyClone := cloneHTTPRequestBody(httpRequest)
@@ -53,6 +57,10 @@ type response struct {
 }
 
 func fromHTTPResponse(httpResponse *http.Response) *response {
+	if httpResponse == nil {
+		return nil
+	}
+
 	headerClone := cloneHeader(httpResponse.Header)
 	trailerClone := cloneHeader(httpResponse.Trailer)
 	bodyClone := cloneHTTPResponseBody(httpResponse)
@@ -121,6 +129,10 @@ func cloneStringSlice(stringSlice []string) []string {
 // toHTTPResponse convert a response to an HTTP.Response.
 // Note that this function sets HTTP.Response.Request to nil.
 func toHTTPResponse(response *response) *http.Response {
+	if response == nil {
+		return nil
+	}
+
 	httpResponse := http.Response{}
 
 	// create a ReadCloser to supply to httpResponse
@@ -146,6 +158,10 @@ func toHTTPResponse(response *response) *http.Response {
 }
 
 func cloneHTTPRequestBody(httpRequest *http.Request) []byte {
+	if httpRequest == nil {
+		return nil
+	}
+
 	var httpBodyClone []byte
 	if httpRequest.Body != nil {
 		httpBodyClone, _ = ioutil.ReadAll(httpRequest.Body)
@@ -157,6 +173,10 @@ func cloneHTTPRequestBody(httpRequest *http.Request) []byte {
 }
 
 func cloneHTTPResponseBody(httpResponse *http.Response) []byte {
+	if httpResponse == nil {
+		return nil
+	}
+
 	var httpBodyClone []byte
 	if httpResponse.Body != nil {
 		httpBodyClone, _ = ioutil.ReadAll(httpResponse.Body)
