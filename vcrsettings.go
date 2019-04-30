@@ -5,14 +5,19 @@ import (
 	"net/http"
 )
 
+// Setting defines an optional functional parameter as received by NewVCR()
 type Setting func(vcrConfig *VCRSettings)
 
+// WithClient is an optional functional parameter to provide a VCR with
+// a custom HTTP client.
 func WithClient(httpClient *http.Client) Setting {
 	return func(vcrConfig *VCRSettings) {
 		vcrConfig.client = httpClient
 	}
 }
 
+// WithCassette is an optional functional parameter to provide a VCR with
+// a cassette to load.
 func WithCassette(cassetteName string) Setting {
 	return func(vcrConfig *VCRSettings) {
 		k7, err := loadCassette(cassetteName)

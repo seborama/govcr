@@ -149,7 +149,7 @@ func cloneHTTPRequestBody(httpRequest *http.Request) []byte {
 	var httpBodyClone []byte
 	if httpRequest.Body != nil {
 		httpBodyClone, _ = ioutil.ReadAll(httpRequest.Body)
-		httpRequest.Body.Close()
+		_ = httpRequest.Body.Close()
 		httpRequest.Body = ioutil.NopCloser(bytes.NewBuffer(httpBodyClone))
 	}
 
@@ -160,7 +160,7 @@ func cloneHTTPResponseBody(httpResponse *http.Response) []byte {
 	var httpBodyClone []byte
 	if httpResponse.Body != nil {
 		httpBodyClone, _ = ioutil.ReadAll(httpResponse.Body)
-		httpResponse.Body.Close()
+		_ = httpResponse.Body.Close()
 		httpResponse.Body = ioutil.NopCloser(bytes.NewBuffer(httpBodyClone))
 	}
 

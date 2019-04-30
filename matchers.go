@@ -23,6 +23,7 @@ type BodyMatcher func(httpBody, trackBody []byte) bool
 // TrailerMatcher is a function that performs trailer comparison.
 type TrailerMatcher func(httpTrailers, trackTrailers http.Header) bool
 
+// DefaultRequestMatcher is the default implementation of RequestMatcher.
 func DefaultRequestMatcher(httpRequest *request, trackRequest *request) bool {
 	return DefaultHeaderMatcher(httpRequest.Header, trackRequest.Header) &&
 		DefaultMethodMatcher(httpRequest.Method, trackRequest.Method) &&
@@ -31,14 +32,17 @@ func DefaultRequestMatcher(httpRequest *request, trackRequest *request) bool {
 		DefaultTrailerMatcher(httpRequest.Trailer, trackRequest.Trailer)
 }
 
+// DefaultHeaderMatcher is the default implementation of HeaderMatcher.
 func DefaultHeaderMatcher(httpHeaders, trackHeaders http.Header) bool {
 	return areHTTPHeadersEqual(httpHeaders, trackHeaders)
 }
 
+// DefaultMethodMatcher is the default implementation of MethodMatcher.
 func DefaultMethodMatcher(httpMethod, trackMethod string) bool {
 	return httpMethod == trackMethod
 }
 
+// DefaultURLMatcher is the default implementation of URLMatcher.
 func DefaultURLMatcher(httpURL, trackURL *url.URL) bool {
 	if (httpURL == nil && trackURL != nil) ||
 		(httpURL != nil && trackURL == nil) {
@@ -65,10 +69,12 @@ func DefaultURLMatcher(httpURL, trackURL *url.URL) bool {
 		httpURL.Fragment == trackURL.Fragment
 }
 
+// DefaultBodyMatcher is the default implementation of BodyMatcher.
 func DefaultBodyMatcher(httpBody, trackBody []byte) bool {
 	return string(httpBody) == string(trackBody)
 }
 
+// DefaultTrailerMatcher is the default implementation of TrailerMatcher.
 func DefaultTrailerMatcher(httpTrailers, trackTrailers http.Header) bool {
 	return areHTTPHeadersEqual(httpTrailers, trackTrailers)
 }

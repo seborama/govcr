@@ -17,7 +17,7 @@ type track struct {
 	replayed bool
 }
 
-func newTrack(req *request, resp *response, reqErr error) (*track, error) {
+func newTrack(req *request, resp *response, reqErr error) *track {
 	// record error type, if error
 	var reqErrType, reqErrMsg string
 	if reqErr != nil {
@@ -32,7 +32,7 @@ func newTrack(req *request, resp *response, reqErr error) (*track, error) {
 		ErrMsg:   reqErrMsg,
 	}
 
-	return track, nil
+	return track
 }
 
 func (t *track) response() (*response, error) {

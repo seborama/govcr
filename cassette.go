@@ -17,9 +17,9 @@ import (
 type cassette struct {
 	Tracks []track
 
-	name            string        `json:"-"`
-	trackSliceMutex *sync.RWMutex `json:"-"`
-	tracksLoaded    int32         `json:"-"`
+	name            string
+	trackSliceMutex *sync.RWMutex
+	tracksLoaded    int32
 }
 
 // newCassette creates a ready to use new cassette.
@@ -145,10 +145,7 @@ func transformInterfacesInJSON(jsonString []byte) ([]byte, error) {
 // recordNewTrackToCassette saves a new track to a cassette.
 func recordNewTrackToCassette(cassette *cassette, req *request, resp *response, httpErr error) error {
 	// create track
-	track, err := newTrack(req, resp, httpErr)
-	if err != nil {
-		return err
-	}
+	track := newTrack(req, resp, httpErr)
 
 	// mark track as replayed since it's coming from a live request!
 	track.replayed = true
@@ -164,11 +161,6 @@ func loadCassette(cassetteName string) (*cassette, error) {
 	k7, err := readCassetteFromFile(cassetteName)
 	if err != nil {
 		return nil, err
-	}
-
-	// provide an empty cassette as a minimum
-	if k7 == nil {
-		k7 = newCassette(cassetteName)
 	}
 
 	// initial stats
