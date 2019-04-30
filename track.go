@@ -25,9 +25,14 @@ func newTrack(req *request, resp *response, reqErr error) *track {
 		reqErrMsg = reqErr.Error()
 	}
 
+	var respValue response
+	if resp != nil {
+		respValue = *resp
+	}
+
 	track := &track{
 		Request:  *req,
-		Response: *resp,
+		Response: respValue,
 		ErrType:  reqErrType,
 		ErrMsg:   reqErrMsg,
 	}

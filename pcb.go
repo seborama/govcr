@@ -31,10 +31,14 @@ func (pcbr *pcb) trackMatches(k7 *cassette, trackNumber int32, request *request)
 func (pcbr *pcb) replayResponse(k7 *cassette, trackNumber int32, httpRequest *http.Request) (*http.Response, error) {
 	replayedResponse, err := k7.replayResponse(trackNumber)
 
-	httpResponse := toHTTPResponse(replayedResponse)
-	// See notes on http.Response.Request - Body is nil because it has already been consumed
-	httpResponse.Request = cloneHTTPRequest(httpRequest)
-	httpResponse.Request.Body = nil
+	var httpResponse *http.Response
+
+	if replayedResponse != nil {
+		httpResponse = toHTTPResponse(replayedResponse)
+		// See notes on http.Response.Request - Body is nil because it has already been consumed
+		httpResponse.Request = cloneHTTPRequest(httpRequest)
+		httpResponse.Request.Body = nil
+	}
 
 	return httpResponse, err
 }
