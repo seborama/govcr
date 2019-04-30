@@ -137,7 +137,12 @@ func (suite *GoVCRTestSuite) makeHTTPCalls() govcr.Stats {
 	suite.Require().NoError(err)
 
 	for i := 1; i <= 2; i++ {
-		resp, err := suite.vcr.Player().Get(suite.testServer.URL + fmt.Sprintf("?i=%d", i))
+		req, err := http.NewRequest(http.MethodGet, suite.testServer.URL+fmt.Sprintf("?i=%d", i), nil)
+		suite.Require().NoError(err)
+		req.Header.Add("header", "value")
+		req.SetBasicAuth("not_a_username", "not_a_password")
+
+		resp, err := suite.vcr.Player().Do(req)
 		suite.Require().NoError(err)
 
 		suite.Equal(http.StatusOK, resp.StatusCode)
