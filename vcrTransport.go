@@ -49,7 +49,7 @@ func (t *vcrTransport) RoundTrip(httpRequest *http.Request) (*http.Response, err
 	request := fromHTTPRequest(httpRequestClone)
 
 	if err := recordNewTrackToCassette(t.cassette, request, response, reqErr); err != nil {
-		log.Println(err)
+		log.Printf("RoundTrip failed to recordNewTrackToCassette: %v\n", err)
 	}
 
 	return httpResponse, reqErr
