@@ -25,6 +25,12 @@ type TrailerMatcher func(httpTrailers, trackTrailers http.Header) bool
 
 // DefaultRequestMatcher is the default implementation of RequestMatcher.
 func DefaultRequestMatcher(httpRequest *request, trackRequest *request) bool {
+	if eitherIsXNil(httpRequest, trackRequest) {
+		return false
+	}
+	if bothAreNil(httpRequest, trackRequest) {
+		return true
+	}
 	return DefaultHeaderMatcher(httpRequest.Header, trackRequest.Header) &&
 		DefaultMethodMatcher(httpRequest.Method, trackRequest.Method) &&
 		DefaultURLMatcher(httpRequest.URL, trackRequest.URL) &&
@@ -44,17 +50,17 @@ func DefaultMethodMatcher(httpMethod, trackMethod string) bool {
 
 // DefaultURLMatcher is the default implementation of URLMatcher.
 func DefaultURLMatcher(httpURL, trackURL *url.URL) bool {
-	if (httpURL == nil && trackURL != nil) ||
-		(httpURL != nil && trackURL == nil) {
+	if eitherIsXNil(httpURL, trackURL) {
 		return false
-	} else if httpURL == nil {
+	}
+	if bothAreNil(httpURL, trackURL) {
 		return true
 	}
 
-	if (httpURL.User == nil && trackURL.User != nil) ||
-		(httpURL.User != nil && trackURL.User == nil) {
+	if eitherIsXNil(httpURL.User, trackURL.User) {
 		return false
-	} else if httpURL.User != nil &&
+	}
+	if bothAreSet(httpURL.User, trackURL.User) &&
 		httpURL.User.String() != trackURL.User.String() {
 		return false
 	}
@@ -80,10 +86,9 @@ func DefaultTrailerMatcher(httpTrailers, trackTrailers http.Header) bool {
 }
 
 func areHTTPHeadersEqual(httpHeaders1, httpHeaders2 http.Header) bool {
-	if (httpHeaders1 == nil && httpHeaders2 != nil) ||
-		(httpHeaders1 != nil && httpHeaders2 == nil) {
+	if eitherIsXNil(httpHeaders1, httpHeaders2) {
 		return false
-	} else if httpHeaders1 == nil {
+	} else if bothAreNil(httpHeaders1, httpHeaders2) {
 		return true
 	}
 
@@ -115,4 +120,28 @@ func areHTTPHeadersEqual(httpHeaders1, httpHeaders2 http.Header) bool {
 	}
 
 	return true
+}
+
+// eitherIsXNil returns true when either of the supplied parameters
+// is EXCLUSIVELY nil.
+func eitherIsXNil(reference1 interface{}, reference2 interface{}) bool {
+	nilCount := 0
+	if reference1 == nil {
+		nilCount++
+	}
+	if reference2 == nil {
+		nilCount++
+	}
+	return nilCount == 1
+}
+
+// bothAreNil returns true when both the supplied parameters are nil.
+func bothAreNil(reference1 interface{}, reference2 interface{}) bool {
+	return reference1 == nil && reference2 == nil
+}
+
+// bothAreSet returns true when both the supplied parameters have
+// a non-nil value.
+func bothAreSet(reference1 interface{}, reference2 interface{}) bool {
+	return !bothAreNil(reference1, reference2)
 }
