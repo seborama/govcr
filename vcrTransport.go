@@ -38,8 +38,7 @@ func (t *vcrTransport) RoundTrip(httpRequest *http.Request) (*http.Response, err
 	var httpResponse *http.Response
 
 	httpRequestClone := cloneHTTPRequest(httpRequest)
-	if response, err := t.pcb.seekTrack(t.cassette, httpRequestClone); response != nil {
-		// TODO: add a test to confirm err is replaying errors correctly (see cassette_test.go / Test_trackReplaysError)
+	if response, err := t.pcb.seekTrack(t.cassette, httpRequestClone); response != nil || err != nil {
 		return response, err
 	}
 

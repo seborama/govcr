@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/suite"
 
@@ -97,14 +98,20 @@ func TestHandlerTestSuite(t *testing.T) {
 }
 func (suite *GoVCRTestSuite) SetupTest() {
 	func() {
-		counter := 1
+		counter := 0
 		suite.testServer = httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			_, _ = fmt.Fprintf(w, "Hello, from server: %d", counter)
 			counter++
+			if r.URL.Query().Get("crash") == "1" {
+				panic("simulate a server crash")
+			}
+			iQuery := r.URL.Query().Get("i")
+			_, _ = fmt.Fprintf(w, "Hello, server responds '%d' to query '%s'", counter, iQuery)
 		}))
 	}()
 
-	suite.vcr = govcr.NewVCR(govcr.WithClient(suite.testServer.Client()))
+	testServerClient := suite.testServer.Client()
+	testServerClient.Timeout = 3 * time.Second
+	suite.vcr = govcr.NewVCR(govcr.WithClient(testServerClient))
 	suite.cassetteName = "test-fixtures/TestRecordsTrack.cassette"
 	_ = os.Remove(suite.cassetteName)
 }
@@ -113,8 +120,82 @@ func (suite *GoVCRTestSuite) TearDownTest() {
 	_ = os.Remove(suite.cassetteName)
 }
 
+func (suite *GoVCRTestSuite) TestRoundTrip_ReplaysError_Protocol() {
+	tt := []struct {
+		name    string
+		reqURL  string
+		wantErr string
+	}{
+		{
+			name:    "should replay protocol error",
+			reqURL:  "boom://127.1.2.3",
+			wantErr: `Get boom://127.1.2.3: *http.badStringError: unsupported protocol scheme "boom"`,
+		},
+		{
+			name:    "should replay request cancellation on connection failure",
+			reqURL:  "https://127.1.2.3",
+			wantErr: `Get https://127.1.2.3: *errors.errorString: net/http: request canceled while waiting for connection`,
+		},
+		{
+			name:    "should replay request on server crash",
+			reqURL:  suite.testServer.URL + "?crash=1",
+			wantErr: `Get ` + suite.testServer.URL + `?crash=1: *errors.errorString: EOF`,
+		},
+	}
+
+	for _, tc := range tt {
+		_ = os.Remove(suite.cassetteName)
+		suite.T().Run(tc.name, func(t *testing.T) {
+			// execute HTTP call and record on cassette
+			err := suite.vcr.LoadCassette(suite.cassetteName)
+			suite.Require().NoError(err)
+
+			resp, err := suite.vcr.Player().Get(tc.reqURL)
+			suite.Require().Error(err)
+			suite.Require().Nil(resp)
+
+			suite.EqualValues(1, suite.vcr.NumberOfTracks())
+
+			actualStats := *suite.vcr.Stats()
+			suite.vcr.EjectCassette()
+			suite.EqualValues(0, suite.vcr.NumberOfTracks())
+
+			expectedStats := govcr.Stats{
+				TracksLoaded:   0,
+				TracksRecorded: 1,
+				TracksPlayed:   0,
+			}
+			suite.EqualValues(expectedStats, actualStats)
+			suite.Require().FileExists(suite.cassetteName)
+
+			// replay from cassette
+			err = suite.vcr.LoadCassette(suite.cassetteName)
+			suite.Require().NoError(err)
+			suite.EqualValues(1, suite.vcr.NumberOfTracks())
+
+			resp, err = suite.vcr.Player().Get(tc.reqURL)
+			suite.Require().Error(err)
+			suite.EqualError(err, tc.wantErr)
+			suite.Require().Nil(resp)
+
+			suite.EqualValues(1, suite.vcr.NumberOfTracks())
+
+			actualStats = *suite.vcr.Stats()
+			suite.vcr.EjectCassette()
+			suite.EqualValues(0, suite.vcr.NumberOfTracks())
+
+			expectedStats = govcr.Stats{
+				TracksLoaded:   1,
+				TracksRecorded: 0,
+				TracksPlayed:   1,
+			}
+			suite.EqualValues(expectedStats, actualStats)
+		})
+	}
+}
+
 func (suite *GoVCRTestSuite) TestRoundTrip_ReplaysResponse() {
-	actualStats := suite.makeHTTPCalls()
+	actualStats := suite.makeHTTPCalls_WithSuccess()
 	expectedStats := govcr.Stats{
 		TracksLoaded:   0,
 		TracksRecorded: 2,
@@ -123,7 +204,7 @@ func (suite *GoVCRTestSuite) TestRoundTrip_ReplaysResponse() {
 	suite.EqualValues(expectedStats, actualStats)
 	suite.Require().FileExists(suite.cassetteName)
 
-	actualStats = suite.makeHTTPCalls()
+	actualStats = suite.makeHTTPCalls_WithSuccess()
 	expectedStats = govcr.Stats{
 		TracksLoaded:   2,
 		TracksRecorded: 0,
@@ -132,7 +213,7 @@ func (suite *GoVCRTestSuite) TestRoundTrip_ReplaysResponse() {
 	suite.EqualValues(expectedStats, actualStats)
 }
 
-func (suite *GoVCRTestSuite) makeHTTPCalls() govcr.Stats {
+func (suite *GoVCRTestSuite) makeHTTPCalls_WithSuccess() govcr.Stats {
 	err := suite.vcr.LoadCassette(suite.cassetteName)
 	suite.Require().NoError(err)
 
@@ -146,7 +227,7 @@ func (suite *GoVCRTestSuite) makeHTTPCalls() govcr.Stats {
 		suite.Require().NoError(err)
 
 		suite.Equal(http.StatusOK, resp.StatusCode)
-		suite.EqualValues(strconv.Itoa(20+len(strconv.Itoa(i))), resp.Header.Get("Content-Length"))
+		suite.EqualValues(strconv.Itoa(38+len(strconv.Itoa(i))), resp.Header.Get("Content-Length"))
 		suite.EqualValues("text/plain; charset=utf-8", resp.Header.Get("Content-Type"))
 		suite.NotEmpty(resp.Header.Get("Date"))
 		suite.EqualValues(resp.Trailer, http.Header(nil))
@@ -154,9 +235,9 @@ func (suite *GoVCRTestSuite) makeHTTPCalls() govcr.Stats {
 		bodyBytes, err := ioutil.ReadAll(resp.Body)
 		suite.Require().NoError(err)
 		resp.Body.Close()
-		suite.Equal(fmt.Sprintf("Hello, from server: %d", i), string(bodyBytes))
+		suite.Equal(fmt.Sprintf("Hello, server responds '%d' to query '%d'", i, i), string(bodyBytes))
 
-		suite.Equal(int64(20+len(strconv.Itoa(i))), resp.ContentLength)
+		suite.Equal(int64(38+len(strconv.Itoa(i))), resp.ContentLength)
 		suite.NotNil(resp.Request)
 		suite.NotNil(resp.TLS)
 	}
