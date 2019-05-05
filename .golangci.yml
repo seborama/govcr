@@ -247,8 +247,8 @@ issues:
   new: false
 
   # Show only new issues created after git revision `REV`
-  new-from-rev: REV
+  #new-from-rev: REV
 
   # Show only new issues created in git patch with set file path.
-  new-from-patch: path/to/patch/file
+  #new-from-patch: path/to/patch/file
 
