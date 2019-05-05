@@ -21,7 +21,7 @@ func (pcbr *pcb) seekTrack(k7 *cassette, httpRequest *http.Request) (*http.Respo
 	return nil, nil
 }
 
-func (pcbr *pcb) trackMatches(k7 *cassette, trackNumber int32, request *request) bool {
+func (pcbr *pcb) trackMatches(k7 *cassette, trackNumber int32, request *Request) bool {
 	track := k7.Track(trackNumber)
 
 	return !track.replayed &&

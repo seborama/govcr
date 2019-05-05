@@ -6,7 +6,7 @@ import (
 )
 
 // RequestMatcher is a function that performs request comparison.
-type RequestMatcher func(httpRequest *request, trackRequest *request) bool
+type RequestMatcher func(httpRequest *Request, trackRequest *Request) bool
 
 // HeaderMatcher is a function that performs header comparison.
 type HeaderMatcher func(httpHeaders, trackHeaders http.Header) bool
@@ -24,7 +24,7 @@ type BodyMatcher func(httpBody, trackBody []byte) bool
 type TrailerMatcher func(httpTrailers, trackTrailers http.Header) bool
 
 // DefaultRequestMatcher is the default implementation of RequestMatcher.
-func DefaultRequestMatcher(httpRequest *request, trackRequest *request) bool {
+func DefaultRequestMatcher(httpRequest *Request, trackRequest *Request) bool {
 	if eitherIsXNil(httpRequest, trackRequest) {
 		return false
 	}
@@ -86,22 +86,14 @@ func DefaultTrailerMatcher(httpTrailers, trackTrailers http.Header) bool {
 }
 
 func areHTTPHeadersEqual(httpHeaders1, httpHeaders2 http.Header) bool {
-	if eitherIsXNil(httpHeaders1, httpHeaders2) {
-		return false
-	} else if bothAreNil(httpHeaders1, httpHeaders2) {
-		return true
-	}
-
-	if len(httpHeaders1) != len(httpHeaders2) {
+	if eitherIsXNil(httpHeaders1, httpHeaders2) || bothAreNil(httpHeaders1, httpHeaders2) ||
+		len(httpHeaders1) != len(httpHeaders2) {
 		return false
 	}
 
 	for httpHeaderKey, httpHeaderValues := range httpHeaders1 {
 		trackHeaderValues, ok := httpHeaders2[httpHeaderKey]
-		if !ok {
-			return false
-		}
-		if len(httpHeaderValues) != len(trackHeaderValues) {
+		if !ok || len(httpHeaderValues) != len(trackHeaderValues) {
 			return false
 		}
 

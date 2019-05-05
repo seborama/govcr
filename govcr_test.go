@@ -120,7 +120,7 @@ func (suite *GoVCRTestSuite) TearDownTest() {
 	_ = os.Remove(suite.cassetteName)
 }
 
-func (suite *GoVCRTestSuite) TestRoundTrip_ReplaysError_Protocol() {
+func (suite *GoVCRTestSuite) TestRoundTrip_ReplaysError() {
 	tt := []struct {
 		name    string
 		reqURL  string
@@ -143,11 +143,14 @@ func (suite *GoVCRTestSuite) TestRoundTrip_ReplaysError_Protocol() {
 		},
 	}
 
-	for _, tc := range tt {
-		_ = os.Remove(suite.cassetteName)
+	for idx, tc := range tt {
 		suite.T().Run(tc.name, func(t *testing.T) {
+			cassetteName := suite.cassetteName + fmt.Sprintf("test_case_%d", idx)
+			_ = os.Remove(cassetteName)
+			defer func() { _ = os.Remove(cassetteName) }()
+
 			// execute HTTP call and record on cassette
-			err := suite.vcr.LoadCassette(suite.cassetteName)
+			err := suite.vcr.LoadCassette(cassetteName)
 			suite.Require().NoError(err)
 
 			resp, err := suite.vcr.Player().Get(tc.reqURL)
@@ -166,10 +169,10 @@ func (suite *GoVCRTestSuite) TestRoundTrip_ReplaysError_Protocol() {
 				TracksPlayed:   0,
 			}
 			suite.EqualValues(expectedStats, actualStats)
-			suite.Require().FileExists(suite.cassetteName)
 
 			// replay from cassette
-			err = suite.vcr.LoadCassette(suite.cassetteName)
+			suite.Require().FileExists(cassetteName)
+			err = suite.vcr.LoadCassette(cassetteName)
 			suite.Require().NoError(err)
 			suite.EqualValues(1, suite.vcr.NumberOfTracks())
 

@@ -7,9 +7,9 @@ import (
 )
 
 // track is a recording (HTTP request + response) in a cassette.
-type track struct {
-	Request  request
-	Response response
+type Track struct {
+	Request  Request
+	Response Response
 	ErrType  string
 	ErrMsg   string
 
@@ -17,7 +17,7 @@ type track struct {
 	replayed bool
 }
 
-func newTrack(req *request, resp *response, reqErr error) *track {
+func NewTrack(req *Request, resp *Response, reqErr error) *Track {
 	// record error type, if error
 	var reqErrType, reqErrMsg string
 	if reqErr != nil {
@@ -25,13 +25,18 @@ func newTrack(req *request, resp *response, reqErr error) *track {
 		reqErrMsg = reqErr.Error()
 	}
 
-	var respValue response
+	var reqValue Request
+	if req != nil {
+		reqValue = *req
+	}
+
+	var respValue Response
 	if resp != nil {
 		respValue = *resp
 	}
 
-	track := &track{
-		Request:  *req,
+	track := &Track{
+		Request:  reqValue,
 		Response: respValue,
 		ErrType:  reqErrType,
 		ErrMsg:   reqErrMsg,
@@ -40,7 +45,7 @@ func newTrack(req *request, resp *response, reqErr error) *track {
 	return track
 }
 
-func (t *track) response() (*response, error) {
+func (t *Track) response() (*Response, error) {
 	var err error
 
 	// create error object

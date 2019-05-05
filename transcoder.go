@@ -14,7 +14,7 @@ import (
 )
 
 // request is a recorded HTTP request.
-type request struct {
+type Request struct {
 	Method  string
 	URL     *url.URL
 	Header  http.Header
@@ -22,7 +22,7 @@ type request struct {
 	Trailer http.Header
 }
 
-func fromHTTPRequest(httpRequest *http.Request) *request {
+func fromHTTPRequest(httpRequest *http.Request) *Request {
 	if httpRequest == nil {
 		return nil
 	}
@@ -31,7 +31,7 @@ func fromHTTPRequest(httpRequest *http.Request) *request {
 	trailerClone := cloneHeader(httpRequest.Trailer)
 	bodyClone := cloneHTTPRequestBody(httpRequest)
 
-	return &request{
+	return &Request{
 		Method:  httpRequest.Method,
 		URL:     cloneURL(httpRequest.URL),
 		Header:  headerClone,
@@ -41,7 +41,7 @@ func fromHTTPRequest(httpRequest *http.Request) *request {
 }
 
 // response is a recorded HTTP response.
-type response struct {
+type Response struct {
 	Status     string
 	StatusCode int
 	Proto      string
@@ -56,7 +56,7 @@ type response struct {
 	TLS              *tls.ConnectionState
 }
 
-func fromHTTPResponse(httpResponse *http.Response) *response {
+func fromHTTPResponse(httpResponse *http.Response) *Response {
 	if httpResponse == nil {
 		return nil
 	}
@@ -68,7 +68,7 @@ func fromHTTPResponse(httpResponse *http.Response) *response {
 
 	tlsClone := cloneTLS(httpResponse.TLS)
 
-	return &response{
+	return &Response{
 		Status:           httpResponse.Status,
 		StatusCode:       httpResponse.StatusCode,
 		Proto:            httpResponse.Proto,
@@ -128,7 +128,7 @@ func cloneStringSlice(stringSlice []string) []string {
 
 // toHTTPResponse convert a response to an HTTP.Response.
 // Note that this function sets HTTP.Response.Request to nil.
-func toHTTPResponse(response *response) *http.Response {
+func toHTTPResponse(response *Response) *http.Response {
 	if response == nil {
 		return nil
 	}
