@@ -96,7 +96,7 @@ func (k7 *cassette) replayResponse(trackNumber int32) (*Response, error) {
 	return track.response()
 }
 
-func (k7 *cassette) addTrack(track *Track) {
+func (k7 *cassette) AddTrack(track *Track) {
 	k7.trackSliceMutex.Lock()
 	defer k7.trackSliceMutex.Unlock()
 
@@ -168,7 +168,7 @@ func recordNewTrackToCassette(cassette *cassette, req *Request, resp *Response, 
 	track.replayed = true
 
 	// add track to cassette
-	cassette.addTrack(track)
+	cassette.AddTrack(track)
 
 	// save cassette
 	return cassette.save()
