@@ -1,5 +1,15 @@
 # govcr
 
+**A Word Of Warning**
+
+I'm in the process of partly rewriting **govcr** to offer better support for cassette mutations. This is necessary because when I first designed **govcr**, I wanted cassettes to be immutable as much as golang can achieve this. Since then, I have received requests to permit cassette mutations at recording time.
+
+The next release of **govcr** will bring breaking changes for those who are using **govcr** v4 or older. In exchange for the inconvenience, it will bring new features and a refreshed code base for future enhancements.
+
+If you're happy with **govcr** as it is, use a dependency manager to lock the version of **govcr** you wish to use!
+
+** End Of: A Word Of Warning**
+
 Records and replays HTTP / HTTPS interactions for offline unit / behavioural / integration tests thereby acting as an HTTP mock.
 
 This project was inspired by [php-vcr](https://github.com/php-vcr/php-vcr) which is a PHP port of [VCR](https://github.com/vcr/vcr) for ruby.
