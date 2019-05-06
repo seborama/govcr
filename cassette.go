@@ -1,12 +1,14 @@
 package govcr
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -107,6 +109,12 @@ func (k7 *cassette) AddTrack(track *Track) {
 	k7.Tracks = append(k7.Tracks, *track)
 }
 
+// isLongPlay returns true if the cassette content is compressed.
+func (k7 *cassette) IsLongPlay() bool {
+	return strings.HasSuffix(k7.name, ".gz")
+}
+
+// saveCassette writes a cassette to file.
 func (k7 *cassette) save() error {
 	k7.trackSliceMutex.Lock()
 	defer k7.trackSliceMutex.Unlock()
@@ -122,13 +130,35 @@ func (k7 *cassette) save() error {
 		return err
 	}
 
+	gData, err := k7.GzipFilter(*bytes.NewBuffer(tData))
+	if err != nil {
+		return err
+	}
+
 	path := filepath.Dir(k7.name)
 	if err := os.MkdirAll(path, 0750); err != nil {
 		return err
 	}
 
-	// TODO: gzip data
-	return ioutil.WriteFile(k7.name, tData, 0640)
+	return ioutil.WriteFile(k7.name, gData, 0640)
+}
+
+// GzipFilter compresses the cassette data in gzip format if the cassette
+// name ends with '.gz', otherwise data is left as is (i.e. de-compressed)
+func (k7 *cassette) GzipFilter(data bytes.Buffer) ([]byte, error) {
+	if k7.IsLongPlay() {
+		return compress(data.Bytes())
+	}
+	return data.Bytes(), nil
+}
+
+// GunzipFilter de-compresses the cassette data in gzip format if the cassette
+// name ends with '.gz', otherwise data is left as is (i.e. de-compressed)
+func (k7 *cassette) GunzipFilter(data []byte) ([]byte, error) {
+	if k7.IsLongPlay() {
+		return decompress(data)
+	}
+	return data, nil
 }
 
 // Track retrieves the requested track number.
@@ -174,8 +204,10 @@ func recordNewTrackToCassette(cassette *cassette, req *Request, resp *Response, 
 	return cassette.save()
 }
 
-func loadCassette(cassetteName string) (*cassette, error) {
-	k7, err := readCassetteFromFile(cassetteName)
+// LoadCassette loads a cassette from file and initialises
+// its associated stats.
+func LoadCassette(cassetteName string) (*cassette, error) {
+	k7, err := readCassetteFile(cassetteName)
 	if err != nil {
 		return nil, err
 	}
@@ -186,9 +218,9 @@ func loadCassette(cassetteName string) (*cassette, error) {
 	return k7, nil
 }
 
-// readCassetteFromFile reads the cassette file, if present or
+// readCassetteFile reads the cassette file, if present or
 // returns a blank cassette.
-func readCassetteFromFile(cassetteName string) (*cassette, error) {
+func readCassetteFile(cassetteName string) (*cassette, error) {
 	k7 := NewCassette(cassetteName)
 
 	data, err := ioutil.ReadFile(cassetteName)
@@ -198,8 +230,13 @@ func readCassetteFromFile(cassetteName string) (*cassette, error) {
 		return nil, errors.Wrap(err, "failed to read cassette data from file")
 	}
 
+	cData, err := k7.GunzipFilter(data)
+	if err != nil {
+		return nil, err
+	}
+
 	// NOTE: Properties which are of type 'interface{}' are not handled very well
-	if err := json.Unmarshal(data, k7); err != nil {
+	if err := json.Unmarshal(cData, k7); err != nil {
 		return nil, errors.Wrap(err, "failed to interpret cassette data in file")
 	}
 

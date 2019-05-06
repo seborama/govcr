@@ -22,7 +22,7 @@ func (t *vcrTransport) loadCassette(cassetteName string) error {
 		return errors.Errorf("failed to load cassette '%s': another cassette ('%s') is already loaded", cassetteName, t.cassette.name)
 	}
 
-	k7, err := loadCassette(cassetteName)
+	k7, err := LoadCassette(cassetteName)
 	if err != nil {
 		return errors.Wrapf(err, "failed to load contents of cassette '%s'", cassetteName)
 	}

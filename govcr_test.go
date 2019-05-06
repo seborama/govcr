@@ -45,10 +45,18 @@ func TestVCRControlPanel_LoadCassette_InvalidCassette(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to interpret cassette data")
 }
 
-func TestVCRControlPanel_LoadCassette_ValidBlankCassette(t *testing.T) {
+func TestVCRControlPanel_LoadCassette_ValidSimpleLongPlayCassette(t *testing.T) {
 	unit := govcr.NewVCR()
-	err := unit.LoadCassette("test-fixtures/good_blank.cassette")
+	err := unit.LoadCassette("test-fixtures/good_zipped_one_track.cassette.gz")
 	assert.NoError(t, err)
+	assert.EqualValues(t, 1, unit.NumberOfTracks())
+}
+
+func TestVCRControlPanel_LoadCassette_ValidSimpleShortPlayCassette(t *testing.T) {
+	unit := govcr.NewVCR()
+	err := unit.LoadCassette("test-fixtures/good_one_track.cassette")
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, unit.NumberOfTracks())
 }
 
 func TestVCRControlPanel_LoadCassette_UnreadableCassette(t *testing.T) {
