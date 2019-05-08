@@ -8,7 +8,7 @@ The next release of **govcr** will bring breaking changes for those who are usin
 
 If you're happy with **govcr** as it is, use a dependency manager to lock the version of **govcr** you wish to use!
 
-** End Of: A Word Of Warning**
+**End Of: A Word Of Warning**
 
 Records and replays HTTP / HTTPS interactions for offline unit / behavioural / integration tests thereby acting as an HTTP mock.
 
