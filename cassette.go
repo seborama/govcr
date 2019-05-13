@@ -511,3 +511,135 @@ func decompress(data []byte) ([]byte, error) {
 
 	return data, nil
 }
+
+// Track Filters
+
+// TrackFilter allows modifying information that is being stored in a track
+//
+// The filters receive a deep copy of the request and response, that can be modified.
+type TrackFilter func(*http.Request, *http.Response, error) (*http.Request, *http.Response)
+
+// TrackFilters is a slice of TrackFilter
+type TrackFilters []TrackFilter
+
+// TrackRequestDeleteHeaderKeys will delete one or more header keys on the request
+// before the request is matched against the cassette.
+func TrackRequestDeleteHeaderKeys(keys ...string) TrackFilter {
+	return func(req *http.Request, resp *http.Response, err error) (*http.Request, *http.Response) {
+		for _, key := range keys {
+			req.Header.Del(key)
+		}
+		return req, resp
+	}
+}
+
+// TrackResponseDeleteHeaderKeys will delete one or more header keys on the request
+// before the request is matched against the cassette.
+func TrackResponseDeleteHeaderKeys(keys ...string) TrackFilter {
+	return func(req *http.Request, resp *http.Response, err error) (*http.Request, *http.Response) {
+		if resp == nil || resp.Header == nil {
+			return req, resp
+		}
+		for _, key := range keys {
+			resp.Header.Del(key)
+		}
+		return req, resp
+	}
+}
+
+// TrackRequestChangeBody will allows to change the body.
+// Supply a function that does input to output transformation.
+func TrackRequestChangeBody(fn func(b []byte) []byte) TrackFilter {
+	return func(req *http.Request, resp *http.Response, err error) (*http.Request, *http.Response) {
+		body, err2 := readRequestBody(req) // XXX does too much, don't recreate body
+		if err2 != nil {
+			return req, resp
+		}
+		body = fn(body)
+		req.Body = toReadCloser(body)
+		req.ContentLength = int64(len(body))
+		return req, resp
+	}
+}
+
+// TrackResponseChangeBody will allows to change the body.
+// Supply a function that does input to output transformation.
+func TrackResponseChangeBody(fn func(b []byte) []byte) TrackFilter {
+	return func(req *http.Request, resp *http.Response, err error) (*http.Request, *http.Response) {
+		if resp == nil || resp.Header == nil {
+			return req, resp
+		}
+		body, err2 := readResponseBody(resp) // XXX does too much, don't recreate body
+		if err2 != nil {
+			return req, resp
+		}
+		body = fn(body)
+		resp.Body = toReadCloser(body)
+		resp.ContentLength = int64(len(body))
+		return req, resp
+	}
+}
+
+// OnMethod will return a new filter that will only apply 'r'
+// if the method of the request matches.
+// Original filter is unmodified.
+func (r TrackFilter) OnMethod(method string) TrackFilter {
+	return func(req *http.Request, resp *http.Response, err error) (*http.Request, *http.Response) {
+		if req.Method != method {
+			return req, resp
+		}
+		return r(req, resp, err)
+	}
+}
+
+// OnPath will return a track filter that will only apply 'r'
+// if the url string of the request matches the supplied regex.
+// Original filter is unmodified.
+func (r TrackFilter) OnPath(pathRegEx string) TrackFilter {
+	if pathRegEx == "" {
+		pathRegEx = ".*"
+	}
+	re := regexp.MustCompile(pathRegEx)
+	return func(req *http.Request, resp *http.Response, err error) (*http.Request, *http.Response) {
+		if !re.MatchString(req.URL.String()) {
+			return req, resp
+		}
+		return r(req, resp, err)
+	}
+}
+
+// OnStatus will return a Track filter that will only apply 'r'  if the response status matches.
+// Original filter is unmodified.
+func (r TrackFilter) OnStatus(status int) TrackFilter {
+	return func(req *http.Request, resp *http.Response, err error) (*http.Request, *http.Response) {
+		if resp == nil || resp.StatusCode != status {
+			return req, resp
+		}
+		return r(req, resp, err)
+	}
+}
+
+// Add one or more filters at the end of the filter chain.
+func (r *TrackFilters) Add(filters ...TrackFilter) {
+	v := *r
+	v = append(v, filters...)
+	*r = v
+}
+
+// Prepend one or more filters before the current ones.
+func (r *TrackFilters) Prepend(filters ...TrackFilter) {
+	src := *r
+	dst := make(TrackFilters, 0, len(filters)+len(src))
+	dst = append(dst, filters...)
+	*r = append(dst, src...)
+}
+
+// combined returns the filters as a single filter.
+func (r TrackFilters) combined() TrackFilter {
+	return func(req *http.Request, resp *http.Response, err error) (*http.Request, *http.Response) {
+		for _, filter := range r {
+			req, resp = filter(req, resp, err)
+		}
+		return req, resp
+	}
+}

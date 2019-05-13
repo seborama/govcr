@@ -24,6 +24,7 @@ func (t *vcrTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 		t.PCB.Logger.Println(err)
 		return nil, err
 	}
+	copiedReq, _ = t.PCB.TrackFilter(copiedReq, nil, nil)
 
 	// attempt to use a track from the cassette that matches
 	// the request if one exists.
@@ -40,8 +41,14 @@ func (t *vcrTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 	if !t.PCB.DisableRecording {
 		// the VCR is not in read-only mode so
+		copiedResp, errResp := copyResponse(resp)
+		if errResp != nil {
+			t.PCB.Logger.Println(errResp)
+			return nil, errResp
+		}
+		copiedReq, copiedResp = t.PCB.TrackFilter(copiedReq, copiedResp, err)
 		t.PCB.Logger.Printf("INFO - Cassette '%s' - Recording new track for %s %s as %s %s\n", t.Cassette.Name, req.Method, req.URL.String(), copiedReq.Method, copiedReq.URL)
-		if err := recordNewTrackToCassette(t.Cassette, copiedReq, resp, err); err != nil {
+		if err := recordNewTrackToCassette(t.Cassette, copiedReq, copiedResp, err); err != nil {
 			t.PCB.Logger.Println(err)
 		}
 	}

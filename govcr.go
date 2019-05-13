@@ -35,6 +35,9 @@ type VCRConfig struct {
 	// Filter to run before a response is returned.
 	ResponseFilters ResponseFilters
 
+	// Filter to run before storing a request/response pair in a track
+	TrackFilters TrackFilters
+
 	// LongPlay will compress data on cassettes.
 	LongPlay         bool
 	DisableRecording bool
@@ -85,6 +88,7 @@ func NewVCR(cassetteName string, vcrConfig *VCRConfig) *VCRControlPanel {
 		Transport:        vcrConfig.Client.Transport,
 		RequestFilter:    vcrConfig.RequestFilters.combined(),
 		ResponseFilter:   vcrConfig.ResponseFilters.combined(),
+		TrackFilter:      vcrConfig.TrackFilters.combined(),
 		Logger:           logger,
 		CassettePath:     vcrConfig.CassettePath,
 	}
@@ -240,6 +244,33 @@ func readRequestBody(req *http.Request) ([]byte, error) {
 	req.Body = toReadCloser(bodyData)
 
 	return bodyData, nil
+}
+
+// copyResponse makes a copy an HTTP response.
+// It ensures that the original response Body stream is restored to its original state
+// and can be read from again.
+// TODO: should perform a deep copy of the TLS property as with URL
+func copyResponse(resp *http.Response) (*http.Response, error) {
+	if resp == nil {
+		return nil, nil
+	}
+
+	// get a shallow copy
+	copiedResp := *resp
+
+	copiedResp.Header = cloneHeader(resp.Header)
+
+	// deal with the Body
+	bodyCopy, err := readResponseBody(resp)
+	if err != nil {
+		return nil, err
+	}
+
+	// restore Body stream state
+	resp.Body = toReadCloser(bodyCopy)
+	copiedResp.Body = toReadCloser(bodyCopy)
+
+	return &copiedResp, nil
 }
 
 // readResponseBody reads the Body data stream and restores its states.
