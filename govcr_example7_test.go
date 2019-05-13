@@ -93,6 +93,11 @@ func runTestEx7(rng *rand.Rand) {
 		}).OnStatus(200),
 	)
 
+	// Remove TLS from saved data
+	cfg.SaveFilters.Add(govcr.ResponseSetTLS(nil), )
+	// Remove a secret from the response.
+	cfg.SaveFilters.Add(govcr.ResponseDeleteHeaderKeys("Response-Secret"))
+	
 	orderID := fmt.Sprint(rng.Uint64())
 	vcr := govcr.NewVCR(example7CassetteName, &cfg)
 

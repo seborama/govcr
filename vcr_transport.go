@@ -38,13 +38,41 @@ func (t *vcrTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	t.PCB.Logger.Printf("INFO - Cassette '%s' - Executing request to live server for %s %s\n", t.Cassette.Name, req.Method, req.URL.String())
 	resp, err = t.PCB.Transport.RoundTrip(req)
 
-	if !t.PCB.DisableRecording {
-		// the VCR is not in read-only mode so
-		t.PCB.Logger.Printf("INFO - Cassette '%s' - Recording new track for %s %s as %s %s\n", t.Cassette.Name, req.Method, req.URL.String(), copiedReq.Method, copiedReq.URL)
-		if err := recordNewTrackToCassette(t.Cassette, copiedReq, resp, err); err != nil {
-			t.PCB.Logger.Println(err)
-		}
+	if err := t.recordNewTrackToCassette(copiedReq, resp, err); err != nil {
+		t.PCB.Logger.Println(err)
 	}
 
 	return resp, err
+}
+
+// recordNewTrackToCassette saves a new track to the cassette in the vcr.
+func (t *vcrTransport) recordNewTrackToCassette(req *http.Request, resp *http.Response, httpErr error) error {
+	// create track
+	track, err := newTrack(req, resp, httpErr)
+	if err != nil {
+		return err
+	}
+
+	// mark track as replayed since it's coming from a live request!
+	track.replayed = true
+
+	// Apply save filter.
+	if t.PCB.SaveFilter != nil {
+		org := track.Response.Response(track.Request.Request())
+		filtered := t.PCB.SaveFilter(org)
+		track.Response = filtered.applyRecorded(track.Response)
+		filtered.apply(resp)
+	}
+
+	if t.PCB.DisableRecording {
+		// the VCR is not in read-only mode so return before saving.
+		return nil
+	}
+
+	// add track to cassette
+	t.PCB.Logger.Printf("INFO - Cassette '%s' - Recording new track for %s %s as %s %s\n", t.Cassette.Name, req.Method, req.URL.String(), req.Method, req.URL)
+	t.Cassette.addTrack(track)
+
+	// save cassette
+	return t.Cassette.save()
 }
