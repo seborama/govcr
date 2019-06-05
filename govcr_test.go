@@ -249,7 +249,7 @@ func (suite *GoVCRTestSuite) makeHTTPCalls_WithSuccess() govcr.Stats {
 
 		bodyBytes, err := ioutil.ReadAll(resp.Body)
 		suite.Require().NoError(err)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		suite.Equal(fmt.Sprintf("Hello, server responds '%d' to query '%d'", i, i), string(bodyBytes))
 
 		suite.Equal(int64(38+len(strconv.Itoa(i))), resp.ContentLength)
@@ -392,9 +392,123 @@ func TestRoundTrip_DefaultURLMatcher(t *testing.T) {
 }
 
 func TestRoundTrip_DefaultBodyMatcher(t *testing.T) {
-	t.Fatal("implement me")
+	tt := []struct {
+		name      string
+		reqBody   []byte
+		trackBody []byte
+		want      bool
+	}{
+		{
+			name:      "matches nil bodies",
+			reqBody:   nil,
+			trackBody: nil,
+			want:      true,
+		},
+		{
+			name:      "matches nil request bodies with empty track bodies",
+			reqBody:   nil,
+			trackBody: []byte{},
+			want:      true,
+		},
+		{
+			name:      "matches empty request bodies with nil track bodies",
+			reqBody:   []byte{},
+			trackBody: nil,
+			want:      true,
+		},
+		{
+			name:      "does not match nil request bodies with non-empty track bodies",
+			reqBody:   nil,
+			trackBody: []byte("something"),
+			want:      false,
+		},
+		{
+			name:      "does not match non-empty request bodies with nil track bodies",
+			reqBody:   []byte("something"),
+			trackBody: nil,
+			want:      false,
+		},
+		{
+			name:      "matches two identical bodies",
+			reqBody:   []byte("something"),
+			trackBody: []byte("something"),
+			want:      true,
+		},
+		{
+			name:      "does not match differing bodies",
+			reqBody:   []byte("something"),
+			trackBody: []byte("another thing"),
+			want:      false,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			httpReq := govcr.Request{Body: tc.reqBody}
+			trackReq := govcr.Request{Body: tc.trackBody}
+			actualMatch := govcr.DefaultBodyMatcher(&httpReq, &trackReq)
+			assert.Equal(t, tc.want, actualMatch)
+		})
+	}
 }
 
 func TestRoundTrip_DefaultTrailerMatcher(t *testing.T) {
-	t.Fatal("implement me")
+	tt := []struct {
+		name         string
+		reqHeaders   http.Header
+		trackHeaders http.Header
+		want         bool
+	}{
+		{
+			name:         "matches nil trailers",
+			reqHeaders:   nil,
+			trackHeaders: nil,
+			want:         true,
+		},
+		{
+			name:         "matches nil request trailer with empty track trailer",
+			reqHeaders:   nil,
+			trackHeaders: http.Header{},
+			want:         true,
+		},
+		{
+			name:         "matches empty request trailer with nil track trailer",
+			reqHeaders:   http.Header{},
+			trackHeaders: nil,
+			want:         true,
+		},
+		{
+			name:         "does not match nil request trailer with non-empty track trailer",
+			reqHeaders:   nil,
+			trackHeaders: http.Header{"trailer": {"value"}},
+			want:         false,
+		},
+		{
+			name:         "does not match non-empty request trailer with nil track trailer",
+			reqHeaders:   http.Header{"trailer": {"value"}},
+			trackHeaders: nil,
+			want:         false,
+		},
+		{
+			name:         "matches two complex unordered equivalent non-empty trailers",
+			reqHeaders:   http.Header{"trailer1": {"value1"}, "trailer2": {"value2b", "value2a"}},
+			trackHeaders: http.Header{"trailer2": {"value2a", "value2b"}, "trailer1": {"value1"}},
+			want:         true,
+		},
+		{
+			name:         "does not match two non-identical non-empty trailers",
+			reqHeaders:   http.Header{"trailer": {"value"}},
+			trackHeaders: http.Header{"other": {"something"}},
+			want:         false,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			httpReq := govcr.Request{Header: tc.reqHeaders}
+			trackReq := govcr.Request{Header: tc.trackHeaders}
+			actualMatch := govcr.DefaultHeaderMatcher(&httpReq, &trackReq)
+			assert.Equal(t, tc.want, actualMatch)
+		})
+	}
 }
