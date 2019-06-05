@@ -5,8 +5,8 @@ import (
 	"net/url"
 )
 
-// RequestMatcher is a function that performs request comparison.
-type RequestMatcher func(httpRequest *Request, trackRequest *Request) bool
+// RequestMatcherFunc is a function that performs request comparison.
+type RequestMatcherFunc func(httpRequest *Request, trackRequest *Request) bool
 
 // HeaderMatcher is a function that performs header comparison.
 type HeaderMatcher func(httpHeaders, trackHeaders http.Header) bool
@@ -23,47 +23,74 @@ type BodyMatcher func(httpBody, trackBody []byte) bool
 // TrailerMatcher is a function that performs trailer comparison.
 type TrailerMatcher func(httpTrailers, trackTrailers http.Header) bool
 
-// DefaultRequestMatcher is the default implementation of RequestMatcher.
-func DefaultRequestMatcher(httpRequest *Request, trackRequest *Request) bool {
-	if eitherIsXNil(httpRequest, trackRequest) {
-		return false
+// DefaultRequestMatcher is a default implementation of RequestMatcher.
+type DefaultRequestMatcher struct {
+	matchers []RequestMatcherFunc
+}
+
+type DefaultRequestMatcherOptions func(*DefaultRequestMatcher)
+
+func WithRequestMatcher(m RequestMatcherFunc) DefaultRequestMatcherOptions {
+	return func(rm *DefaultRequestMatcher) {
+		rm.matchers = append(rm.matchers, m)
 	}
-	if bothAreNil(httpRequest, trackRequest) {
-		return true
+}
+
+// NewDefaultRequestMatcher creates a new default implementation of RequestMatcher.
+func NewDefaultRequestMatcher(options ...DefaultRequestMatcherOptions) RequestMatcher {
+	drm := DefaultRequestMatcher{
+		matchers: []RequestMatcherFunc{
+			DefaultHeaderMatcher,
+			DefaultMethodMatcher,
+			DefaultURLMatcher,
+			DefaultBodyMatcher,
+			DefaultTrailerMatcher,
+		},
 	}
-	return DefaultHeaderMatcher(httpRequest.Header, trackRequest.Header) &&
-		DefaultMethodMatcher(httpRequest.Method, trackRequest.Method) &&
-		DefaultURLMatcher(httpRequest.URL, trackRequest.URL) &&
-		DefaultBodyMatcher(httpRequest.Body, trackRequest.Body) &&
-		DefaultTrailerMatcher(httpRequest.Trailer, trackRequest.Trailer)
+
+	for _, option := range options {
+		option(&drm)
+	}
+
+	return &drm
+}
+
+// Match is the default implementation of RequestMatcher.
+func (rm *DefaultRequestMatcher) Match(httpRequest *Request, trackRequest *Request) bool {
+	//if eitherIsXNil(httpRequest, trackRequest) {
+	//	return false
+	//}
+	//if bothAreNil(httpRequest, trackRequest) {
+	//	return true
+	//}
+	for _, matcher := range rm.matchers {
+		if !matcher(httpRequest, trackRequest) {
+			return false
+		}
+	}
+	return true
 }
 
 // DefaultHeaderMatcher is the default implementation of HeaderMatcher.
-func DefaultHeaderMatcher(httpHeaders, trackHeaders http.Header) bool {
-	return areHTTPHeadersEqual(httpHeaders, trackHeaders)
+// Because this function is meant to be called from RequestMatcher.Match(),
+// it doesn't check for either argument to be nil. Match() takes care of it.
+func DefaultHeaderMatcher(httpRequest *Request, trackRequest *Request) bool {
+	return areHTTPHeadersEqual(httpRequest.Header, trackRequest.Header)
 }
 
 // DefaultMethodMatcher is the default implementation of MethodMatcher.
-func DefaultMethodMatcher(httpMethod, trackMethod string) bool {
-	return httpMethod == trackMethod
+// Because this function is meant to be called from DefaultRequestMatcher.Match(),
+// it doesn't check for either argument to be nil. Match() takes care of it.
+func DefaultMethodMatcher(httpRequest *Request, trackRequest *Request) bool {
+	return httpRequest.Method == trackRequest.Method
 }
 
 // DefaultURLMatcher is the default implementation of URLMatcher.
-func DefaultURLMatcher(httpURL, trackURL *url.URL) bool {
-	if eitherIsXNil(httpURL, trackURL) {
-		return false
-	}
-	if bothAreNil(httpURL, trackURL) {
-		return true
-	}
-
-	if eitherIsXNil(httpURL.User, trackURL.User) {
-		return false
-	}
-	if bothAreSet(httpURL.User, trackURL.User) &&
-		httpURL.User.String() != trackURL.User.String() {
-		return false
-	}
+// Because this function is meant to be called from DefaultRequestMatcher.Match(),
+// it doesn't check for either argument to be nil. Match() takes care of it.
+func DefaultURLMatcher(httpRequest *Request, trackRequest *Request) bool {
+	httpURL := httpRequest.URL
+	trackURL := trackRequest.URL
 
 	return httpURL.Scheme == trackURL.Scheme &&
 		httpURL.Opaque == trackURL.Opaque &&
@@ -76,18 +103,21 @@ func DefaultURLMatcher(httpURL, trackURL *url.URL) bool {
 }
 
 // DefaultBodyMatcher is the default implementation of BodyMatcher.
-func DefaultBodyMatcher(httpBody, trackBody []byte) bool {
-	return string(httpBody) == string(trackBody)
+// Because this function is meant to be called from DefaultRequestMatcher.Match(),
+// it doesn't check for either argument to be nil. Match() takes care of it.
+func DefaultBodyMatcher(httpRequest *Request, trackRequest *Request) bool {
+	return string(httpRequest.Body) == string(trackRequest.Body)
 }
 
 // DefaultTrailerMatcher is the default implementation of TrailerMatcher.
-func DefaultTrailerMatcher(httpTrailers, trackTrailers http.Header) bool {
-	return areHTTPHeadersEqual(httpTrailers, trackTrailers)
+// Because this function is meant to be called from DefaultRequestMatcher.Match(),
+// it doesn't check for either argument to be nil. Match() takes care of it.
+func DefaultTrailerMatcher(httpRequest *Request, trackRequest *Request) bool {
+	return areHTTPHeadersEqual(httpRequest.Trailer, trackRequest.Trailer)
 }
 
 func areHTTPHeadersEqual(httpHeaders1, httpHeaders2 http.Header) bool {
-	if eitherIsXNil(httpHeaders1, httpHeaders2) || bothAreNil(httpHeaders1, httpHeaders2) ||
-		len(httpHeaders1) != len(httpHeaders2) {
+	if len(httpHeaders1) != len(httpHeaders2) {
 		return false
 	}
 
@@ -112,28 +142,4 @@ func areHTTPHeadersEqual(httpHeaders1, httpHeaders2 http.Header) bool {
 	}
 
 	return true
-}
-
-// eitherIsXNil returns true when either of the supplied parameters
-// is EXCLUSIVELY nil.
-func eitherIsXNil(reference1 interface{}, reference2 interface{}) bool {
-	nilCount := 0
-	if reference1 == nil {
-		nilCount++
-	}
-	if reference2 == nil {
-		nilCount++
-	}
-	return nilCount == 1
-}
-
-// bothAreNil returns true when both the supplied parameters are nil.
-func bothAreNil(reference1 interface{}, reference2 interface{}) bool {
-	return reference1 == nil && reference2 == nil
-}
-
-// bothAreSet returns true when both the supplied parameters have
-// a non-nil value.
-func bothAreSet(reference1 interface{}, reference2 interface{}) bool {
-	return !bothAreNil(reference1, reference2)
 }

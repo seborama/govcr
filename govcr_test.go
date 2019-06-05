@@ -224,6 +224,10 @@ func (suite *GoVCRTestSuite) TestRoundTrip_ReplaysResponse() {
 	suite.EqualValues(expectedStats, actualStats)
 }
 
+func (suite *GoVCRTestSuite) TestRoundTrip_ReplaysResponse_WithTrackMutator() {
+	suite.T().Fatal("implement me - SHOULD TEST TRACKREPLAYMUTATOR")
+}
+
 func (suite *GoVCRTestSuite) makeHTTPCalls_WithSuccess() govcr.Stats {
 	err := suite.vcr.LoadCassette(suite.cassetteName)
 	suite.Require().NoError(err)
@@ -261,20 +265,136 @@ func (suite *GoVCRTestSuite) makeHTTPCalls_WithSuccess() govcr.Stats {
 	return actualStats
 }
 
-func (suite *GoVCRTestSuite) TestRoundTrip_DefaultRequestMatcher() {
+func TestRoundTrip_DefaultHeaderMatcher(t *testing.T) {
+	tt := []struct {
+		name         string
+		reqHeaders   http.Header
+		trackHeaders http.Header
+		want         bool
+	}{
+		{
+			name:         "matches nil headers",
+			reqHeaders:   nil,
+			trackHeaders: nil,
+			want:         true,
+		},
+		{
+			name:         "matches nil request header with empty track header",
+			reqHeaders:   nil,
+			trackHeaders: http.Header{},
+			want:         true,
+		},
+		{
+			name:         "matches empty request header with nil track header",
+			reqHeaders:   http.Header{},
+			trackHeaders: nil,
+			want:         true,
+		},
+		{
+			name:         "does not match nil request header with non-empty track header",
+			reqHeaders:   nil,
+			trackHeaders: http.Header{"header": {"value"}},
+			want:         false,
+		},
+		{
+			name:         "does not match non-empty request header with nil track header",
+			reqHeaders:   http.Header{"header": {"value"}},
+			trackHeaders: nil,
+			want:         false,
+		},
+		{
+			name:         "matches two complex unordered equivalent non-empty headers",
+			reqHeaders:   http.Header{"header1": {"value1"}, "header2": {"value2b", "value2a"}},
+			trackHeaders: http.Header{"header2": {"value2a", "value2b"}, "header1": {"value1"}},
+			want:         true,
+		},
+		{
+			name:         "does not match two non-identical non-empty headers",
+			reqHeaders:   http.Header{"header": {"value"}},
+			trackHeaders: http.Header{"other": {"something"}},
+			want:         false,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			httpReq := govcr.Request{Header: tc.reqHeaders}
+			trackReq := govcr.Request{Header: tc.trackHeaders}
+			actualMatch := govcr.DefaultHeaderMatcher(&httpReq, &trackReq)
+			assert.Equal(t, tc.want, actualMatch)
+		})
+	}
 }
 
-func (suite *GoVCRTestSuite) TestRoundTrip_DefaultHeaderMatcher() {
+func TestRoundTrip_DefaultMethodMatcher(t *testing.T) {
+	tt := []struct {
+		name        string
+		reqMethod   string
+		trackMethod string
+		want        bool
+	}{
+		{
+			name:        "matches nil methods",
+			reqMethod:   string([]byte(nil)),
+			trackMethod: string([]byte(nil)),
+			want:        true,
+		},
+		{
+			name:        "matches nil request method with empty track method",
+			reqMethod:   string([]byte(nil)),
+			trackMethod: "",
+			want:        true,
+		},
+		{
+			name:        "matches empty request method with nil track method",
+			reqMethod:   "",
+			trackMethod: string([]byte(nil)),
+			want:        true,
+		},
+		{
+			name:        "does not match nil request method with non-empty track method",
+			reqMethod:   string([]byte(nil)),
+			trackMethod: http.MethodGet,
+			want:        false,
+		},
+		{
+			name:        "does not match non-empty request method with nil track method",
+			reqMethod:   http.MethodGet,
+			trackMethod: string([]byte(nil)),
+			want:        false,
+		},
+		{
+			name:        "matches two identical methods",
+			reqMethod:   http.MethodGet,
+			trackMethod: http.MethodGet,
+			want:        true,
+		},
+		{
+			name:        "does not match differing methods",
+			reqMethod:   http.MethodGet,
+			trackMethod: http.MethodPost,
+			want:        false,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			httpReq := govcr.Request{Method: tc.reqMethod}
+			trackReq := govcr.Request{Method: tc.trackMethod}
+			actualMatch := govcr.DefaultMethodMatcher(&httpReq, &trackReq)
+			assert.Equal(t, tc.want, actualMatch)
+		})
+	}
 }
 
-func (suite *GoVCRTestSuite) TestRoundTrip_DefaultMethodMatcher() {
+func TestRoundTrip_DefaultURLMatcher(t *testing.T) {
+	t.Fatal("implement me")
 }
 
-func (suite *GoVCRTestSuite) TestRoundTrip_DefaultURLMatcher() {
+func TestRoundTrip_DefaultBodyMatcher(t *testing.T) {
+	t.Fatal("implement me")
 }
 
-func (suite *GoVCRTestSuite) TestRoundTrip_DefaultBodyMatcher() {
-}
-
-func (suite *GoVCRTestSuite) TestRoundTrip_DefaultTrailerMatcher() {
+func TestRoundTrip_DefaultTrailerMatcher(t *testing.T) {
+	t.Fatal("implement me")
 }

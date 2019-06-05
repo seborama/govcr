@@ -83,7 +83,7 @@ func Test_cassette_GzipFilter(t *testing.T) {
 	}
 }
 
-func Test_cassette_isLongPlay(t *testing.T) {
+func Test_cassette_IsLongPlay(t *testing.T) {
 	tests := []struct {
 		name         string
 		cassetteName string
@@ -110,7 +110,7 @@ func Test_cassette_isLongPlay(t *testing.T) {
 	}
 }
 
-func Test_cassette_gunzipFilter(t *testing.T) {
+func Test_cassette_GunzipFilter(t *testing.T) {
 	tests := []struct {
 		name         string
 		cassetteName string

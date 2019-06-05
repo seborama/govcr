@@ -23,7 +23,9 @@ func NewVCR(settings ...Setting) *ControlPanel {
 	// create VCR's HTTP client
 	vcrClient := &http.Client{
 		Transport: &vcrTransport{
-			pcb:       &pcb{},
+			pcb: &pcb{
+				requestMatcher: NewDefaultRequestMatcher(),
+			},
 			cassette:  vcrSettings.cassette,
 			transport: vcrSettings.client.Transport,
 		},

@@ -7,7 +7,9 @@ import (
 // pcb stands for Printed Circuit Board. It is a structure that holds some
 // facilities that are passed to the VCR machine to influence its internal
 // behaviour.
-type pcb struct{}
+type pcb struct {
+	requestMatcher RequestMatcher
+}
 
 func (pcbr *pcb) seekTrack(k7 *cassette, httpRequest *http.Request) (*http.Response, error) {
 	request := fromHTTPRequest(httpRequest)
@@ -25,7 +27,7 @@ func (pcbr *pcb) trackMatches(k7 *cassette, trackNumber int32, request *Request)
 	track := k7.Track(trackNumber)
 
 	return !track.replayed &&
-		DefaultRequestMatcher(request, &track.Request)
+		pcbr.requestMatcher.Match(request, &track.Request)
 }
 
 func (pcbr *pcb) replayResponse(k7 *cassette, trackNumber int32, httpRequest *http.Request) (*http.Response, error) {
@@ -41,4 +43,10 @@ func (pcbr *pcb) replayResponse(k7 *cassette, trackNumber int32, httpRequest *ht
 	}
 
 	return httpResponse, err
+}
+
+// RequestMatcher is an interface that exposes the method to perform request comparison.
+// Request comparison involves the HTTP request and the track Request recorded on cassette.
+type RequestMatcher interface {
+	Match(httpRequest *Request, trackRequest *Request) bool
 }
