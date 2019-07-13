@@ -6,7 +6,7 @@ import (
 	"net"
 )
 
-// track is a recording (HTTP request + response) in a cassette.
+// Track is a recording (HTTP request + response) in a cassette.
 type Track struct {
 	Request  Request
 	Response Response
@@ -17,6 +17,7 @@ type Track struct {
 	replayed bool
 }
 
+// NewTrack creates a new Track.
 func NewTrack(req *Request, resp *Response, reqErr error) *Track {
 	// record error type, if error
 	var reqErrType, reqErrMsg string

@@ -25,15 +25,19 @@ type cassette struct {
 	trackRecordingMutater TrackRecordingMutater
 }
 
+// CassetteOptions defines a signature for Options that can be passed
+// to create a new Cassette.
 type CassetteOptions func(*cassette)
 
+// WithTrackRecordingMutator is an option used to provide a TrackRecordingMutater
+// when creating a new Cassette.
 func WithTrackRecordingMutator(mutater TrackRecordingMutater) CassetteOptions {
 	return func(k7 *cassette) {
 		k7.trackRecordingMutater = mutater
 	}
 }
 
-// newCassette creates a ready to use new cassette.
+// NewCassette creates a ready to use new cassette.
 func NewCassette(name string, options ...CassetteOptions) *cassette {
 	k7 := cassette{name: name, trackSliceMutex: &sync.RWMutex{}}
 	for _, option := range options {
@@ -125,10 +129,7 @@ func (k7 *cassette) save() error {
 	}
 
 	// TODO: this may not be required anymore...
-	tData, err := transformInterfacesInJSON(data)
-	if err != nil {
-		return err
-	}
+	tData := transformInterfacesInJSON(data)
 
 	gData, err := k7.GzipFilter(*bytes.NewBuffer(tData))
 	if err != nil {
@@ -178,15 +179,12 @@ func (k7 *cassette) Track(trackNumber int32) Track {
 //
 // This is not an ideal solution but it works. In the future, we could consider adding a property that
 // records the original type and re-creates it post Unmarshal.
-func transformInterfacesInJSON(jsonString []byte) ([]byte, error) {
+func transformInterfacesInJSON(jsonString []byte) []byte {
 	// TODO: this may not be required anymore...
 	// TODO: precompile this regexp perhaps via a receiver
-	regex, err := regexp.Compile(`("PublicKey":{"N":)([0-9]+),`)
-	if err != nil {
-		return []byte{}, err
-	}
+	regex := regexp.MustCompile(`("PublicKey":{"N":)([0-9]+),`)
 
-	return []byte(regex.ReplaceAllString(string(jsonString), `$1"$2",`)), nil
+	return []byte(regex.ReplaceAllString(string(jsonString), `$1"$2",`))
 }
 
 // recordNewTrackToCassette saves a new track to a cassette.

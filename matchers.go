@@ -28,8 +28,12 @@ type DefaultRequestMatcher struct {
 	matchers []RequestMatcherFunc
 }
 
+// DefaultRequestMatcherOptions defines a signature to provide options
+// when creating a new DefaultRequestMatcher.
 type DefaultRequestMatcherOptions func(*DefaultRequestMatcher)
 
+// WithRequestMatcher is an option that can be used when creating a new
+// DefaultRequestMatcherOptions to add a request matcher to it.
 func WithRequestMatcher(m RequestMatcherFunc) DefaultRequestMatcherOptions {
 	return func(rm *DefaultRequestMatcher) {
 		rm.matchers = append(rm.matchers, m)
@@ -57,12 +61,6 @@ func NewDefaultRequestMatcher(options ...DefaultRequestMatcherOptions) RequestMa
 
 // Match is the default implementation of RequestMatcher.
 func (rm *DefaultRequestMatcher) Match(httpRequest *Request, trackRequest *Request) bool {
-	//if eitherIsXNil(httpRequest, trackRequest) {
-	//	return false
-	//}
-	//if bothAreNil(httpRequest, trackRequest) {
-	//	return true
-	//}
 	for _, matcher := range rm.matchers {
 		if !matcher(httpRequest, trackRequest) {
 			return false
@@ -91,9 +89,16 @@ func DefaultMethodMatcher(httpRequest *Request, trackRequest *Request) bool {
 func DefaultURLMatcher(httpRequest *Request, trackRequest *Request) bool {
 	httpURL := httpRequest.URL
 	trackURL := trackRequest.URL
+	if httpURL == nil {
+		httpURL = &url.URL{}
+	}
+	if trackURL == nil {
+		trackURL = &url.URL{}
+	}
 
 	return httpURL.Scheme == trackURL.Scheme &&
 		httpURL.Opaque == trackURL.Opaque &&
+		httpURL.User.String() == trackURL.User.String() &&
 		httpURL.Host == trackURL.Host &&
 		httpURL.Path == trackURL.Path &&
 		httpURL.RawPath == trackURL.RawPath &&

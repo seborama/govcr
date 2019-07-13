@@ -13,7 +13,7 @@ import (
 	"github.com/jinzhu/copier"
 )
 
-// request is a recorded HTTP request.
+// Request is a recorded HTTP request.
 type Request struct {
 	Method  string
 	URL     *url.URL
@@ -40,7 +40,7 @@ func fromHTTPRequest(httpRequest *http.Request) *Request {
 	}
 }
 
-// response is a recorded HTTP response.
+// Response is a recorded HTTP response.
 type Response struct {
 	Status     string
 	StatusCode int

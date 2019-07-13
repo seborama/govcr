@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"strconv"
 	"testing"
@@ -388,7 +389,91 @@ func TestRoundTrip_DefaultMethodMatcher(t *testing.T) {
 }
 
 func TestRoundTrip_DefaultURLMatcher(t *testing.T) {
-	t.Fatal("implement me")
+	tt := []struct {
+		name     string
+		reqURL   *url.URL
+		trackURL *url.URL
+		want     bool
+	}{
+		{
+			name:     "matches nil URLs",
+			reqURL:   nil,
+			trackURL: nil,
+			want:     true,
+		},
+		{
+			name:     "matches empty request URL with nil track URL",
+			reqURL:   &url.URL{},
+			trackURL: nil,
+			want:     true,
+		},
+		{
+			name:     "matches nil request URL with empty track URL",
+			reqURL:   &url.URL{},
+			trackURL: nil,
+			want:     true,
+		},
+		{
+			name: "does not match non-empty request URL with nil track URL",
+			reqURL: &url.URL{
+				User: url.UserPassword("a", "b"),
+			},
+			trackURL: nil,
+			want:     false,
+		},
+		{
+			name: "does not match nil request URL with non-empty track URL",
+			reqURL: &url.URL{
+				User: url.UserPassword("a", "b"),
+			},
+			trackURL: nil,
+			want:     false,
+		},
+		{
+			name: "matches two identical URLs",
+			reqURL: &url.URL{
+				Scheme:     "scheme",
+				Opaque:     "opaque",
+				User:       url.UserPassword("a", "b"),
+				Host:       "host",
+				Path:       "path/",
+				RawPath:    "/path/raw",
+				ForceQuery: false,
+				RawQuery:   "rawq",
+				Fragment:   "frag",
+			},
+			trackURL: &url.URL{
+				Scheme:     "scheme",
+				Opaque:     "opaque",
+				User:       url.UserPassword("a", "b"),
+				Host:       "host",
+				Path:       "path/",
+				RawPath:    "/path/raw",
+				ForceQuery: false,
+				RawQuery:   "rawq",
+				Fragment:   "frag",
+			},
+			want: true,
+		},
+		{
+			name: "does not match differing URLs",
+			reqURL: &url.URL{
+				User: url.UserPassword("1", "2"),
+			},
+			trackURL: &url.URL{
+				User: url.UserPassword("a", "b"),
+			},
+			want: false,
+		},
+	}
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			httpReq := govcr.Request{URL: tc.reqURL}
+			trackReq := govcr.Request{URL: tc.trackURL}
+			actualMatch := govcr.DefaultURLMatcher(&httpReq, &trackReq)
+			assert.Equal(t, tc.want, actualMatch)
+		})
+	}
 }
 
 func TestRoundTrip_DefaultBodyMatcher(t *testing.T) {
