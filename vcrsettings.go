@@ -12,7 +12,7 @@ type Setting func(vcrConfig *VCRSettings)
 // with the Long Play function enabled.
 // LongPlay simply compresses the contents of the cassette to make
 // it smaller.
-func WithLongPlay(httpClient *http.Client) Setting {
+func WithLongPlay() Setting {
 	return func(vcrConfig *VCRSettings) {
 		vcrConfig.longPlay = true
 	}
@@ -36,6 +36,14 @@ func WithCassette(cassetteName string) Setting {
 			return
 		}
 		vcrConfig.cassette = k7
+	}
+}
+
+// WithTrackRecordingMutatorz is an optional functional parameter to provide a VCR with
+// a cassette to load.
+func WithTrackRecordingMutatorz(trackRecordingMutators ...TrackMutator) Setting {
+	return func(vcrConfig *VCRSettings) {
+		vcrConfig.cassette.AddTrackMutators(trackRecordingMutators...)
 	}
 }
 

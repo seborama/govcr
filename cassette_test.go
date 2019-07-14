@@ -13,24 +13,26 @@ import (
 )
 
 func Test_recordNewTrackToCassette_WithMutation(t *testing.T) {
-	errTypeOverwriterMutator := func(nextMutator govcr.TrackRecordingMutater) govcr.TrackRecordingMutater {
-		return govcr.TrackRecordingMutaterFunc(func(t *govcr.Track) {
+	errorMutator := govcr.TrackMutator(
+		func(t *govcr.Track) *govcr.Track {
 			t.ErrType = "ErrType was mutated"
 			t.ErrMsg = "ErrMsg was mutated"
-			nextMutator.Mutate(t)
+			return t
 		}).OnNoErr()
-	}
 
-	requestMethodMutator := func(t *govcr.Track) {
-		t.Request.Method = t.Request.Method + " has been mutated"
-	}
+	requestMethodMutator := govcr.TrackMutator(
+		func(t *govcr.Track) *govcr.Track {
+			t.Request.Method = t.Request.Method + " has been mutated"
+			return t
+		})
 
 	cassetteName := "test-fixtures/Test_recordNewTrackToCassette_WithMutation.cassette"
 	_ = os.Remove(cassetteName)
 	defer func() { _ = os.Remove(cassetteName) }()
 
-	mutater := errTypeOverwriterMutator(govcr.TrackRecordingMutaterFunc(requestMethodMutator))
-	k7 := govcr.NewCassette(cassetteName, govcr.WithTrackRecordingMutator(mutater))
+	k7 := govcr.NewCassette(cassetteName,
+		govcr.WithTrackRecordingMutators(requestMethodMutator, errorMutator))
+
 	k7.AddTrack(govcr.NewTrack(&govcr.Request{
 		Method: "BadMethod",
 	}, &govcr.Response{

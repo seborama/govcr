@@ -7,7 +7,7 @@ deps:
 	go get -d -t -v ./...
 
 test: deps
-	go test -timeout 5s -cover $(GORACE) -parallel 100
+	go test -timeout 10s -cover $(GORACE) -parallel 100
 
 examples: deps
 	go run ./examples/*.go

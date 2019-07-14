@@ -19,21 +19,21 @@ import (
 type cassette struct {
 	Tracks []Track
 
-	name                  string
-	trackSliceMutex       *sync.RWMutex
-	tracksLoaded          int32
-	trackRecordingMutater TrackRecordingMutater
+	name                   string
+	trackSliceMutex        *sync.RWMutex
+	tracksLoaded           int32
+	trackRecordingMutators TrackMutators
 }
 
 // CassetteOptions defines a signature for Options that can be passed
 // to create a new Cassette.
 type CassetteOptions func(*cassette)
 
-// WithTrackRecordingMutator is an option used to provide a TrackRecordingMutater
+// WithTrackRecordingMutators is an option used to provide TrackRecordingMutator's
 // when creating a new Cassette.
-func WithTrackRecordingMutator(mutater TrackRecordingMutater) CassetteOptions {
+func WithTrackRecordingMutators(mutators ...TrackMutator) CassetteOptions {
 	return func(k7 *cassette) {
-		k7.trackRecordingMutater = mutater
+		k7.AddTrackMutators(mutators...)
 	}
 }
 
@@ -106,8 +106,8 @@ func (k7 *cassette) AddTrack(track *Track) {
 	k7.trackSliceMutex.Lock()
 	defer k7.trackSliceMutex.Unlock()
 
-	if k7.trackRecordingMutater != nil {
-		k7.trackRecordingMutater.Mutate(track)
+	if k7.trackRecordingMutators != nil {
+		k7.trackRecordingMutators.Mutate(track)
 	}
 
 	k7.Tracks = append(k7.Tracks, *track)
@@ -168,6 +168,10 @@ func (k7 *cassette) Track(trackNumber int32) Track {
 	k7.trackSliceMutex.RLock()
 	defer k7.trackSliceMutex.RUnlock()
 	return k7.Tracks[trackNumber]
+}
+
+func (k7 *cassette) AddTrackMutators(mutators ...TrackMutator) {
+	k7.trackRecordingMutators = k7.trackRecordingMutators.Add(mutators...)
 }
 
 // transformInterfacesInJSON looks for known properties in the JSON that are defined as interface{}
