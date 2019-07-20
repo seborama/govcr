@@ -12,9 +12,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/seborama/govcr/stats"
+
 	"github.com/pkg/errors"
-	"github.com/seborama/govcr"
 	"github.com/stretchr/testify/require"
+
+	"github.com/seborama/govcr"
 )
 
 func TestConcurrencySafety(t *testing.T) {
@@ -71,7 +74,7 @@ func TestConcurrencySafety(t *testing.T) {
 	// err := vcr.LoadCassette(cassetteName)
 	// require.NoError(t, err)
 	// assert.EqualValues(t, threadMax, vcr.NumberOfTracks())
-	expectedStats := govcr.Stats{
+	expectedStats := stats.Stats{
 		TracksLoaded:   0,
 		TracksRecorded: int32(threadMax),
 		TracksPlayed:   0,
@@ -107,7 +110,7 @@ func TestConcurrencySafety(t *testing.T) {
 		}
 	})
 
-	expectedStats = govcr.Stats{
+	expectedStats = stats.Stats{
 		TracksLoaded:   int32(threadMax),
 		TracksRecorded: 0,
 		TracksPlayed:   int32(threadMax),

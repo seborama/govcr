@@ -1,4 +1,4 @@
-package govcr
+package cassette
 
 import (
 	"errors"
@@ -6,7 +6,7 @@ import (
 	"net"
 )
 
-// Track is a recording (HTTP request + response) in a cassette.
+// Track is a recording (HTTP Request + Response) in a cassette.
 type Track struct {
 	Request  Request
 	Response Response
@@ -46,7 +46,13 @@ func NewTrack(req *Request, resp *Response, reqErr error) *Track {
 	return track
 }
 
-func (t *Track) response() (*Response, error) {
+// GetRequest returns the HTTP Request object of this track.
+func (t *Track) GetRequest() *Request {
+	return &t.Request
+}
+
+// GetResponse returns the HTTP Response object of this track.
+func (t *Track) GetResponse() (*Response, error) {
 	var err error
 
 	// create error object
@@ -67,11 +73,19 @@ func (t *Track) response() (*Response, error) {
 	}
 
 	if err != nil {
-		// No need to parse the response.
-		// By convention, when an HTTP error occurred, the response should be nil
+		// No need to parse the Response.
+		// By convention, when an HTTP error occurred, the Response should be nil
 		// (or Go's http package will show a warning message at runtime).
 		return nil, err
 	}
 
 	return &t.Response, nil
+}
+
+func (t *Track) IsReplayed() bool {
+	return t.replayed
+}
+
+func (t *Track) Replayed(replayed bool) {
+	t.replayed = replayed
 }

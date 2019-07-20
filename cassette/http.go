@@ -1,4 +1,4 @@
-package govcr
+package cassette
 
 import (
 	"bytes"
@@ -13,7 +13,7 @@ import (
 	"github.com/jinzhu/copier"
 )
 
-// Request is a recorded HTTP request.
+// GetRequest is a track HTTP Request.
 type Request struct {
 	Method  string
 	URL     *url.URL
@@ -22,7 +22,8 @@ type Request struct {
 	Trailer http.Header
 }
 
-func fromHTTPRequest(httpRequest *http.Request) *Request {
+// FromHTTPRequest transcodes an HTTP Request to a track Request.
+func FromHTTPRequest(httpRequest *http.Request) *Request {
 	if httpRequest == nil {
 		return nil
 	}
@@ -40,7 +41,7 @@ func fromHTTPRequest(httpRequest *http.Request) *Request {
 	}
 }
 
-// Response is a recorded HTTP response.
+// GetResponse is a track HTTP Response.
 type Response struct {
 	Status     string
 	StatusCode int
@@ -56,7 +57,8 @@ type Response struct {
 	TLS              *tls.ConnectionState
 }
 
-func fromHTTPResponse(httpResponse *http.Response) *Response {
+// FromHTTPResponse transcodes an HTTP Response to a track GetResponse.
+func FromHTTPResponse(httpResponse *http.Response) *Response {
 	if httpResponse == nil {
 		return nil
 	}
@@ -99,9 +101,14 @@ func cloneTLS(tlsCS *tls.ConnectionState) *tls.ConnectionState {
 	}
 
 	var verifiedChainsClone [][]*x509.Certificate
-	if err := copier.Copy(&verifiedChainsClone, tlsCS.VerifiedChains); err != nil {
-		log.Println("cannot deep copy tlsCS.VerifiedChains: " + err.Error())
-		verifiedChainsClone = tlsCS.VerifiedChains
+	for _, certSlice := range tlsCS.VerifiedChains {
+		var certSliceClone []*x509.Certificate
+		if err := copier.Copy(&certSliceClone, certSlice); err != nil {
+			log.Println("cannot deep copy tlsCS.VerifiedChains: " + err.Error())
+			verifiedChainsClone = tlsCS.VerifiedChains
+			break
+		}
+		verifiedChainsClone = append(verifiedChainsClone, certSliceClone)
 	}
 
 	return &tls.ConnectionState{
@@ -126,9 +133,9 @@ func cloneStringSlice(stringSlice []string) []string {
 	return stringSliceClone
 }
 
-// toHTTPResponse convert a response to an HTTP.Response.
-// Note that this function sets HTTP.Response.Request to nil.
-func toHTTPResponse(response *Response) *http.Response {
+// ToHTTPResponse converts a track Response to an http.GetResponse.
+// Note that this function sets http.GetResponse.Request to nil. TODO confirm this is right
+func ToHTTPResponse(response *Response) *http.Response {
 	if response == nil {
 		return nil
 	}
@@ -138,7 +145,7 @@ func toHTTPResponse(response *Response) *http.Response {
 	// create a ReadCloser to supply to httpResponse
 	bodyReadCloser := ioutil.NopCloser(bytes.NewReader(response.Body))
 
-	// re-create the response object from track record
+	// re-create the Response object from track record
 	respTLS := response.TLS
 
 	httpResponse.Status = response.Status
@@ -241,7 +248,8 @@ func cloneURL(aURL *url.URL) *url.URL {
 	}
 }
 
-func cloneHTTPRequest(httpRequest *http.Request) *http.Request {
+// CloneHTTPRequest clones an http.GetRequest.
+func CloneHTTPRequest(httpRequest *http.Request) *http.Request {
 	if httpRequest == nil {
 		return nil
 	}

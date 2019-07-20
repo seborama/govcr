@@ -4,6 +4,9 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/seborama/govcr/cassette"
+	"github.com/seborama/govcr/stats"
+
 	"github.com/pkg/errors"
 )
 
@@ -13,16 +16,16 @@ import (
 // if provided when calling NewVCR.
 type vcrTransport struct {
 	pcb       *pcb
-	cassette  *cassette
+	cassette  *cassette.Cassette
 	transport http.RoundTripper
 }
 
 func (t *vcrTransport) loadCassette(cassetteName string) error {
 	if t.cassette != nil {
-		return errors.Errorf("failed to load cassette '%s': another cassette ('%s') is already loaded", cassetteName, t.cassette.name)
+		return errors.Errorf("failed to load cassette '%s': another cassette ('%s') is already loaded", cassetteName, t.cassette.Name())
 	}
 
-	k7, err := LoadCassette(cassetteName)
+	k7, err := cassette.LoadCassette(cassetteName)
 	if err != nil {
 		return errors.Wrapf(err, "failed to load contents of cassette '%s'", cassetteName)
 	}
@@ -37,18 +40,20 @@ func (t *vcrTransport) RoundTrip(httpRequest *http.Request) (*http.Response, err
 	// Note: by convention resp should be nil if an error occurs with HTTP
 	var httpResponse *http.Response
 
-	httpRequestClone := cloneHTTPRequest(httpRequest)
+	httpRequestClone := cassette.CloneHTTPRequest(httpRequest)
 	if response, err := t.pcb.seekTrack(t.cassette, httpRequestClone); response != nil || err != nil {
 		return response, err
 	}
 
 	httpResponse, reqErr := t.transport.RoundTrip(httpRequest)
-	response := fromHTTPResponse(httpResponse)
+	response := cassette.FromHTTPResponse(httpResponse)
 
-	request := fromHTTPRequest(httpRequestClone)
+	request := cassette.FromHTTPRequest(httpRequestClone)
 
-	if err := recordNewTrackToCassette(t.cassette, request, response, reqErr); err != nil {
-		log.Printf("RoundTrip failed to recordNewTrackToCassette: %v\n", err)
+	newTrack := cassette.NewTrack(request, response, reqErr)
+	t.pcb.mutateTrack(newTrack)
+	if err := cassette.RecordNewTrackToCassette(t.cassette, request, response, reqErr); err != nil {
+		log.Printf("RoundTrip failed to RecordNewTrackToCassette: %v\n", err)
 	}
 
 	return httpResponse, reqErr
@@ -58,7 +63,7 @@ func (t *vcrTransport) ejectCassette() {
 	t.cassette = nil
 }
 
-func (t *vcrTransport) stats() *Stats {
+func (t *vcrTransport) stats() *stats.Stats {
 	return t.cassette.Stats()
 }
 

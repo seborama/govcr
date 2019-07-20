@@ -1,6 +1,10 @@
 package govcr
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/seborama/govcr/stats"
+)
 
 // ControlPanel holds the parts of a VCR that can be interacted with.
 type ControlPanel struct {
@@ -9,12 +13,14 @@ type ControlPanel struct {
 }
 
 // Stats returns Stats about the cassette and VCR session.
-func (controlPanel *ControlPanel) Stats() *Stats {
+func (controlPanel *ControlPanel) Stats() *stats.Stats {
+	// TODO: this is in breach of demeter's law
 	return controlPanel.vcrTransport().stats()
 }
 
 // LoadCassette into the VCR.
 func (controlPanel *ControlPanel) LoadCassette(cassetteName string) error {
+	// TODO: this is in breach of demeter's law
 	return controlPanel.vcrTransport().loadCassette(cassetteName)
 }
 
@@ -25,14 +31,17 @@ func (controlPanel *ControlPanel) Player() *http.Client {
 
 // EjectCassette from the VCR.
 func (controlPanel *ControlPanel) EjectCassette() {
+	// TODO: this is in breach of demeter's law
 	controlPanel.vcrTransport().ejectCassette()
 }
 
 func (controlPanel *ControlPanel) vcrTransport() *vcrTransport {
+	// TODO: this is in breach of demeter's law
 	return controlPanel.client.Transport.(*vcrTransport)
 }
 
 // NumberOfTracks returns the number of tracks contained in the cassette.
 func (controlPanel *ControlPanel) NumberOfTracks() int32 {
+	// TODO: this is in breach of demeter's law
 	return controlPanel.vcrTransport().NumberOfTracks()
 }

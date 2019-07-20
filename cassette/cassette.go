@@ -1,4 +1,4 @@
-package govcr
+package cassette
 
 import (
 	"bytes"
@@ -13,33 +13,27 @@ import (
 	"sync/atomic"
 
 	"github.com/pkg/errors"
+
+	"github.com/seborama/govcr/compression"
+	"github.com/seborama/govcr/stats"
 )
 
-// cassette contains a set of tracks.
-type cassette struct {
+// Cassette contains a set of tracks.
+type Cassette struct {
 	Tracks []Track
 
-	name                   string
-	trackSliceMutex        *sync.RWMutex
-	tracksLoaded           int32
-	trackRecordingMutators TrackMutators
+	name            string
+	trackSliceMutex *sync.RWMutex
+	tracksLoaded    int32
 }
 
-// CassetteOptions defines a signature for Options that can be passed
+// Options defines a signature for Options that can be passed
 // to create a new Cassette.
-type CassetteOptions func(*cassette)
-
-// WithTrackRecordingMutators is an option used to provide TrackRecordingMutator's
-// when creating a new Cassette.
-func WithTrackRecordingMutators(mutators ...TrackMutator) CassetteOptions {
-	return func(k7 *cassette) {
-		k7.AddTrackMutators(mutators...)
-	}
-}
+type Options func(*Cassette)
 
 // NewCassette creates a ready to use new cassette.
-func NewCassette(name string, options ...CassetteOptions) *cassette {
-	k7 := cassette{name: name, trackSliceMutex: &sync.RWMutex{}}
+func NewCassette(name string, options ...Options) *Cassette {
+	k7 := Cassette{name: name, trackSliceMutex: &sync.RWMutex{}}
 	for _, option := range options {
 		option(&k7)
 	}
@@ -47,26 +41,26 @@ func NewCassette(name string, options ...CassetteOptions) *cassette {
 }
 
 // Stats returns the cassette's Stats.
-func (k7 *cassette) Stats() *Stats {
+func (k7 *Cassette) Stats() *stats.Stats {
 	if k7 == nil {
 		return nil
 	}
 
-	stats := Stats{}
-	stats.TracksLoaded = atomic.LoadInt32(&k7.tracksLoaded)
-	stats.TracksRecorded = k7.NumberOfTracks() - stats.TracksLoaded
-	stats.TracksPlayed = k7.tracksPlayed() - stats.TracksRecorded
-	return &stats
+	s := stats.Stats{}
+	s.TracksLoaded = atomic.LoadInt32(&k7.tracksLoaded)
+	s.TracksRecorded = k7.NumberOfTracks() - s.TracksLoaded
+	s.TracksPlayed = k7.tracksPlayed() - s.TracksRecorded
+	return &s
 }
 
-func (k7 *cassette) tracksPlayed() int32 {
+func (k7 *Cassette) tracksPlayed() int32 {
 	replayed := int32(0)
 
 	k7.trackSliceMutex.RLock()
 	defer k7.trackSliceMutex.RUnlock()
 
 	for _, t := range k7.Tracks {
-		if t.replayed {
+		if t.IsReplayed() {
 			replayed++
 		}
 	}
@@ -75,7 +69,7 @@ func (k7 *cassette) tracksPlayed() int32 {
 }
 
 // NumberOfTracks returns the number of tracks contained in the cassette.
-func (k7 *cassette) NumberOfTracks() int32 {
+func (k7 *Cassette) NumberOfTracks() int32 {
 	if k7 == nil {
 		return 0
 	}
@@ -86,7 +80,8 @@ func (k7 *cassette) NumberOfTracks() int32 {
 	return int32(len(k7.Tracks))
 }
 
-func (k7 *cassette) replayResponse(trackNumber int32) (*Response, error) {
+// ReplayResponse of the specified track number, as recorded on cassette.
+func (k7 *Cassette) ReplayResponse(trackNumber int32) (*Response, error) {
 	if trackNumber >= k7.NumberOfTracks() {
 		return nil, fmt.Errorf("invalid track number %d (only %d available)", trackNumber, k7.NumberOfTracks())
 	}
@@ -94,32 +89,31 @@ func (k7 *cassette) replayResponse(trackNumber int32) (*Response, error) {
 	k7.trackSliceMutex.Lock()
 	defer k7.trackSliceMutex.Unlock()
 
-	track := &k7.Tracks[trackNumber]
+	t := &k7.Tracks[trackNumber]
 
 	// mark the track as replayed so it doesn't get re-used
-	track.replayed = true
+	t.Replayed(true)
 
-	return track.response()
+	return t.GetResponse()
 }
 
-func (k7 *cassette) AddTrack(track *Track) {
+// AddTrack to cassette.
+// Note that the Track does not receive mutations here, it must be mutated
+// before passed to the cassette for recording.
+func (k7 *Cassette) AddTrack(track *Track) {
 	k7.trackSliceMutex.Lock()
 	defer k7.trackSliceMutex.Unlock()
-
-	if k7.trackRecordingMutators != nil {
-		k7.trackRecordingMutators.Mutate(track)
-	}
 
 	k7.Tracks = append(k7.Tracks, *track)
 }
 
 // isLongPlay returns true if the cassette content is compressed.
-func (k7 *cassette) IsLongPlay() bool {
+func (k7 *Cassette) IsLongPlay() bool {
 	return strings.HasSuffix(k7.name, ".gz")
 }
 
 // saveCassette writes a cassette to file.
-func (k7 *cassette) save() error {
+func (k7 *Cassette) save() error {
 	k7.trackSliceMutex.Lock()
 	defer k7.trackSliceMutex.Unlock()
 
@@ -146,32 +140,33 @@ func (k7 *cassette) save() error {
 
 // GzipFilter compresses the cassette data in gzip format if the cassette
 // name ends with '.gz', otherwise data is left as is (i.e. de-compressed)
-func (k7 *cassette) GzipFilter(data bytes.Buffer) ([]byte, error) {
+func (k7 *Cassette) GzipFilter(data bytes.Buffer) ([]byte, error) {
 	if k7.IsLongPlay() {
-		return compress(data.Bytes())
+		return compression.Compress(data.Bytes())
 	}
 	return data.Bytes(), nil
 }
 
 // GunzipFilter de-compresses the cassette data in gzip format if the cassette
 // name ends with '.gz', otherwise data is left as is (i.e. de-compressed)
-func (k7 *cassette) GunzipFilter(data []byte) ([]byte, error) {
+func (k7 *Cassette) GunzipFilter(data []byte) ([]byte, error) {
 	if k7.IsLongPlay() {
-		return decompress(data)
+		return compression.Decompress(data)
 	}
 	return data, nil
 }
 
 // Track retrieves the requested track number.
 // '0' is the first track.
-func (k7 *cassette) Track(trackNumber int32) Track {
+func (k7 *Cassette) Track(trackNumber int32) Track {
 	k7.trackSliceMutex.RLock()
 	defer k7.trackSliceMutex.RUnlock()
 	return k7.Tracks[trackNumber]
 }
 
-func (k7 *cassette) AddTrackMutators(mutators ...TrackMutator) {
-	k7.trackRecordingMutators = k7.trackRecordingMutators.Add(mutators...)
+// Name retrieves cassette name.
+func (k7 *Cassette) Name() string {
+	return k7.name
 }
 
 // transformInterfacesInJSON looks for known properties in the JSON that are defined as interface{}
@@ -191,16 +186,16 @@ func transformInterfacesInJSON(jsonString []byte) []byte {
 	return []byte(regex.ReplaceAllString(string(jsonString), `$1"$2",`))
 }
 
-// recordNewTrackToCassette saves a new track to a cassette.
-func recordNewTrackToCassette(cassette *cassette, req *Request, resp *Response, httpErr error) error {
+// RecordNewTrackToCassette saves a new track using the specified details to a cassette.
+func RecordNewTrackToCassette(cassette *Cassette, req *Request, resp *Response, httpErr error) error {
 	// create track
-	track := NewTrack(req, resp, httpErr)
+	t := NewTrack(req, resp, httpErr)
 
-	// mark track as replayed since it's coming from a live request!
-	track.replayed = true
+	// mark track as replayed since it's coming from a live Request!
+	t.Replayed(true)
 
 	// add track to cassette
-	cassette.AddTrack(track)
+	cassette.AddTrack(t)
 
 	// save cassette
 	return cassette.save()
@@ -208,7 +203,7 @@ func recordNewTrackToCassette(cassette *cassette, req *Request, resp *Response, 
 
 // LoadCassette loads a cassette from file and initialises
 // its associated stats.
-func LoadCassette(cassetteName string) (*cassette, error) {
+func LoadCassette(cassetteName string) (*Cassette, error) {
 	k7, err := readCassetteFile(cassetteName)
 	if err != nil {
 		return nil, err
@@ -222,7 +217,7 @@ func LoadCassette(cassetteName string) (*cassette, error) {
 
 // readCassetteFile reads the cassette file, if present or
 // returns a blank cassette.
-func readCassetteFile(cassetteName string) (*cassette, error) {
+func readCassetteFile(cassetteName string) (*Cassette, error) {
 	k7 := NewCassette(cassetteName)
 
 	data, err := ioutil.ReadFile(cassetteName)

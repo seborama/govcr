@@ -1,4 +1,4 @@
-package govcr
+package stats
 
 // Stats holds information about the cassette and
 // VCR runtime.

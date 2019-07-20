@@ -13,9 +13,13 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
-	"github.com/seborama/govcr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/seborama/govcr/cassette"
+	"github.com/seborama/govcr/stats"
+
+	"github.com/seborama/govcr"
 )
 
 func TestNewVCR(t *testing.T) {
@@ -172,7 +176,7 @@ func (suite *GoVCRTestSuite) TestRoundTrip_ReplaysError() {
 			suite.vcr.EjectCassette()
 			suite.EqualValues(0, suite.vcr.NumberOfTracks())
 
-			expectedStats := govcr.Stats{
+			expectedStats := stats.Stats{
 				TracksLoaded:   0,
 				TracksRecorded: 1,
 				TracksPlayed:   0,
@@ -196,7 +200,7 @@ func (suite *GoVCRTestSuite) TestRoundTrip_ReplaysError() {
 			suite.vcr.EjectCassette()
 			suite.EqualValues(0, suite.vcr.NumberOfTracks())
 
-			expectedStats = govcr.Stats{
+			expectedStats = stats.Stats{
 				TracksLoaded:   1,
 				TracksRecorded: 0,
 				TracksPlayed:   1,
@@ -208,7 +212,7 @@ func (suite *GoVCRTestSuite) TestRoundTrip_ReplaysError() {
 
 func (suite *GoVCRTestSuite) TestRoundTrip_ReplaysResponse() {
 	actualStats := suite.makeHTTPCalls_WithSuccess()
-	expectedStats := govcr.Stats{
+	expectedStats := stats.Stats{
 		TracksLoaded:   0,
 		TracksRecorded: 2,
 		TracksPlayed:   0,
@@ -217,7 +221,7 @@ func (suite *GoVCRTestSuite) TestRoundTrip_ReplaysResponse() {
 	suite.Require().FileExists(suite.cassetteName)
 
 	actualStats = suite.makeHTTPCalls_WithSuccess()
-	expectedStats = govcr.Stats{
+	expectedStats = stats.Stats{
 		TracksLoaded:   2,
 		TracksRecorded: 0,
 		TracksPlayed:   2,
@@ -229,7 +233,7 @@ func (suite *GoVCRTestSuite) TestRoundTrip_ReplaysResponse_WithTrackMutator() {
 	suite.T().Fatal("implement me - SHOULD TEST TRACKREPLAYMUTATOR")
 }
 
-func (suite *GoVCRTestSuite) makeHTTPCalls_WithSuccess() govcr.Stats {
+func (suite *GoVCRTestSuite) makeHTTPCalls_WithSuccess() stats.Stats {
 	err := suite.vcr.LoadCassette(suite.cassetteName)
 	suite.Require().NoError(err)
 
@@ -319,8 +323,8 @@ func TestRoundTrip_DefaultHeaderMatcher(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			httpReq := govcr.Request{Header: tc.reqHeaders}
-			trackReq := govcr.Request{Header: tc.trackHeaders}
+			httpReq := cassette.Request{Header: tc.reqHeaders}
+			trackReq := cassette.Request{Header: tc.trackHeaders}
 			actualMatch := govcr.DefaultHeaderMatcher(&httpReq, &trackReq)
 			assert.Equal(t, tc.want, actualMatch)
 		})
@@ -380,8 +384,8 @@ func TestRoundTrip_DefaultMethodMatcher(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			httpReq := govcr.Request{Method: tc.reqMethod}
-			trackReq := govcr.Request{Method: tc.trackMethod}
+			httpReq := cassette.Request{Method: tc.reqMethod}
+			trackReq := cassette.Request{Method: tc.trackMethod}
 			actualMatch := govcr.DefaultMethodMatcher(&httpReq, &trackReq)
 			assert.Equal(t, tc.want, actualMatch)
 		})
@@ -468,8 +472,8 @@ func TestRoundTrip_DefaultURLMatcher(t *testing.T) {
 	}
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			httpReq := govcr.Request{URL: tc.reqURL}
-			trackReq := govcr.Request{URL: tc.trackURL}
+			httpReq := cassette.Request{URL: tc.reqURL}
+			trackReq := cassette.Request{URL: tc.trackURL}
 			actualMatch := govcr.DefaultURLMatcher(&httpReq, &trackReq)
 			assert.Equal(t, tc.want, actualMatch)
 		})
@@ -529,8 +533,8 @@ func TestRoundTrip_DefaultBodyMatcher(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			httpReq := govcr.Request{Body: tc.reqBody}
-			trackReq := govcr.Request{Body: tc.trackBody}
+			httpReq := cassette.Request{Body: tc.reqBody}
+			trackReq := cassette.Request{Body: tc.trackBody}
 			actualMatch := govcr.DefaultBodyMatcher(&httpReq, &trackReq)
 			assert.Equal(t, tc.want, actualMatch)
 		})
@@ -590,8 +594,8 @@ func TestRoundTrip_DefaultTrailerMatcher(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			httpReq := govcr.Request{Header: tc.reqHeaders}
-			trackReq := govcr.Request{Header: tc.trackHeaders}
+			httpReq := cassette.Request{Header: tc.reqHeaders}
+			trackReq := cassette.Request{Header: tc.trackHeaders}
 			actualMatch := govcr.DefaultHeaderMatcher(&httpReq, &trackReq)
 			assert.Equal(t, tc.want, actualMatch)
 		})

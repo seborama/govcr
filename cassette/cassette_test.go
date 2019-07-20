@@ -1,57 +1,20 @@
-package govcr_test
+package cassette_test
 
 import (
 	"bytes"
-	"os"
 	"testing"
 
-	"github.com/seborama/govcr"
-
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/seborama/govcr/cassette"
 )
-
-func Test_recordNewTrackToCassette_WithMutation(t *testing.T) {
-	errorMutator := govcr.TrackMutator(
-		func(t *govcr.Track) *govcr.Track {
-			t.ErrType = "ErrType was mutated"
-			t.ErrMsg = "ErrMsg was mutated"
-			return t
-		}).OnNoErr()
-
-	requestMethodMutator := govcr.TrackMutator(
-		func(t *govcr.Track) *govcr.Track {
-			t.Request.Method = t.Request.Method + " has been mutated"
-			return t
-		})
-
-	cassetteName := "test-fixtures/Test_recordNewTrackToCassette_WithMutation.cassette"
-	_ = os.Remove(cassetteName)
-	defer func() { _ = os.Remove(cassetteName) }()
-
-	k7 := govcr.NewCassette(cassetteName,
-		govcr.WithTrackRecordingMutators(requestMethodMutator, errorMutator))
-
-	k7.AddTrack(govcr.NewTrack(&govcr.Request{
-		Method: "BadMethod",
-	}, &govcr.Response{
-		Status: "BadStatus",
-	}, nil))
-
-	require.EqualValues(t, 1, k7.NumberOfTracks())
-	track := k7.Track(0)
-	assert.EqualValues(t, "BadMethod has been mutated", track.Request.Method)
-	assert.EqualValues(t, "BadStatus", track.Response.Status)
-	assert.EqualValues(t, "ErrType was mutated", track.ErrType)
-	assert.EqualValues(t, "ErrMsg was mutated", track.ErrMsg)
-}
 
 func Test_cassette_GzipFilter(t *testing.T) {
 	tests := []struct {
 		name         string
 		cassetteName string
-		tracks       []govcr.Track
+		tracks       []cassette.Track
 		trackData    bytes.Buffer
 		want         []byte
 		wantErr      bool
@@ -73,7 +36,7 @@ func Test_cassette_GzipFilter(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			k7 := govcr.NewCassette(tt.cassetteName)
+			k7 := cassette.NewCassette(tt.cassetteName)
 			for _, track := range tt.tracks {
 				k7.AddTrack(&track)
 			}
@@ -104,7 +67,7 @@ func Test_cassette_IsLongPlay(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			k7 := govcr.NewCassette(tt.cassetteName)
+			k7 := cassette.NewCassette(tt.cassetteName)
 
 			got := k7.IsLongPlay()
 			assert.EqualValues(t, tt.want, got)
@@ -116,7 +79,7 @@ func Test_cassette_GunzipFilter(t *testing.T) {
 	tests := []struct {
 		name         string
 		cassetteName string
-		tracks       []govcr.Track
+		tracks       []cassette.Track
 		trackData    []byte
 		want         []byte
 		wantErr      bool
@@ -138,7 +101,7 @@ func Test_cassette_GunzipFilter(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			k7 := govcr.NewCassette(tt.cassetteName)
+			k7 := cassette.NewCassette(tt.cassetteName)
 			for _, track := range tt.tracks {
 				k7.AddTrack(&track)
 			}

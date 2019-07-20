@@ -1,4 +1,4 @@
-package govcr
+package compression
 
 import (
 	"bytes"
@@ -7,8 +7,8 @@ import (
 	"io/ioutil"
 )
 
-// compress data and return the result
-func compress(data []byte) ([]byte, error) {
+// Compress data and return the result
+func Compress(data []byte) ([]byte, error) {
 	var out bytes.Buffer
 
 	w := gzip.NewWriter(&out)
@@ -22,8 +22,8 @@ func compress(data []byte) ([]byte, error) {
 	return out.Bytes(), nil
 }
 
-// decompress data and return the result
-func decompress(data []byte) ([]byte, error) {
+// Decompress data and return the result
+func Decompress(data []byte) ([]byte, error) {
 	r, err := gzip.NewReader(bytes.NewBuffer(data))
 	if err != nil {
 		return nil, err
