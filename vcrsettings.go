@@ -45,7 +45,6 @@ func WithCassette(cassetteName string) Setting {
 // a cassette to load.
 func WithTrackRecordingMutators(trackRecordingMutators ...TrackMutator) Setting {
 	return func(vcrConfig *VCRSettings) {
-		// TODO: this is in breach of demeter's law
 		vcrConfig.trackRecordingMutators.Add(trackRecordingMutators...)
 	}
 }

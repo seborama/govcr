@@ -4,10 +4,10 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/pkg/errors"
+
 	"github.com/seborama/govcr/cassette"
 	"github.com/seborama/govcr/stats"
-
-	"github.com/pkg/errors"
 )
 
 // vcrTransport is the heart of VCR. It implements
@@ -18,21 +18,6 @@ type vcrTransport struct {
 	pcb       *pcb
 	cassette  *cassette.Cassette
 	transport http.RoundTripper
-}
-
-func (t *vcrTransport) loadCassette(cassetteName string) error {
-	if t.cassette != nil {
-		return errors.Errorf("failed to load cassette '%s': another cassette ('%s') is already loaded", cassetteName, t.cassette.Name())
-	}
-
-	k7, err := cassette.LoadCassette(cassetteName)
-	if err != nil {
-		return errors.Wrapf(err, "failed to load contents of cassette '%s'", cassetteName)
-	}
-
-	t.cassette = k7
-
-	return nil
 }
 
 // RoundTrip is an implementation of http.RoundTripper.
@@ -59,15 +44,34 @@ func (t *vcrTransport) RoundTrip(httpRequest *http.Request) (*http.Response, err
 	return httpResponse, reqErr
 }
 
+// NumberOfTracks returns the number of tracks contained in the cassette.
+func (t *vcrTransport) NumberOfTracks() int32 {
+	return t.cassette.NumberOfTracks()
+}
+
+func (t *vcrTransport) loadCassette(cassetteName string) error {
+	if t.cassette != nil {
+		return errors.Errorf("failed to load cassette '%s': another cassette ('%s') is already loaded", cassetteName, t.cassette.Name())
+	}
+
+	k7, err := cassette.LoadCassette(cassetteName)
+	if err != nil {
+		return errors.Wrapf(err, "failed to load contents of cassette '%s'", cassetteName)
+	}
+
+	t.cassette = k7
+
+	return nil
+}
+
 func (t *vcrTransport) ejectCassette() {
 	t.cassette = nil
 }
 
-func (t *vcrTransport) stats() *stats.Stats {
-	return t.cassette.Stats()
+func (t *vcrTransport) addMutators(mutators ...TrackMutator) {
+	t.pcb.trackRecordingMutators.Add(mutators...)
 }
 
-// NumberOfTracks returns the number of tracks contained in the cassette.
-func (t *vcrTransport) NumberOfTracks() int32 {
-	return t.cassette.NumberOfTracks()
+func (t *vcrTransport) stats() *stats.Stats {
+	return t.cassette.Stats()
 }

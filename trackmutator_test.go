@@ -4,9 +4,10 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/seborama/govcr"
 	"github.com/seborama/govcr/cassette"
-	"github.com/stretchr/testify/require"
 )
 
 func Test_TrackMutator_OnNoErr_WhenNoErr(t *testing.T) {
