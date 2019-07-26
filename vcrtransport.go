@@ -37,8 +37,8 @@ func (t *vcrTransport) RoundTrip(httpRequest *http.Request) (*http.Response, err
 
 	newTrack := cassette.NewTrack(request, response, reqErr)
 	t.pcb.mutateTrack(newTrack)
-	if err := cassette.RecordNewTrackToCassette(t.cassette, request, response, reqErr); err != nil {
-		log.Printf("RoundTrip failed to RecordNewTrackToCassette: %v\n", err)
+	if err := cassette.AddTrackToCassette(t.cassette, newTrack); err != nil {
+		log.Printf("RoundTrip failed to AddTrackToCassette: %v\n", err)
 	}
 
 	return httpResponse, reqErr
@@ -68,8 +68,8 @@ func (t *vcrTransport) ejectCassette() {
 	t.cassette = nil
 }
 
-func (t *vcrTransport) addMutators(mutators ...TrackMutator) {
-	t.pcb.trackRecordingMutators.Add(mutators...)
+func (t *vcrTransport) AddMutators(mutators ...TrackMutator) {
+	t.pcb.AddMutators(mutators...)
 }
 
 func (t *vcrTransport) stats() *stats.Stats {

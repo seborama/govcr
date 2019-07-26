@@ -52,6 +52,10 @@ func (pcbr *pcb) mutateTrack(t *cassette.Track) {
 	pcbr.trackRecordingMutators.Mutate(t)
 }
 
+func (pcbr *pcb) AddMutators(mutators ...TrackMutator) {
+	pcbr.trackRecordingMutators = pcbr.trackRecordingMutators.Add(mutators...)
+}
+
 // RequestMatcher is an interface that exposes the method to perform request comparison.
 // request comparison involves the HTTP request and the track request recorded on cassette.
 type RequestMatcher interface {

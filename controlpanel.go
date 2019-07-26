@@ -24,7 +24,7 @@ func (controlPanel *ControlPanel) LoadCassette(cassetteName string) error {
 
 // LoadCassette into the VCR.
 func (controlPanel *ControlPanel) AddMutators(trackMutators ...TrackMutator) {
-	controlPanel.vcrTransport().addMutators(trackMutators...)
+	controlPanel.vcrTransport().AddMutators(trackMutators...)
 }
 
 // Player returns the http.Client that contains the VCR.

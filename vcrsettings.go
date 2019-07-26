@@ -45,7 +45,7 @@ func WithCassette(cassetteName string) Setting {
 // a cassette to load.
 func WithTrackRecordingMutators(trackRecordingMutators ...TrackMutator) Setting {
 	return func(vcrConfig *VCRSettings) {
-		vcrConfig.trackRecordingMutators.Add(trackRecordingMutators...)
+		vcrConfig.trackRecordingMutators = vcrConfig.trackRecordingMutators.Add(trackRecordingMutators...)
 	}
 }
 

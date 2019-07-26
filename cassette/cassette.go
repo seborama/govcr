@@ -186,16 +186,13 @@ func transformInterfacesInJSON(jsonString []byte) []byte {
 	return []byte(regex.ReplaceAllString(string(jsonString), `$1"$2",`))
 }
 
-// RecordNewTrackToCassette saves a new track using the specified details to a cassette.
-func RecordNewTrackToCassette(cassette *Cassette, req *Request, resp *Response, httpErr error) error {
-	// create track
-	t := NewTrack(req, resp, httpErr)
-
+// AddTrackToCassette saves a new track using the specified details to a cassette.
+func AddTrackToCassette(cassette *Cassette, aTrack *Track) error {
 	// mark track as replayed since it's coming from a live Request!
-	t.Replayed(true)
+	aTrack.Replayed(true)
 
 	// add track to cassette
-	cassette.AddTrack(t)
+	cassette.AddTrack(aTrack)
 
 	// save cassette
 	return cassette.save()

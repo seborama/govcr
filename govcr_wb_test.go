@@ -61,9 +61,15 @@ func TestRoundTrip_SavesMutatedCassetteTracks(t *testing.T) {
 	}
 	require.EqualValues(t, expectedStats, actualStats)
 
-	// TODO now need to verify what is on the cassette has been mutated
+	err = vcr.LoadCassette(cassetteName)
+	assert.NoError(t, err)
 
-	t.Fatal("implement me - SHOULD TEST TRACKREPLAYMUTATOR")
+	for trackNum, aTrack := range vcr.vcrTransport().cassette.Tracks {
+		require.EqualValues(t, "GET has been mutated", aTrack.Request.Method, "track #%d", trackNum)
+		require.EqualValues(t, "200 OK has been mutated", aTrack.Response.Status, "track #%d", trackNum)
+		require.EqualValues(t, "ErrType was mutated", aTrack.ErrType, "track #%d", trackNum)
+		require.EqualValues(t, "ErrMsg was mutated", aTrack.ErrMsg, "track #%d", trackNum)
+	}
 }
 
 func makeHTTPCalls_WithSuccess(testServerURL string, vcr *ControlPanel, t *testing.T) stats.Stats {
