@@ -1,4 +1,4 @@
-package cassette
+package track
 
 import (
 	"errors"
@@ -82,10 +82,13 @@ func (t *Track) GetResponse() (*Response, error) {
 	return &t.Response, nil
 }
 
+// IsReplayed returns true if the Track has already been replayed, otherwise
+// it returns false.
 func (t *Track) IsReplayed() bool {
 	return t.replayed
 }
 
-func (t *Track) Replayed(replayed bool) {
+// SetReplayed sets the replays status of the track.
+func (t *Track) SetReplayed(replayed bool) {
 	t.replayed = replayed
 }

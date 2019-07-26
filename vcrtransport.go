@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/seborama/govcr/cassette"
+	"github.com/seborama/govcr/cassette/track"
 	"github.com/seborama/govcr/stats"
 )
 
@@ -25,17 +26,17 @@ func (t *vcrTransport) RoundTrip(httpRequest *http.Request) (*http.Response, err
 	// Note: by convention resp should be nil if an error occurs with HTTP
 	var httpResponse *http.Response
 
-	httpRequestClone := cassette.CloneHTTPRequest(httpRequest)
+	httpRequestClone := track.CloneHTTPRequest(httpRequest)
 	if response, err := t.pcb.seekTrack(t.cassette, httpRequestClone); response != nil || err != nil {
 		return response, err
 	}
 
 	httpResponse, reqErr := t.transport.RoundTrip(httpRequest)
-	response := cassette.FromHTTPResponse(httpResponse)
+	response := track.FromHTTPResponse(httpResponse)
 
-	request := cassette.FromHTTPRequest(httpRequestClone)
+	request := track.FromHTTPRequest(httpRequestClone)
 
-	newTrack := cassette.NewTrack(request, response, reqErr)
+	newTrack := track.NewTrack(request, response, reqErr)
 	t.pcb.mutateTrack(newTrack)
 	if err := cassette.AddTrackToCassette(t.cassette, newTrack); err != nil {
 		log.Printf("RoundTrip failed to AddTrackToCassette: %v\n", err)
@@ -68,6 +69,7 @@ func (t *vcrTransport) ejectCassette() {
 	t.cassette = nil
 }
 
+// AddMutators adds a set of TrackMutator's to the VCR.
 func (t *vcrTransport) AddMutators(mutators ...TrackMutator) {
 	t.pcb.AddMutators(mutators...)
 }

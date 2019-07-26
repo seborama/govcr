@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/seborama/govcr/cassette"
+	"github.com/seborama/govcr/cassette/track"
 	"github.com/seborama/govcr/stats"
 )
 
@@ -39,7 +39,7 @@ func TestRoundTrip_SavesMutatedTracksToCassette(t *testing.T) {
 	testServerClient.Timeout = 3 * time.Second
 
 	aMutator := TrackMutator(
-		func(trk *cassette.Track) {
+		func(trk *track.Track) {
 			trk.Request.Method = trk.Request.Method + " has been mutated"
 			trk.Response.Status = trk.Response.Status + " has been mutated"
 			trk.ErrType = "ErrType was mutated"

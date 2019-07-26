@@ -1,4 +1,4 @@
-package cassette
+package track
 
 import (
 	"bytes"
@@ -13,7 +13,7 @@ import (
 	"github.com/jinzhu/copier"
 )
 
-// GetRequest is a track HTTP Request.
+// Request is a track HTTP Request.
 type Request struct {
 	Method  string
 	URL     *url.URL
@@ -41,7 +41,7 @@ func FromHTTPRequest(httpRequest *http.Request) *Request {
 	}
 }
 
-// GetResponse is a track HTTP Response.
+// Response is a track HTTP Response.
 type Response struct {
 	Status     string
 	StatusCode int

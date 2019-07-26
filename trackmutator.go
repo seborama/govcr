@@ -1,27 +1,27 @@
 package govcr
 
-import "github.com/seborama/govcr/cassette"
+import (
+	"github.com/seborama/govcr/cassette/track"
+)
 
 // TrackMutator is an function signature for a Track mutator.
-type TrackMutator func(*cassette.Track)
+type TrackMutator func(*track.Track)
 
 // OnErr adds a conditional mutation when the Track has recorded an error.
 func (tm TrackMutator) OnErr() TrackMutator {
-	return func(aTrack *cassette.Track) {
+	return func(aTrack *track.Track) {
 		if aTrack != nil && (aTrack.ErrType != "" || aTrack.ErrMsg != "") {
 			tm(aTrack)
 		}
-		return
 	}
 }
 
 // OnNoErr adds a conditional mutation when the Track has not recorded an error.
 func (tm TrackMutator) OnNoErr() TrackMutator {
-	return func(aTrack *cassette.Track) {
+	return func(aTrack *track.Track) {
 		if aTrack != nil && aTrack.ErrType == "" && aTrack.ErrMsg == "" {
 			tm(aTrack)
 		}
-		return
 	}
 }
 
@@ -34,7 +34,7 @@ func (tms TrackMutators) Add(mutators ...TrackMutator) TrackMutators {
 }
 
 // Mutate applies all mutators in this TrackMutators collection to the specified track.
-func (tms TrackMutators) Mutate(t *cassette.Track) {
+func (tms TrackMutators) Mutate(t *track.Track) {
 	for _, tm := range tms {
 		tm(t)
 	}

@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/seborama/govcr"
-	"github.com/seborama/govcr/cassette"
+	"github.com/seborama/govcr/cassette/track"
 )
 
 func Test_DefaultHeaderMatcher(t *testing.T) {
@@ -64,8 +64,8 @@ func Test_DefaultHeaderMatcher(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			httpReq := cassette.Request{Header: tc.reqHeaders}
-			trackReq := cassette.Request{Header: tc.trackHeaders}
+			httpReq := track.Request{Header: tc.reqHeaders}
+			trackReq := track.Request{Header: tc.trackHeaders}
 			actualMatch := govcr.DefaultHeaderMatcher(&httpReq, &trackReq)
 			assert.Equal(t, tc.want, actualMatch)
 		})
@@ -125,8 +125,8 @@ func Test_DefaultMethodMatcher(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			httpReq := cassette.Request{Method: tc.reqMethod}
-			trackReq := cassette.Request{Method: tc.trackMethod}
+			httpReq := track.Request{Method: tc.reqMethod}
+			trackReq := track.Request{Method: tc.trackMethod}
 			actualMatch := govcr.DefaultMethodMatcher(&httpReq, &trackReq)
 			assert.Equal(t, tc.want, actualMatch)
 		})
@@ -213,8 +213,8 @@ func Test_DefaultURLMatcher(t *testing.T) {
 	}
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			httpReq := cassette.Request{URL: tc.reqURL}
-			trackReq := cassette.Request{URL: tc.trackURL}
+			httpReq := track.Request{URL: tc.reqURL}
+			trackReq := track.Request{URL: tc.trackURL}
 			actualMatch := govcr.DefaultURLMatcher(&httpReq, &trackReq)
 			assert.Equal(t, tc.want, actualMatch)
 		})
@@ -274,8 +274,8 @@ func Test_DefaultBodyMatcher(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			httpReq := cassette.Request{Body: tc.reqBody}
-			trackReq := cassette.Request{Body: tc.trackBody}
+			httpReq := track.Request{Body: tc.reqBody}
+			trackReq := track.Request{Body: tc.trackBody}
 			actualMatch := govcr.DefaultBodyMatcher(&httpReq, &trackReq)
 			assert.Equal(t, tc.want, actualMatch)
 		})
@@ -335,8 +335,8 @@ func Test_DefaultTrailerMatcher(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			httpReq := cassette.Request{Header: tc.reqHeaders}
-			trackReq := cassette.Request{Header: tc.trackHeaders}
+			httpReq := track.Request{Header: tc.reqHeaders}
+			trackReq := track.Request{Header: tc.trackHeaders}
 			actualMatch := govcr.DefaultHeaderMatcher(&httpReq, &trackReq)
 			assert.Equal(t, tc.want, actualMatch)
 		})

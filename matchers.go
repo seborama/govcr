@@ -4,11 +4,11 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/seborama/govcr/cassette"
+	"github.com/seborama/govcr/cassette/track"
 )
 
 // RequestMatcherFunc is a function that performs request comparison.
-type RequestMatcherFunc func(httpRequest *cassette.Request, trackRequest *cassette.Request) bool
+type RequestMatcherFunc func(httpRequest *track.Request, trackRequest *track.Request) bool
 
 // HeaderMatcher is a function that performs header comparison.
 type HeaderMatcher func(httpHeaders, trackHeaders http.Header) bool
@@ -62,7 +62,7 @@ func NewDefaultRequestMatcher(options ...DefaultRequestMatcherOptions) RequestMa
 }
 
 // Match is the default implementation of RequestMatcher.
-func (rm *DefaultRequestMatcher) Match(httpRequest *cassette.Request, trackRequest *cassette.Request) bool {
+func (rm *DefaultRequestMatcher) Match(httpRequest *track.Request, trackRequest *track.Request) bool {
 	for _, matcher := range rm.matchers {
 		if !matcher(httpRequest, trackRequest) {
 			return false
@@ -74,21 +74,21 @@ func (rm *DefaultRequestMatcher) Match(httpRequest *cassette.Request, trackReque
 // DefaultHeaderMatcher is the default implementation of HeaderMatcher.
 // Because this function is meant to be called from RequestMatcher.Match(),
 // it doesn't check for either argument to be nil. Match() takes care of it.
-func DefaultHeaderMatcher(httpRequest *cassette.Request, trackRequest *cassette.Request) bool {
+func DefaultHeaderMatcher(httpRequest *track.Request, trackRequest *track.Request) bool {
 	return areHTTPHeadersEqual(httpRequest.Header, trackRequest.Header)
 }
 
 // DefaultMethodMatcher is the default implementation of MethodMatcher.
 // Because this function is meant to be called from DefaultRequestMatcher.Match(),
 // it doesn't check for either argument to be nil. Match() takes care of it.
-func DefaultMethodMatcher(httpRequest *cassette.Request, trackRequest *cassette.Request) bool {
+func DefaultMethodMatcher(httpRequest *track.Request, trackRequest *track.Request) bool {
 	return httpRequest.Method == trackRequest.Method
 }
 
 // DefaultURLMatcher is the default implementation of URLMatcher.
 // Because this function is meant to be called from DefaultRequestMatcher.Match(),
 // it doesn't check for either argument to be nil. Match() takes care of it.
-func DefaultURLMatcher(httpRequest *cassette.Request, trackRequest *cassette.Request) bool {
+func DefaultURLMatcher(httpRequest *track.Request, trackRequest *track.Request) bool {
 	httpURL := httpRequest.URL
 	trackURL := trackRequest.URL
 	if httpURL == nil {
@@ -112,14 +112,14 @@ func DefaultURLMatcher(httpRequest *cassette.Request, trackRequest *cassette.Req
 // DefaultBodyMatcher is the default implementation of BodyMatcher.
 // Because this function is meant to be called from DefaultRequestMatcher.Match(),
 // it doesn't check for either argument to be nil. Match() takes care of it.
-func DefaultBodyMatcher(httpRequest *cassette.Request, trackRequest *cassette.Request) bool {
+func DefaultBodyMatcher(httpRequest *track.Request, trackRequest *track.Request) bool {
 	return string(httpRequest.Body) == string(trackRequest.Body)
 }
 
 // DefaultTrailerMatcher is the default implementation of TrailerMatcher.
 // Because this function is meant to be called from DefaultRequestMatcher.Match(),
 // it doesn't check for either argument to be nil. Match() takes care of it.
-func DefaultTrailerMatcher(httpRequest *cassette.Request, trackRequest *cassette.Request) bool {
+func DefaultTrailerMatcher(httpRequest *track.Request, trackRequest *track.Request) bool {
 	return areHTTPHeadersEqual(httpRequest.Trailer, trackRequest.Trailer)
 }
 

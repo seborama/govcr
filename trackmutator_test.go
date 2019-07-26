@@ -7,21 +7,21 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/seborama/govcr"
-	"github.com/seborama/govcr/cassette"
+	"github.com/seborama/govcr/cassette/track"
 )
 
 func Test_TrackMutator_OnNoErr_WhenNoErr(t *testing.T) {
 	aMutator := govcr.TrackMutator(
-		func(t *cassette.Track) {
+		func(t *track.Track) {
 			t.Request.Method = t.Request.Method + " has been mutated"
 			t.Response.Status = t.Response.Status + " has been mutated"
 			t.ErrType = "ErrType was mutated"
 			t.ErrMsg = "ErrMsg was mutated"
 		}).OnNoErr()
 
-	aTrack := cassette.NewTrack(&cassette.Request{
+	aTrack := track.NewTrack(&track.Request{
 		Method: "BadMethod",
-	}, &cassette.Response{
+	}, &track.Response{
 		Status: "BadStatus",
 	}, nil)
 
@@ -35,16 +35,16 @@ func Test_TrackMutator_OnNoErr_WhenNoErr(t *testing.T) {
 
 func Test_TrackMutator_OnNoErr_WhenErr(t *testing.T) {
 	aMutator := govcr.TrackMutator(
-		func(t *cassette.Track) {
+		func(t *track.Track) {
 			t.Request.Method = t.Request.Method + " has been mutated"
 			t.Response.Status = t.Response.Status + " has been mutated"
 			t.ErrType = "ErrType was mutated"
 			t.ErrMsg = "ErrMsg was mutated"
 		}).OnNoErr()
 
-	aTrack := cassette.NewTrack(&cassette.Request{
+	aTrack := track.NewTrack(&track.Request{
 		Method: "BadMethod",
-	}, &cassette.Response{
+	}, &track.Response{
 		Status: "BadStatus",
 	}, errors.New("an error"))
 
@@ -58,16 +58,16 @@ func Test_TrackMutator_OnNoErr_WhenErr(t *testing.T) {
 
 func Test_TrackMutator_OnErr_WhenErr(t *testing.T) {
 	errorMutator := govcr.TrackMutator(
-		func(t *cassette.Track) {
+		func(t *track.Track) {
 			t.Request.Method = t.Request.Method + " has been mutated"
 			t.Response.Status = t.Response.Status + " has been mutated"
 			t.ErrType = "ErrType was mutated"
 			t.ErrMsg = "ErrMsg was mutated"
 		}).OnErr()
 
-	aTrack := cassette.NewTrack(&cassette.Request{
+	aTrack := track.NewTrack(&track.Request{
 		Method: "BadMethod",
-	}, &cassette.Response{
+	}, &track.Response{
 		Status: "BadStatus",
 	}, errors.New("an error"))
 
@@ -81,16 +81,16 @@ func Test_TrackMutator_OnErr_WhenErr(t *testing.T) {
 
 func Test_TrackMutator_OnErr_WhenNoErr(t *testing.T) {
 	errorMutator := govcr.TrackMutator(
-		func(t *cassette.Track) {
+		func(t *track.Track) {
 			t.Request.Method = t.Request.Method + " has been mutated"
 			t.Response.Status = t.Response.Status + " has been mutated"
 			t.ErrType = "ErrType was mutated"
 			t.ErrMsg = "ErrMsg was mutated"
 		}).OnErr()
 
-	aTrack := cassette.NewTrack(&cassette.Request{
+	aTrack := track.NewTrack(&track.Request{
 		Method: "BadMethod",
-	}, &cassette.Response{
+	}, &track.Response{
 		Status: "BadStatus",
 	}, nil)
 

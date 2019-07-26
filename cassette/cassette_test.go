@@ -8,13 +8,14 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/seborama/govcr/cassette"
+	"github.com/seborama/govcr/cassette/track"
 )
 
 func Test_cassette_GzipFilter(t *testing.T) {
 	tests := []struct {
 		name         string
 		cassetteName string
-		tracks       []cassette.Track
+		tracks       []track.Track
 		trackData    bytes.Buffer
 		want         []byte
 		wantErr      bool
@@ -37,8 +38,8 @@ func Test_cassette_GzipFilter(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			k7 := cassette.NewCassette(tt.cassetteName)
-			for _, track := range tt.tracks {
-				k7.AddTrack(&track)
+			for _, aTrack := range tt.tracks {
+				k7.AddTrack(&aTrack)
 			}
 
 			got, err := k7.GzipFilter(tt.trackData)
@@ -79,7 +80,7 @@ func Test_cassette_GunzipFilter(t *testing.T) {
 	tests := []struct {
 		name         string
 		cassetteName string
-		tracks       []cassette.Track
+		tracks       []track.Track
 		trackData    []byte
 		want         []byte
 		wantErr      bool
@@ -102,8 +103,8 @@ func Test_cassette_GunzipFilter(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			k7 := cassette.NewCassette(tt.cassetteName)
-			for _, track := range tt.tracks {
-				k7.AddTrack(&track)
+			for _, aTrack := range tt.tracks {
+				k7.AddTrack(&aTrack)
 			}
 
 			got, err := k7.GunzipFilter(tt.trackData)

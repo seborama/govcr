@@ -14,13 +14,14 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/seborama/govcr/cassette/track"
 	"github.com/seborama/govcr/compression"
 	"github.com/seborama/govcr/stats"
 )
 
 // Cassette contains a set of tracks.
 type Cassette struct {
-	Tracks []Track
+	Tracks []track.Track
 
 	name            string
 	trackSliceMutex *sync.RWMutex
@@ -81,7 +82,7 @@ func (k7 *Cassette) NumberOfTracks() int32 {
 }
 
 // ReplayResponse of the specified track number, as recorded on cassette.
-func (k7 *Cassette) ReplayResponse(trackNumber int32) (*Response, error) {
+func (k7 *Cassette) ReplayResponse(trackNumber int32) (*track.Response, error) {
 	if trackNumber >= k7.NumberOfTracks() {
 		return nil, fmt.Errorf("invalid track number %d (only %d available)", trackNumber, k7.NumberOfTracks())
 	}
@@ -92,7 +93,7 @@ func (k7 *Cassette) ReplayResponse(trackNumber int32) (*Response, error) {
 	t := &k7.Tracks[trackNumber]
 
 	// mark the track as replayed so it doesn't get re-used
-	t.Replayed(true)
+	t.SetReplayed(true)
 
 	return t.GetResponse()
 }
@@ -100,14 +101,14 @@ func (k7 *Cassette) ReplayResponse(trackNumber int32) (*Response, error) {
 // AddTrack to cassette.
 // Note that the Track does not receive mutations here, it must be mutated
 // before passed to the cassette for recording.
-func (k7 *Cassette) AddTrack(track *Track) {
+func (k7 *Cassette) AddTrack(track *track.Track) {
 	k7.trackSliceMutex.Lock()
 	defer k7.trackSliceMutex.Unlock()
 
 	k7.Tracks = append(k7.Tracks, *track)
 }
 
-// isLongPlay returns true if the cassette content is compressed.
+// IsLongPlay returns true if the cassette content is compressed.
 func (k7 *Cassette) IsLongPlay() bool {
 	return strings.HasSuffix(k7.name, ".gz")
 }
@@ -158,7 +159,7 @@ func (k7 *Cassette) GunzipFilter(data []byte) ([]byte, error) {
 
 // Track retrieves the requested track number.
 // '0' is the first track.
-func (k7 *Cassette) Track(trackNumber int32) Track {
+func (k7 *Cassette) Track(trackNumber int32) track.Track {
 	k7.trackSliceMutex.RLock()
 	defer k7.trackSliceMutex.RUnlock()
 	return k7.Tracks[trackNumber]
@@ -187,9 +188,9 @@ func transformInterfacesInJSON(jsonString []byte) []byte {
 }
 
 // AddTrackToCassette saves a new track using the specified details to a cassette.
-func AddTrackToCassette(cassette *Cassette, aTrack *Track) error {
+func AddTrackToCassette(cassette *Cassette, aTrack *track.Track) error {
 	// mark track as replayed since it's coming from a live Request!
-	aTrack.Replayed(true)
+	aTrack.SetReplayed(true)
 
 	// add track to cassette
 	cassette.AddTrack(aTrack)

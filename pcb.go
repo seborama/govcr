@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/seborama/govcr/cassette"
+	"github.com/seborama/govcr/cassette/track"
 )
 
 // pcb stands for Printed Circuit Board. It is a structure that holds some
@@ -15,7 +16,7 @@ type pcb struct {
 }
 
 func (pcbr *pcb) seekTrack(k7 *cassette.Cassette, httpRequest *http.Request) (*http.Response, error) {
-	request := cassette.FromHTTPRequest(httpRequest)
+	request := track.FromHTTPRequest(httpRequest)
 
 	numberOfTracksInCassette := k7.NumberOfTracks()
 	for trackNumber := int32(0); trackNumber < numberOfTracksInCassette; trackNumber++ {
@@ -26,7 +27,7 @@ func (pcbr *pcb) seekTrack(k7 *cassette.Cassette, httpRequest *http.Request) (*h
 	return nil, nil
 }
 
-func (pcbr *pcb) trackMatches(k7 *cassette.Cassette, trackNumber int32, request *cassette.Request) bool {
+func (pcbr *pcb) trackMatches(k7 *cassette.Cassette, trackNumber int32, request *track.Request) bool {
 	t := k7.Track(trackNumber)
 
 	return !t.IsReplayed() &&
@@ -39,16 +40,16 @@ func (pcbr *pcb) replayResponse(k7 *cassette.Cassette, trackNumber int32, httpRe
 	var httpResponse *http.Response
 
 	if replayedResponse != nil {
-		httpResponse = cassette.ToHTTPResponse(replayedResponse)
+		httpResponse = track.ToHTTPResponse(replayedResponse)
 		// See notes on http.response.request - Body is nil because it has already been consumed
-		httpResponse.Request = cassette.CloneHTTPRequest(httpRequest)
+		httpResponse.Request = track.CloneHTTPRequest(httpRequest)
 		httpResponse.Request.Body = nil
 	}
 
 	return httpResponse, err
 }
 
-func (pcbr *pcb) mutateTrack(t *cassette.Track) {
+func (pcbr *pcb) mutateTrack(t *track.Track) {
 	pcbr.trackRecordingMutators.Mutate(t)
 }
 
@@ -59,5 +60,5 @@ func (pcbr *pcb) AddMutators(mutators ...TrackMutator) {
 // RequestMatcher is an interface that exposes the method to perform request comparison.
 // request comparison involves the HTTP request and the track request recorded on cassette.
 type RequestMatcher interface {
-	Match(httpRequest *cassette.Request, trackRequest *cassette.Request) bool
+	Match(httpRequest *track.Request, trackRequest *track.Request) bool
 }
