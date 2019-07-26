@@ -17,7 +17,7 @@ import (
 	"github.com/seborama/govcr/stats"
 )
 
-func TestRoundTrip_SavesMutatedCassetteTracks(t *testing.T) {
+func TestRoundTrip_SavesMutatedTracksToCassette(t *testing.T) {
 	const cassetteName = "govcr-fixtures/TestRoundTrip_SavesMutatedCassetteTracks.cassette"
 	_ = os.Remove(cassetteName)
 
