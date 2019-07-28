@@ -14,6 +14,8 @@ type Setting func(vcrConfig *VCRSettings)
 // with the Long Play function enabled.
 // LongPlay simply compresses the contents of the cassette to make
 // it smaller.
+// TODO this is not needed if the LongPlay mode is autosensed from the cassette name
+//      ie if the name ends with '.gz'
 func WithLongPlay() Setting {
 	return func(vcrConfig *VCRSettings) {
 		vcrConfig.longPlay = true
