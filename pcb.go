@@ -15,6 +15,7 @@ type pcb struct {
 	Logger           *log.Logger
 	DisableRecording bool
 	CassettePath     string
+	SkipErrorCodes   bool
 }
 
 const trackNotFound = -1

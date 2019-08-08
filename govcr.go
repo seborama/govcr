@@ -44,6 +44,10 @@ type VCRConfig struct {
 	// RemoveTLS will remove TLS from the Response when recording.
 	// TLS information is rarely needed and takes up a lot of space.
 	RemoveTLS bool
+
+	// SkipErrorCodes will skip saving any request-resposne pair whose response status code was either one of the following:
+	// ( 400,401,403,404,500)
+	SkipErrorCodes bool
 }
 
 // NewVCR creates a new VCR and loads a cassette.
@@ -87,6 +91,7 @@ func NewVCR(cassetteName string, vcrConfig *VCRConfig) *VCRControlPanel {
 		ResponseFilter:   vcrConfig.ResponseFilters.combined(),
 		Logger:           logger,
 		CassettePath:     vcrConfig.CassettePath,
+		SkipErrorCodes:   vcrConfig.SkipErrorCodes,
 	}
 
 	// create VCR's HTTP client
