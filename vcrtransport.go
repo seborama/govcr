@@ -69,9 +69,9 @@ func (t *vcrTransport) ejectCassette() {
 	t.cassette = nil
 }
 
-// AddMutators adds a set of TrackMutator's to the VCR.
-func (t *vcrTransport) AddMutators(mutators ...TrackMutator) {
-	t.pcb.AddMutators(mutators...)
+// AddRecordingMutators adds a set of recording TrackMutator's to the VCR.
+func (t *vcrTransport) AddRecordingMutators(mutators ...TrackMutator) {
+	t.pcb.AddRecordingMutators(mutators...)
 }
 
 func (t *vcrTransport) stats() *stats.Stats {

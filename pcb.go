@@ -53,7 +53,8 @@ func (pcbr *pcb) mutateTrack(t *track.Track) {
 	pcbr.trackRecordingMutators.Mutate(t)
 }
 
-func (pcbr *pcb) AddMutators(mutators ...TrackMutator) {
+// AddRecordingMutators adds a collection of recording TrackMutator's.
+func (pcbr *pcb) AddRecordingMutators(mutators ...TrackMutator) {
 	pcbr.trackRecordingMutators = pcbr.trackRecordingMutators.Add(mutators...)
 }
 

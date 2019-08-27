@@ -107,6 +107,7 @@ type GoVCRTestSuite struct {
 func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(GoVCRTestSuite))
 }
+
 func (suite *GoVCRTestSuite) SetupTest() {
 	func() {
 		counter := 0
@@ -208,7 +209,7 @@ func (suite *GoVCRTestSuite) TestRoundTrip_ReplaysError() {
 	}
 }
 
-func (suite *GoVCRTestSuite) TestRoundTrip_ReplaysResponse() {
+func (suite *GoVCRTestSuite) TestRoundTrip_ReplaysPlainResponse() {
 	// 1st execution of set of calls
 	actualStats := suite.makeHTTPCalls_WithSuccess()
 	expectedStats := stats.Stats{

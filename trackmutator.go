@@ -4,7 +4,8 @@ import (
 	"github.com/seborama/govcr/cassette/track"
 )
 
-// TrackMutator is an function signature for a Track mutator.
+// TrackMutator is a function signature for a Track mutator.
+// A TrackMutator can be used to mutate a track at recording or replaying time.
 type TrackMutator func(*track.Track)
 
 // OnErr adds a conditional mutation when the Track has recorded an error.

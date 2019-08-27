@@ -15,10 +15,8 @@ examples: deps
 	go run ./examples/*.go
 
 lint: deps
+	./golangci-lint.sh || :
 
-	@echo "=~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~="
-	./golangci-lint.sh ||:
-
-	@echo "=~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~="
-	./gomutesting.sh ||:
+mutate: deps
+	./gomutesting.sh || :
 

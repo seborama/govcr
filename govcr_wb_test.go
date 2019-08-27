@@ -10,121 +10,141 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 
 	"github.com/seborama/govcr/cassette/track"
 	"github.com/seborama/govcr/stats"
 )
 
-func TestRoundTrip_SavesMutatedTracksToCassette(t *testing.T) {
-	const cassetteName = "govcr-fixtures/TestRoundTrip_SavesMutatedCassetteTracks.cassette"
+type GoVCRWBTestSuite struct {
+	suite.Suite
 
-	var testServer *httptest.Server
+	vcr          *ControlPanel
+	testServer   *httptest.Server
+	cassetteName string
+}
 
-	// create a test server for the purpose of this test
+func TestHandlerTestSuite(t *testing.T) {
+	suite.Run(t, new(GoVCRWBTestSuite))
+}
+
+func (suite *GoVCRWBTestSuite) SetupTest() {
 	func() {
 		counter := 0
-		testServer = httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		suite.testServer = httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			counter++
-			if r.URL.Query().Get("crash") == "1" {
-				panic("simulate a server crash")
-			}
 			iQuery := r.URL.Query().Get("i")
 			_, _ = fmt.Fprintf(w, "Hello, server responds '%d' to query '%s'", counter, iQuery)
 		}))
 	}()
 
-	testServerClient := testServer.Client()
+	testServerClient := suite.testServer.Client()
 	testServerClient.Timeout = 3 * time.Second
 
 	// example mutator, mutation is not too intrusive to allow replaying correctly.
 	// for instance, when an Err is injected, the response is set to nil on replay, as per
 	// go's HTTP client design.
-	aMutator := TrackMutator(
+	aTrackMutator := TrackMutator(
 		func(trk *track.Track) {
 			q := trk.Request.URL.Query()
 			q.Set("mutated_query_key", "this_query_key_has_been_mutated")
 			trk.Request.URL.RawQuery = q.Encode()
-			trk.Response.Status = trk.Response.Status + " has been mutated"
+
+			trk.Response.Header.Add("TrackRecordingMutatorHeader", "headers have been mutated")
 		})
 
-	// create a new VCR for the test
-	vcr := NewVCR(WithClient(testServerClient), WithTrackRecordingMutators(aMutator))
+	suite.vcr = NewVCR(WithClient(testServerClient), WithTrackRecordingMutators(aTrackMutator))
+	suite.cassetteName = "govcr-fixtures/TestRoundTrip_SavesMutatedCassetteTracks.cassette"
+	_ = os.Remove(suite.cassetteName)
+}
 
-	// load a fresh cassette
-	_ = os.Remove(cassetteName)
-	err := vcr.LoadCassette(cassetteName)
-	assert.NoError(t, err)
-	defer func() { _ = os.Remove(cassetteName) }()
+func (suite *GoVCRWBTestSuite) TearDownTest() {
+	_ = os.Remove(suite.cassetteName)
+}
+
+func (suite *GoVCRWBTestSuite) TestRoundTrip_DoesNotChangeLiveRequestOrResponse() {
+	panic("implement me")
+	// TODO: create a VCR with WithTrackRecordingMutators and WithTrackReplayingMutators
+	//       and confirm that both the live request and response remain un-mutated.
+}
+
+func (suite *GoVCRWBTestSuite) TestRoundTrip_WithRecordingAndReplayingMutations() {
+	panic("implement me")
+	// TODO: create a VCR with WithTrackReplayingMutators
+	//       and confirm that the replayed request and response are mutated correctly.
+}
+
+func (suite *GoVCRWBTestSuite) TestRoundTrip_SavesAndReplaysMutatedTracksToCassette() {
+	err := suite.vcr.LoadCassette(suite.cassetteName)
+	suite.NoError(err)
 
 	// 1st execution of set of calls
-	actualStats := makeHTTPCalls_WithSuccess(testServer.URL, vcr, t)
+	actualStats := suite.makeHTTPCalls_WithSuccess()
 	expectedStats := stats.Stats{
 		TracksLoaded:   0,
 		TracksRecorded: 2,
 		TracksPlayed:   0,
 	}
-	require.EqualValues(t, expectedStats, actualStats)
+	suite.Require().EqualValues(expectedStats, actualStats)
 
 	// load the cassette and verify contents has been mutated.
-	err = vcr.LoadCassette(cassetteName)
-	assert.NoError(t, err)
+	err = suite.vcr.LoadCassette(suite.cassetteName)
+	suite.NoError(err)
 
-	for trackNum, aTrack := range vcr.vcrTransport().cassette.Tracks {
-		require.EqualValues(t, "this_query_key_has_been_mutated", aTrack.Request.URL.Query().Get("mutated_query_key"), "track #%d", trackNum)
-		require.EqualValues(t, "200 OK has been mutated", aTrack.Response.Status, "track #%d", trackNum)
+	for trackNum, aTrack := range suite.vcr.vcrTransport().cassette.Tracks {
+		suite.Require().EqualValues("this_query_key_has_been_mutated", aTrack.Request.URL.Query().Get("mutated_query_key"), "track #%d", trackNum)
+		suite.Require().EqualValues("headers have been mutated", aTrack.Response.Header.Get("TrackRecordingMutatorHeader"), "track #%d", trackNum)
 	}
 
 	// 2nd execution of set of calls (replayed)
-	actualStats = replayHTTPCalls_WithMutations_WithSuccess(testServer.URL, vcr, t)
+	actualStats = suite.replayHTTPCalls_WithMutations_WithSuccess()
 	expectedStats = stats.Stats{
 		TracksLoaded:   2,
 		TracksRecorded: 0,
 		TracksPlayed:   2,
 	}
-	assert.EqualValues(t, expectedStats, actualStats)
+	suite.EqualValues(expectedStats, actualStats)
 }
 
-func makeHTTPCalls_WithSuccess(testServerURL string, vcr *ControlPanel, t *testing.T) stats.Stats {
+func (suite *GoVCRWBTestSuite) makeHTTPCalls_WithSuccess() stats.Stats {
 	for i := 1; i <= 2; i++ {
-		req, err := http.NewRequest(http.MethodGet, testServerURL+fmt.Sprintf("?i=%d", i), nil)
-		require.NoError(t, err)
+		req, err := http.NewRequest(http.MethodGet, suite.testServer.URL+fmt.Sprintf("?i=%d", i), nil)
+		suite.Require().NoError(err)
 		req.Header.Add("header", "value")
 		req.SetBasicAuth("not_a_username", "not_a_password")
 
-		resp, err := vcr.Player().Do(req)
-		require.NoError(t, err)
+		resp, err := suite.vcr.Player().Do(req)
+		suite.Require().NoError(err)
 
-		require.Equal(t, "200 OK", resp.Status)
-		require.Equal(t, http.StatusOK, resp.StatusCode)
-		require.EqualValues(t, strconv.Itoa(38+len(strconv.Itoa(i))), resp.Header.Get("Content-Length"))
-		require.EqualValues(t, "text/plain; charset=utf-8", resp.Header.Get("Content-Type"))
-		require.NotEmpty(t, resp.Header.Get("Date"))
-		require.EqualValues(t, resp.Trailer, http.Header(nil))
+		suite.Require().Equal("200 OK", resp.Status)
+		suite.Require().Equal(http.StatusOK, resp.StatusCode)
+		suite.Require().EqualValues(strconv.Itoa(38+len(strconv.Itoa(i))), resp.Header.Get("Content-Length"))
+		suite.Require().EqualValues("text/plain; charset=utf-8", resp.Header.Get("Content-Type"))
+		suite.Require().NotEmpty(resp.Header.Get("Date"))
+		suite.Require().EqualValues(resp.Trailer, http.Header(nil))
 
 		bodyBytes, err := ioutil.ReadAll(resp.Body)
-		require.NoError(t, err)
+		suite.Require().NoError(err)
 		_ = resp.Body.Close()
-		require.Equal(t, fmt.Sprintf("Hello, server responds '%d' to query '%d'", i, i), string(bodyBytes))
+		suite.Require().Equal(fmt.Sprintf("Hello, server responds '%d' to query '%d'", i, i), string(bodyBytes))
 
-		require.Equal(t, int64(38+len(strconv.Itoa(i))), resp.ContentLength)
-		require.NotNil(t, resp.Request)
-		require.NotNil(t, resp.TLS)
+		suite.Require().Equal(int64(38+len(strconv.Itoa(i))), resp.ContentLength)
+		suite.Require().NotNil(resp.Request)
+		suite.Require().NotNil(resp.TLS)
 	}
 
-	require.EqualValues(t, 2, vcr.NumberOfTracks())
+	suite.Require().EqualValues(2, suite.vcr.NumberOfTracks())
 
-	actualStats := *vcr.Stats()
-	vcr.EjectCassette()
+	actualStats := *suite.vcr.Stats()
+	suite.vcr.EjectCassette()
 
 	return actualStats
 }
 
-func replayHTTPCalls_WithMutations_WithSuccess(testServerURL string, vcr *ControlPanel, t *testing.T) stats.Stats {
+func (suite *GoVCRWBTestSuite) replayHTTPCalls_WithMutations_WithSuccess() stats.Stats {
 	for i := 1; i <= 2; i++ {
-		req, err := http.NewRequest(http.MethodGet, testServerURL+fmt.Sprintf("?i=%d", i), nil)
-		require.NoError(t, err)
+		req, err := http.NewRequest(http.MethodGet, suite.testServer.URL+fmt.Sprintf("?i=%d", i), nil)
+		suite.Require().NoError(err)
 
 		// manually modify the request inline with the previous mutations that took place.
 		// not doing so would prevent matching our request against the (mutated) cassette.
@@ -135,30 +155,31 @@ func replayHTTPCalls_WithMutations_WithSuccess(testServerURL string, vcr *Contro
 		req.Header.Add("header", "value")
 		req.SetBasicAuth("not_a_username", "not_a_password")
 
-		resp, err := vcr.Player().Do(req)
-		require.NoError(t, err)
+		resp, err := suite.vcr.Player().Do(req)
+		suite.Require().NoError(err)
 
-		require.Equal(t, "200 OK has been mutated", resp.Status)
-		require.Equal(t, http.StatusOK, resp.StatusCode)
-		require.EqualValues(t, strconv.Itoa(38+len(strconv.Itoa(i))), resp.Header.Get("Content-Length"))
-		require.EqualValues(t, "text/plain; charset=utf-8", resp.Header.Get("Content-Type"))
-		require.NotEmpty(t, resp.Header.Get("Date"))
-		require.EqualValues(t, resp.Trailer, http.Header(nil))
+		suite.Require().Equal("200 OK", resp.Status)
+		suite.Require().Equal(http.StatusOK, resp.StatusCode)
+		suite.Require().EqualValues(strconv.Itoa(38+len(strconv.Itoa(i))), resp.Header.Get("Content-Length"))
+		suite.Require().EqualValues("text/plain; charset=utf-8", resp.Header.Get("Content-Type"))
+		suite.Require().NotEmpty(resp.Header.Get("Date"))
+		suite.Require().EqualValues(resp.Trailer, http.Header(nil))
+		suite.Require().EqualValues("headers have been mutated", resp.Header.Get("TrackRecordingMutatorHeader"))
 
 		bodyBytes, err := ioutil.ReadAll(resp.Body)
-		require.NoError(t, err)
+		suite.Require().NoError(err)
 		_ = resp.Body.Close()
-		require.Equal(t, fmt.Sprintf("Hello, server responds '%d' to query '%d'", i, i), string(bodyBytes))
+		suite.Require().Equal(fmt.Sprintf("Hello, server responds '%d' to query '%d'", i, i), string(bodyBytes))
 
-		require.Equal(t, int64(38+len(strconv.Itoa(i))), resp.ContentLength)
-		require.NotNil(t, resp.Request)
-		require.NotNil(t, resp.TLS)
+		suite.Require().Equal(int64(38+len(strconv.Itoa(i))), resp.ContentLength)
+		suite.Require().NotNil(resp.Request)
+		suite.Require().NotNil(resp.TLS)
 	}
 
-	require.EqualValues(t, 2, vcr.NumberOfTracks())
+	suite.Require().EqualValues(2, suite.vcr.NumberOfTracks())
 
-	actualStats := *vcr.Stats()
-	vcr.EjectCassette()
+	actualStats := *suite.vcr.Stats()
+	suite.vcr.EjectCassette()
 
 	return actualStats
 }

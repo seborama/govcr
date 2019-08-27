@@ -89,7 +89,7 @@ func cloneTLS(tlsCS *tls.ConnectionState) *tls.ConnectionState {
 	if tlsCS == nil {
 		return nil
 	}
-	var signedCertificateTimestampsClone [][]byte
+	var signedCertificateTimestampsClone [][]byte // nolint:prealloc
 	for _, data := range tlsCS.SignedCertificateTimestamps {
 		signedCertificateTimestampsClone = append(signedCertificateTimestampsClone, []byte(string(data)))
 	}
@@ -100,7 +100,7 @@ func cloneTLS(tlsCS *tls.ConnectionState) *tls.ConnectionState {
 		peerCertificatesClone = tlsCS.PeerCertificates
 	}
 
-	var verifiedChainsClone [][]*x509.Certificate
+	var verifiedChainsClone [][]*x509.Certificate // nolint:prealloc
 	for _, certSlice := range tlsCS.VerifiedChains {
 		var certSliceClone []*x509.Certificate
 		if err := copier.Copy(&certSliceClone, certSlice); err != nil {
@@ -258,7 +258,7 @@ func CloneHTTPRequest(httpRequest *http.Request) *http.Request {
 	httpRequestClone := *httpRequest
 
 	// remove the channel reference
-	httpRequestClone.Cancel = nil
+	httpRequestClone.Cancel = nil // nolint:staticcheck
 
 	// deal with the URL
 	if httpRequest.URL != nil {

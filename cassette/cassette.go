@@ -218,7 +218,7 @@ func LoadCassette(cassetteName string) (*Cassette, error) {
 func readCassetteFile(cassetteName string) (*Cassette, error) {
 	k7 := NewCassette(cassetteName)
 
-	data, err := ioutil.ReadFile(cassetteName)
+	data, err := ioutil.ReadFile(cassetteName) // nolint:gosec
 	if os.IsNotExist(err) {
 		return k7, nil
 	} else if err != nil {

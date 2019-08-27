@@ -88,6 +88,7 @@ func DefaultMethodMatcher(httpRequest *track.Request, trackRequest *track.Reques
 // DefaultURLMatcher is the default implementation of URLMatcher.
 // Because this function is meant to be called from DefaultRequestMatcher.Match(),
 // it doesn't check for either argument to be nil. Match() takes care of it.
+// nolint:gocyclo
 func DefaultURLMatcher(httpRequest *track.Request, trackRequest *track.Request) bool {
 	httpURL := httpRequest.URL
 	trackURL := trackRequest.URL

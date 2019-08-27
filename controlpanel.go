@@ -22,9 +22,9 @@ func (controlPanel *ControlPanel) LoadCassette(cassetteName string) error {
 	return controlPanel.vcrTransport().loadCassette(cassetteName)
 }
 
-// AddMutators adds a set of TrackMutator's to the VCR.
-func (controlPanel *ControlPanel) AddMutators(trackMutators ...TrackMutator) {
-	controlPanel.vcrTransport().AddMutators(trackMutators...)
+// AddRecordingMutators adds a set of recording TrackMutator's to the VCR.
+func (controlPanel *ControlPanel) AddRecordingMutators(trackMutators ...TrackMutator) {
+	controlPanel.vcrTransport().AddRecordingMutators(trackMutators...)
 }
 
 // Player returns the http.Client that contains the VCR.
