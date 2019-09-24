@@ -9,7 +9,7 @@ import (
 const example8CassetteName = "MyCassette8"
 
 // Example8 is an example use of SkipErrorCodes feature.
-func Example1() {
+func Example8() {
 	cfg := govcr.VCRConfig{
 		Logging: true,
 		SkipErrorCodes: true,
