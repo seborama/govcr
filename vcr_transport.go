@@ -13,6 +13,19 @@ type vcrTransport struct {
 	Cassette *cassette
 }
 
+func isSkipCode(code int) bool {
+	switch code {
+	case
+		400,
+		401,
+		403,
+		404,
+		500:
+		return true
+	}
+	return false
+}
+
 // RoundTrip is an implementation of http.RoundTripper.
 func (t *vcrTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	// Note: by convention resp should be nil if an error occurs with HTTP
@@ -39,6 +52,13 @@ func (t *vcrTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	resp, err = t.PCB.Transport.RoundTrip(req)
 
 	if !t.PCB.DisableRecording {
+
+		// If skipErrorCodes is set and the response code was a skip code, then skip saving this request-response pair.
+		if t.PCB.SkipErrorCodes && isSkipCode(resp.StatusCode) {
+			t.PCB.Logger.Printf("INFO - Cassette '%s' - Did not record new track for %s %s as %s %s\n due to error code: %d", t.Cassette.Name, req.Method, req.URL.String(), copiedReq.Method, copiedReq.URL, resp.StatusCode)
+			return resp, err
+		}
+
 		// the VCR is not in read-only mode so
 		t.PCB.Logger.Printf("INFO - Cassette '%s' - Recording new track for %s %s as %s %s\n", t.Cassette.Name, req.Method, req.URL.String(), copiedReq.Method, copiedReq.URL)
 		if err := recordNewTrackToCassette(t.Cassette, copiedReq, resp, err); err != nil {
