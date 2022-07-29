@@ -57,7 +57,7 @@ type Response struct {
 	TLS              *tls.ConnectionState
 }
 
-// FromHTTPResponse transcodes an HTTP Response to a track GetResponse.
+// FromHTTPResponse transcodes an HTTP Response to a track Response.
 func FromHTTPResponse(httpResponse *http.Response) *Response {
 	if httpResponse == nil {
 		return nil
@@ -133,8 +133,8 @@ func cloneStringSlice(stringSlice []string) []string {
 	return stringSliceClone
 }
 
-// ToHTTPResponse converts a track Response to an http.GetResponse.
-// Note that this function sets http.GetResponse.Request to nil. TODO confirm this is right
+// ToHTTPResponse converts a track Response to an http.Response.
+// Note that this function sets http.Response.Request to nil. TODO confirm this is right
 func ToHTTPResponse(response *Response) *http.Response {
 	if response == nil {
 		return nil
@@ -248,7 +248,7 @@ func cloneURL(aURL *url.URL) *url.URL {
 	}
 }
 
-// CloneHTTPRequest clones an http.GetRequest.
+// CloneHTTPRequest clones an http.Request.
 func CloneHTTPRequest(httpRequest *http.Request) *http.Request {
 	if httpRequest == nil {
 		return nil

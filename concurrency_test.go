@@ -12,12 +12,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/seborama/govcr/stats"
-
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 
-	"github.com/seborama/govcr"
+	"github.com/seborama/govcr/v5"
+	"github.com/seborama/govcr/v5/stats"
 )
 
 func TestConcurrencySafety(t *testing.T) {
@@ -28,7 +27,8 @@ func TestConcurrencySafety(t *testing.T) {
 	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(time.Millisecond * time.Duration(rand.Intn(50)))
 
-		clientNum, _ := strconv.ParseInt(r.URL.Query().Get("num"), 0, 8)
+		clientNum, err := strconv.ParseInt(r.URL.Query().Get("num"), 0, 8)
+		require.NoError(t, err)
 
 		data := generateBinaryBody(int8(clientNum))
 		written, err := w.Write(data)
@@ -89,7 +89,7 @@ func TestConcurrencySafety(t *testing.T) {
 	client = vcr.Player()
 
 	// run requests
-	t.Run("main - phase 1", func(t *testing.T) {
+	t.Run("main - phase 2", func(t *testing.T) {
 		// run requests
 		for i := int8(1); i <= threadMax; i++ {
 			func(i1 int8) {
@@ -149,20 +149,12 @@ func validateResponseForTestPlaybackOrder(resp *http.Response, expectedBody inte
 	_ = resp.Body.Close()
 
 	var expectedBodyBytes []byte
-	switch expectedBody.(type) {
+	switch exp := expectedBody.(type) {
 	case []byte:
-		var ok bool
-		expectedBodyBytes, ok = expectedBody.([]byte)
-		if !ok {
-			return errors.Errorf("expectedBody: cannot assert to type '[]byte'")
-		}
+		expectedBodyBytes = exp
 
 	case string:
-		expectedBodyString, ok := expectedBody.(string)
-		if !ok {
-			return errors.Errorf("expectedBody: cannot assert to type 'string'")
-		}
-		expectedBodyBytes = []byte(expectedBodyString)
+		expectedBodyBytes = []byte(exp)
 
 	default:
 		return errors.New("Unexpected type for 'expectedBody' variable")

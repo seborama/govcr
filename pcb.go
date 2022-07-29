@@ -3,8 +3,8 @@ package govcr
 import (
 	"net/http"
 
-	"github.com/seborama/govcr/cassette"
-	"github.com/seborama/govcr/cassette/track"
+	"github.com/seborama/govcr/v5/cassette"
+	"github.com/seborama/govcr/v5/cassette/track"
 )
 
 // pcb stands for Printed Circuit Board. It is a structure that holds some

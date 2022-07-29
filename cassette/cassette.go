@@ -14,9 +14,9 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/seborama/govcr/cassette/track"
-	"github.com/seborama/govcr/compression"
-	"github.com/seborama/govcr/stats"
+	"github.com/seborama/govcr/v5/cassette/track"
+	"github.com/seborama/govcr/v5/compression"
+	"github.com/seborama/govcr/v5/stats"
 )
 
 // Cassette contains a set of tracks.
@@ -24,7 +24,7 @@ type Cassette struct {
 	Tracks []track.Track
 
 	name            string
-	trackSliceMutex *sync.RWMutex
+	trackSliceMutex sync.RWMutex
 	tracksLoaded    int32
 }
 
@@ -34,7 +34,7 @@ type Options func(*Cassette)
 
 // NewCassette creates a ready to use new cassette.
 func NewCassette(name string, options ...Options) *Cassette {
-	k7 := Cassette{name: name, trackSliceMutex: &sync.RWMutex{}}
+	k7 := Cassette{name: name, trackSliceMutex: sync.RWMutex{}}
 	for _, option := range options {
 		option(&k7)
 	}
@@ -120,23 +120,24 @@ func (k7 *Cassette) save() error {
 
 	data, err := json.MarshalIndent(k7, "", "  ")
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
-	// TODO: this may not be required anymore...
+	// TODO: need to find a way around this - not reliable as is
 	tData := transformInterfacesInJSON(data)
 
 	gData, err := k7.GzipFilter(*bytes.NewBuffer(tData))
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	path := filepath.Dir(k7.name)
 	if err := os.MkdirAll(path, 0750); err != nil {
-		return err
+		return errors.Wrap(err, path)
 	}
 
-	return ioutil.WriteFile(k7.name, gData, 0640)
+	err = ioutil.WriteFile(k7.name, gData, 0640)
+	return errors.Wrap(err, k7.name)
 }
 
 // GzipFilter compresses the cassette data in gzip format if the cassette
@@ -180,11 +181,10 @@ func (k7 *Cassette) Name() string {
 // This is not an ideal solution but it works. In the future, we could consider adding a property that
 // records the original type and re-creates it post Unmarshal.
 func transformInterfacesInJSON(jsonString []byte) []byte {
-	// TODO: this may not be required anymore...
 	// TODO: precompile this regexp perhaps via a receiver
-	regex := regexp.MustCompile(`("PublicKey":{"N":)([0-9]+),`)
+	regex := regexp.MustCompile(`( *"N" *: *)([0-9]+)`) // TODO: this is really not reliable!!!!
 
-	return []byte(regex.ReplaceAllString(string(jsonString), `$1"$2",`))
+	return []byte(regex.ReplaceAllString(string(jsonString), `$1"$2"`))
 }
 
 // AddTrackToCassette saves a new track using the specified details to a cassette.
@@ -199,18 +199,19 @@ func AddTrackToCassette(cassette *Cassette, aTrack *track.Track) error {
 	return cassette.save()
 }
 
-// LoadCassette loads a cassette from file and initialises
-// its associated stats.
-func LoadCassette(cassetteName string) (*Cassette, error) {
+// LoadCassette loads a cassette from file and initialises its associated stats.
+// It panics when a cassette exists but cannot be loaded because that indicates corruption
+// (or a severe bug).
+func LoadCassette(cassetteName string) *Cassette {
 	k7, err := readCassetteFile(cassetteName)
 	if err != nil {
-		return nil, err
+		panic(fmt.Sprintf("unable to load corrupted cassette '%s': %v", cassetteName, err))
 	}
 
 	// initial stats
 	k7.tracksLoaded = k7.NumberOfTracks()
 
-	return k7, nil
+	return k7
 }
 
 // readCassetteFile reads the cassette file, if present or

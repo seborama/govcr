@@ -3,7 +3,7 @@ package govcr
 import (
 	"net/http"
 
-	"github.com/seborama/govcr/stats"
+	"github.com/seborama/govcr/v5/stats"
 )
 
 // ControlPanel holds the parts of a VCR that can be interacted with.
@@ -18,6 +18,7 @@ func (controlPanel *ControlPanel) Stats() *stats.Stats {
 }
 
 // LoadCassette into the VCR.
+// Note: cassette.LoadCassette panics if the cassette exists but fails to load.
 func (controlPanel *ControlPanel) LoadCassette(cassetteName string) error {
 	return controlPanel.vcrTransport().loadCassette(cassetteName)
 }

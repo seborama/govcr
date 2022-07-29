@@ -12,8 +12,8 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
-	"github.com/seborama/govcr/cassette/track"
-	"github.com/seborama/govcr/stats"
+	"github.com/seborama/govcr/v5/cassette/track"
+	"github.com/seborama/govcr/v5/stats"
 )
 
 type GoVCRWBTestSuite struct {

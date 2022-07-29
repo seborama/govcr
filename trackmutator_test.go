@@ -6,8 +6,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/seborama/govcr"
-	"github.com/seborama/govcr/cassette/track"
+	"github.com/seborama/govcr/v5"
+	"github.com/seborama/govcr/v5/cassette/track"
 )
 
 func Test_TrackMutator_OnNoErr_WhenNoErr(t *testing.T) {

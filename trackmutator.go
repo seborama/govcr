@@ -1,7 +1,7 @@
 package govcr
 
 import (
-	"github.com/seborama/govcr/cassette/track"
+	"github.com/seborama/govcr/v5/cassette/track"
 )
 
 // TrackMutator is a function signature for a Track mutator.

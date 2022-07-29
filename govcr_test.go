@@ -10,14 +10,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/suite"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 
-	"github.com/seborama/govcr/stats"
-
-	"github.com/seborama/govcr"
+	"github.com/seborama/govcr/v5"
+	"github.com/seborama/govcr/v5/stats"
 )
 
 func TestNewVCR(t *testing.T) {
@@ -43,9 +41,12 @@ func TestVCRControlPanel_LoadCassette_WhenOneIsAlreadyLoaded(t *testing.T) {
 
 func TestVCRControlPanel_LoadCassette_InvalidCassette(t *testing.T) {
 	unit := govcr.NewVCR()
-	err := unit.LoadCassette("test-fixtures/bad.cassette")
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to interpret cassette data")
+	assert.PanicsWithValue(
+		t,
+		"unable to load corrupted cassette 'test-fixtures/bad.cassette': failed to interpret cassette data in file: invalid character 'T' looking for beginning of value",
+		func() {
+			_ = unit.LoadCassette("test-fixtures/bad.cassette")
+		})
 }
 
 func TestVCRControlPanel_LoadCassette_ValidSimpleLongPlayCassette(t *testing.T) {
@@ -67,9 +68,12 @@ func TestVCRControlPanel_LoadCassette_UnreadableCassette(t *testing.T) {
 	createUnreadableCassette(t)
 
 	unit := govcr.NewVCR()
-	err := unit.LoadCassette("test-fixtures/unreadable.cassette")
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to read cassette data from file")
+	assert.PanicsWithValue(
+		t,
+		"unable to load corrupted cassette 'test-fixtures/unreadable.cassette': failed to read cassette data from file: open test-fixtures/unreadable.cassette: permission denied",
+		func() {
+			_ = unit.LoadCassette("test-fixtures/unreadable.cassette")
+		})
 
 	removeUnreadableCassette(t)
 }
@@ -134,24 +138,30 @@ func (suite *GoVCRTestSuite) TearDownTest() {
 
 func (suite *GoVCRTestSuite) TestRoundTrip_ReplaysError() {
 	tt := []struct {
-		name    string
-		reqURL  string
-		wantErr string
+		name       string
+		reqURL     string
+		wantErr    string
+		wantVCRErr string
 	}{
+		// NOTE: different versions of Go have variations of these actual errors - below are for Go 1.18
 		{
-			name:    "should replay protocol error",
-			reqURL:  "boom://127.1.2.3",
-			wantErr: `Get boom://127.1.2.3: *http.badStringError: unsupported protocol scheme "boom"`,
+			name:       "should replay protocol error",
+			reqURL:     "boom://127.1.2.3",
+			wantErr:    `Get "boom://127.1.2.3": unsupported protocol scheme "boom"`,
+			wantVCRErr: `Get "boom://127.1.2.3": *errors.errorString: unsupported protocol scheme "boom"`,
 		},
+		// This test is flaky: it can return 2 different types of errors (Go 1.18)
+		// {
+		// 	name:       "should replay request cancellation on connection failure",
+		// 	reqURL:     "https://127.1.2.3",
+		// 	wantErr:    `Get "https://127.1.2.3": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)`,
+		// 	wantVCRErr: `Get "https://127.1.2.3": *errors.errorString: net/http: request canceled while waiting for connection`,
+		// },
 		{
-			name:    "should replay request cancellation on connection failure",
-			reqURL:  "https://127.1.2.3",
-			wantErr: `Get https://127.1.2.3: *errors.errorString: net/http: request canceled while waiting for connection`,
-		},
-		{
-			name:    "should replay request on server crash",
-			reqURL:  suite.testServer.URL + "?crash=1",
-			wantErr: `Get ` + suite.testServer.URL + `?crash=1: *errors.errorString: EOF`,
+			name:       "should replay request on server crash",
+			reqURL:     suite.testServer.URL + "?crash=1",
+			wantErr:    `Get "` + suite.testServer.URL + `?crash=1": EOF`,
+			wantVCRErr: `Get "` + suite.testServer.URL + `?crash=1": *errors.errorString: EOF`,
 		},
 	}
 
@@ -167,6 +177,7 @@ func (suite *GoVCRTestSuite) TestRoundTrip_ReplaysError() {
 
 			resp, err := suite.vcr.Player().Get(tc.reqURL)
 			suite.Require().Error(err)
+			suite.EqualError(err, tc.wantErr)
 			suite.Require().Nil(resp)
 
 			suite.EqualValues(1, suite.vcr.NumberOfTracks())
@@ -190,7 +201,7 @@ func (suite *GoVCRTestSuite) TestRoundTrip_ReplaysError() {
 
 			resp, err = suite.vcr.Player().Get(tc.reqURL)
 			suite.Require().Error(err)
-			suite.EqualError(err, tc.wantErr)
+			suite.EqualError(err, tc.wantVCRErr)
 			suite.Require().Nil(resp)
 
 			suite.EqualValues(1, suite.vcr.NumberOfTracks())

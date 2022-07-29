@@ -1,10 +1,9 @@
 package govcr
 
 import (
-	"log"
 	"net/http"
 
-	"github.com/seborama/govcr/cassette"
+	"github.com/seborama/govcr/v5/cassette"
 )
 
 // Setting defines an optional functional parameter as received by NewVCR()
@@ -34,11 +33,7 @@ func WithClient(httpClient *http.Client) Setting {
 // a cassette to load.
 func WithCassette(cassetteName string) Setting {
 	return func(vcrConfig *VCRSettings) {
-		k7, err := cassette.LoadCassette(cassetteName)
-		if err != nil {
-			log.Printf("failed loading cassette %s': %s\n", cassetteName, err.Error())
-			return
-		}
+		k7 := cassette.LoadCassette(cassetteName)
 		vcrConfig.cassette = k7
 	}
 }

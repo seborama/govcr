@@ -6,9 +6,9 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/seborama/govcr/cassette"
-	"github.com/seborama/govcr/cassette/track"
-	"github.com/seborama/govcr/stats"
+	"github.com/seborama/govcr/v5/cassette"
+	"github.com/seborama/govcr/v5/cassette/track"
+	"github.com/seborama/govcr/v5/stats"
 )
 
 // vcrTransport is the heart of VCR. It implements
@@ -39,6 +39,7 @@ func (t *vcrTransport) RoundTrip(httpRequest *http.Request) (*http.Response, err
 	newTrack := track.NewTrack(request, response, reqErr)
 	t.pcb.mutateTrack(newTrack)
 	if err := cassette.AddTrackToCassette(t.cassette, newTrack); err != nil {
+		// TODO: this should probably be a panic as it's abnormal
 		log.Printf("RoundTrip failed to AddTrackToCassette: %v\n", err)
 	}
 
@@ -55,11 +56,7 @@ func (t *vcrTransport) loadCassette(cassetteName string) error {
 		return errors.Errorf("failed to load cassette '%s': another cassette ('%s') is already loaded", cassetteName, t.cassette.Name())
 	}
 
-	k7, err := cassette.LoadCassette(cassetteName)
-	if err != nil {
-		return errors.Wrapf(err, "failed to load contents of cassette '%s'", cassetteName)
-	}
-
+	k7 := cassette.LoadCassette(cassetteName)
 	t.cassette = k7
 
 	return nil

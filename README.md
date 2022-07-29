@@ -186,7 +186,7 @@ package main
 import (
     "fmt"
 
-    "github.com/seborama/govcr"
+    "github.com/seborama/govcr/v5"
 )
 
 const example1CassetteName = "MyCassette1"
@@ -224,7 +224,7 @@ import (
     "net/http"
     "time"
 
-    "github.com/seborama/govcr"
+    "github.com/seborama/govcr/v5"
 )
 
 const example2CassetteName = "MyCassette2"
@@ -295,7 +295,7 @@ import (
 
     "net/http"
 
-    "github.com/seborama/govcr"
+    "github.com/seborama/govcr/v5"
 )
 
 const example4CassetteName = "MyCassette4"
@@ -350,7 +350,7 @@ import (
 
     "net/http"
 
-    "github.com/seborama/govcr"
+    "github.com/seborama/govcr/v5"
 )
 
 const example5CassetteName = "MyCassette5"
