@@ -16,7 +16,7 @@ import (
 // one provided by Go's http package or a custom one
 // if provided when calling NewVCR.
 type vcrTransport struct {
-	pcb       *pcb
+	pcb       *PrintedCircuitBoard
 	cassette  *cassette.Cassette
 	transport http.RoundTripper
 }
@@ -28,6 +28,9 @@ func (t *vcrTransport) RoundTrip(httpRequest *http.Request) (*http.Response, err
 
 	httpRequestClone := track.CloneHTTPRequest(httpRequest)
 	if response, err := t.pcb.seekTrack(t.cassette, httpRequestClone); response != nil || err != nil {
+		// TODO: two thoughts
+		//     1- err can be set either from a runtime issue or as the track recorded error in the original HTTP request
+		//     2- response is not mutated using pcb.trackReplayingMutators
 		return response, err
 	}
 
@@ -37,7 +40,7 @@ func (t *vcrTransport) RoundTrip(httpRequest *http.Request) (*http.Response, err
 	request := track.FromHTTPRequest(httpRequestClone)
 
 	newTrack := track.NewTrack(request, response, reqErr)
-	t.pcb.mutateTrack(newTrack)
+	t.pcb.mutateTrackRecording(newTrack)
 	if err := cassette.AddTrackToCassette(t.cassette, newTrack); err != nil {
 		// TODO: this should probably be a panic as it's abnormal
 		log.Printf("RoundTrip failed to AddTrackToCassette: %v\n", err)
@@ -66,9 +69,17 @@ func (t *vcrTransport) ejectCassette() {
 	t.cassette = nil
 }
 
-// AddRecordingMutators adds a set of recording TrackMutator's to the VCR.
-func (t *vcrTransport) AddRecordingMutators(mutators ...TrackMutator) {
+// AddRecordingMutators adds a set of recording Track Mutator's to the VCR.
+func (t *vcrTransport) AddRecordingMutators(mutators ...track.Mutator) {
 	t.pcb.AddRecordingMutators(mutators...)
+}
+
+// AddReplayingMutators adds a set of replaying Track Mutator's to the VCR.
+// Replaying happens AFTER the request has been matched. As such, while the track's Request
+// could be mutated, it will have no effect.
+// However, the Request data can be referenced as part of mutating the Response.
+func (t *vcrTransport) AddReplayingMutators(mutators ...track.Mutator) {
+	t.pcb.AddReplayingMutators(mutators...)
 }
 
 func (t *vcrTransport) stats() *stats.Stats {

@@ -1,18 +1,16 @@
-package govcr
+package track
 
 import (
 	"regexp"
-
-	"github.com/seborama/govcr/v5/cassette/track"
 )
 
-// TrackMutator is a function signature for a Track mutator.
-// A TrackMutator can be used to mutate a track at recording or replaying time.
-type TrackMutator func(*track.Track)
+// Mutator is a function signature for a Track mutator.
+// A Mutator can be used to mutate a track at recording or replaying time.
+type Mutator func(*Track)
 
 // On accepts a mutator only when the predicate is true.
-func (tm TrackMutator) On(predicate func(trk *track.Track) bool) TrackMutator {
-	return func(trk *track.Track) {
+func (tm Mutator) On(predicate func(trk *Track) bool) Mutator {
+	return func(trk *Track) {
 		if trk != nil && predicate(trk) {
 			tm(trk)
 		}
@@ -20,18 +18,18 @@ func (tm TrackMutator) On(predicate func(trk *track.Track) bool) TrackMutator {
 }
 
 // OnErr accepts a mutator only when an (HTTP/net) error occurred.
-func (tm TrackMutator) OnErr() TrackMutator {
+func (tm Mutator) OnErr() Mutator {
 	return tm.On(
-		func(trk *track.Track) bool {
+		func(trk *Track) bool {
 			return trk.ErrType != "" || trk.ErrMsg != ""
 		},
 	)
 }
 
 // OnNoErr accepts a mutator only when no (HTTP/net) error occurred.
-func (tm TrackMutator) OnNoErr() TrackMutator {
+func (tm Mutator) OnNoErr() Mutator {
 	return tm.On(
-		func(trk *track.Track) bool {
+		func(trk *Track) bool {
 			return trk.ErrType == "" && trk.ErrMsg == ""
 		},
 	)
@@ -39,9 +37,9 @@ func (tm TrackMutator) OnNoErr() TrackMutator {
 
 // OnRequestMethod accepts a mutator only when the request method matches one of the specified methods.
 // Methods are defined in Go's http package, e.g. http.MethodGet, ...
-func (tm TrackMutator) OnRequestMethod(methods ...string) TrackMutator {
+func (tm Mutator) OnRequestMethod(methods ...string) Mutator {
 	return tm.On(
-		func(trk *track.Track) bool {
+		func(trk *Track) bool {
 			for _, m := range methods {
 				if m == trk.Request.Method {
 					return true
@@ -53,23 +51,23 @@ func (tm TrackMutator) OnRequestMethod(methods ...string) TrackMutator {
 }
 
 // OnRequestPath accepts a mutator only when the request URL matches the specified path.
-func (tm TrackMutator) OnRequestPath(pathRegEx string) TrackMutator {
+func (tm Mutator) OnRequestPath(pathRegEx string) Mutator {
 	if pathRegEx == "" {
 		pathRegEx = ".*"
 	}
 	re := regexp.MustCompile(pathRegEx)
 
 	return tm.On(
-		func(trk *track.Track) bool {
+		func(trk *Track) bool {
 			return re.MatchString(trk.Request.URL.String())
 		},
 	)
 }
 
 // OnStatus accepts a mutator only when the response status matches one of the supplied statuses.
-func (tm TrackMutator) OnStatus(statuses ...int) TrackMutator {
+func (tm Mutator) OnStatus(statuses ...int) Mutator {
 	return tm.On(
-		func(trk *track.Track) bool {
+		func(trk *Track) bool {
 			for _, s := range statuses {
 				if trk.Response.StatusCode == s {
 					return true
@@ -82,9 +80,9 @@ func (tm TrackMutator) OnStatus(statuses ...int) TrackMutator {
 
 // OnStatusCode accepts a mutator only when the response status matches one of the supplied statuses.
 // Status codes are defined in Go's http package, e.g. http.StatusOK, ...
-func (tm TrackMutator) OnStatusCode(statuses ...int) TrackMutator {
+func (tm Mutator) OnStatusCode(statuses ...int) Mutator {
 	return tm.On(
-		func(trk *track.Track) bool {
+		func(trk *Track) bool {
 			for _, s := range statuses {
 				if trk.Response.StatusCode == s {
 					return true
@@ -96,8 +94,8 @@ func (tm TrackMutator) OnStatusCode(statuses ...int) TrackMutator {
 }
 
 // RequestAddHeaderValue adds or overwrites a header key / value to the request.
-func RequestAddHeaderValue(key, value string) TrackMutator {
-	return func(trk *track.Track) {
+func RequestAddHeaderValue(key, value string) Mutator {
+	return func(trk *Track) {
 		if trk != nil {
 			trk.Request.Header.Add(key, value)
 		}
@@ -105,8 +103,8 @@ func RequestAddHeaderValue(key, value string) TrackMutator {
 }
 
 // RequestDeleteHeaderKeys deletes one or more header keys from the request.
-func RequestDeleteHeaderKeys(keys ...string) TrackMutator {
-	return func(trk *track.Track) {
+func RequestDeleteHeaderKeys(keys ...string) Mutator {
+	return func(trk *Track) {
 		if trk != nil {
 			for _, key := range keys {
 				trk.Request.Header.Del(key)
@@ -116,8 +114,8 @@ func RequestDeleteHeaderKeys(keys ...string) TrackMutator {
 }
 
 // ResponseAddHeaderValue adds or overwrites a header key / value to the response.
-func ResponseAddHeaderValue(key, value string) TrackMutator {
-	return func(trk *track.Track) {
+func ResponseAddHeaderValue(key, value string) Mutator {
+	return func(trk *Track) {
 		if trk != nil {
 			trk.Response.Header.Add(key, value)
 		}
@@ -125,8 +123,8 @@ func ResponseAddHeaderValue(key, value string) TrackMutator {
 }
 
 // ResponseDeleteHeaderKeys deletes one or more header keys from the response.
-func ResponseDeleteHeaderKeys(keys ...string) TrackMutator {
-	return func(trk *track.Track) {
+func ResponseDeleteHeaderKeys(keys ...string) Mutator {
+	return func(trk *Track) {
 		if trk != nil {
 			for _, key := range keys {
 				trk.Response.Header.Del(key)
@@ -136,8 +134,8 @@ func ResponseDeleteHeaderKeys(keys ...string) TrackMutator {
 }
 
 // RequestTransferHeaderKeys transfers one or more headers from the response to the request.
-func RequestTransferHeaderKeys(keys ...string) TrackMutator {
-	return func(trk *track.Track) {
+func RequestTransferHeaderKeys(keys ...string) Mutator {
+	return func(trk *Track) {
 		if trk != nil {
 			for _, key := range keys {
 				trk.Request.Header.Add(key, trk.Response.Header.Get(key))
@@ -147,8 +145,8 @@ func RequestTransferHeaderKeys(keys ...string) TrackMutator {
 }
 
 // ResponseTransferHeaderKeys transfers one or more headers from the request to the response.
-func ResponseTransferHeaderKeys(keys ...string) TrackMutator {
-	return func(trk *track.Track) {
+func ResponseTransferHeaderKeys(keys ...string) Mutator {
+	return func(trk *Track) {
 		if trk != nil {
 			for _, key := range keys {
 				trk.Response.Header.Add(key, trk.Request.Header.Get(key))
@@ -158,8 +156,8 @@ func ResponseTransferHeaderKeys(keys ...string) TrackMutator {
 }
 
 // RequestTransferTrailerKeys transfers one or more trailers from the response to the request.
-func RequestTransferTrailerKeys(keys ...string) TrackMutator {
-	return func(trk *track.Track) {
+func RequestTransferTrailerKeys(keys ...string) Mutator {
+	return func(trk *Track) {
 		if trk != nil {
 			for _, key := range keys {
 				trk.Request.Trailer.Add(key, trk.Response.Trailer.Get(key))
@@ -169,8 +167,8 @@ func RequestTransferTrailerKeys(keys ...string) TrackMutator {
 }
 
 // ResponseTransferTrailerKeys transfers one or more trailers from the request to the response.
-func ResponseTransferTrailerKeys(keys ...string) TrackMutator {
-	return func(trk *track.Track) {
+func ResponseTransferTrailerKeys(keys ...string) Mutator {
+	return func(trk *Track) {
 		if trk != nil {
 			for _, key := range keys {
 				trk.Response.Trailer.Add(key, trk.Request.Trailer.Get(key))
@@ -181,8 +179,8 @@ func ResponseTransferTrailerKeys(keys ...string) TrackMutator {
 
 // RequestChangeBody allows to change the body of the request.
 // Supply a function that does input to output transformation.
-func RequestChangeBody(fn func(b []byte) []byte) TrackMutator {
-	return func(trk *track.Track) {
+func RequestChangeBody(fn func(b []byte) []byte) Mutator {
+	return func(trk *Track) {
 		if trk != nil {
 			trk.Request.Body = fn(trk.Request.Body)
 		}
@@ -191,25 +189,25 @@ func RequestChangeBody(fn func(b []byte) []byte) TrackMutator {
 
 // ResponseChangeBody allows to change the body of the response.
 // Supply a function that does input to output transformation.
-func ResponseChangeBody(fn func(b []byte) []byte) TrackMutator {
-	return func(trk *track.Track) {
+func ResponseChangeBody(fn func(b []byte) []byte) Mutator {
+	return func(trk *Track) {
 		if trk != nil {
 			trk.Response.Body = fn(trk.Response.Body)
 		}
 	}
 }
 
-// TrackMutators is a collection of TrackMutator's.
-type TrackMutators []TrackMutator
+// Mutators is a collection of Track Mutator's.
+type Mutators []Mutator
 
 // Add a set of TrackMutator's to this TrackMutators collection.
-func (tms TrackMutators) Add(mutators ...TrackMutator) TrackMutators {
+func (tms Mutators) Add(mutators ...Mutator) Mutators {
 	return append(tms, mutators...)
 }
 
-// Mutate applies all mutators in this TrackMutators collection to the specified track.
-func (tms TrackMutators) Mutate(t *track.Track) {
+// Mutate applies all mutators in this Mutators collection to the specified Track.
+func (tms Mutators) Mutate(trk *Track) {
 	for _, tm := range tms {
-		tm(t)
+		tm(trk)
 	}
 }

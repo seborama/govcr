@@ -44,7 +44,7 @@ func (suite *GoVCRWBTestSuite) SetupTest() {
 	// example mutator, mutation is not too intrusive to allow replaying correctly.
 	// for instance, when an Err is injected, the response is set to nil on replay, as per
 	// go's HTTP client design.
-	aTrackMutator := TrackMutator(
+	trackMutator := track.Mutator(
 		func(trk *track.Track) {
 			q := trk.Request.URL.Query()
 			q.Set("mutated_query_key", "this_query_key_has_been_mutated")
@@ -53,7 +53,7 @@ func (suite *GoVCRWBTestSuite) SetupTest() {
 			trk.Response.Header.Add("TrackRecordingMutatorHeader", "headers have been mutated")
 		})
 
-	suite.vcr = NewVCR(WithClient(testServerClient), WithTrackRecordingMutators(aTrackMutator))
+	suite.vcr = NewVCR(WithClient(testServerClient), WithTrackRecordingMutators(trackMutator))
 	suite.cassetteName = "govcr-fixtures/TestRoundTrip_SavesMutatedCassetteTracks.cassette"
 	_ = os.Remove(suite.cassetteName)
 }
@@ -63,13 +63,13 @@ func (suite *GoVCRWBTestSuite) TearDownTest() {
 }
 
 func (suite *GoVCRWBTestSuite) TestRoundTrip_DoesNotChangeLiveRequestOrResponse() {
-	panic("implement me")
+	suite.Fail("implement me")
 	// TODO: create a VCR with WithTrackRecordingMutators and WithTrackReplayingMutators
 	//       and confirm that both the live request and response remain un-mutated.
 }
 
 func (suite *GoVCRWBTestSuite) TestRoundTrip_WithRecordingAndReplayingMutations() {
-	panic("implement me")
+	suite.Fail("implement me")
 	// TODO: create a VCR with WithTrackReplayingMutators
 	//       and confirm that the replayed request and response are mutated correctly.
 }

@@ -44,16 +44,16 @@ func (rm *DefaultRequestMatcher) Match(httpRequest *track.Request, trackRequest 
 // when creating a new DefaultRequestMatcher.
 type DefaultRequestMatcherOptions func(*DefaultRequestMatcher)
 
-// WithRequestMatcher is an option that can be used when creating a new
-// DefaultRequestMatcherOptions to add a request matcher to it.
-func WithRequestMatcher(m RequestMatcherFunc) DefaultRequestMatcherOptions {
+// WithRequestMatcherFunc is an option that can be used when creating
+// a new DefaultRequestMatcherOptions to add a RequestMatcherFunc to it.
+func WithRequestMatcherFunc(m RequestMatcherFunc) DefaultRequestMatcherOptions {
 	return func(rm *DefaultRequestMatcher) {
 		rm.matchers = append(rm.matchers, m)
 	}
 }
 
 // NewDefaultRequestMatcher creates a new default implementation of RequestMatcher.
-func NewDefaultRequestMatcher(options ...DefaultRequestMatcherOptions) RequestMatcher {
+func NewDefaultRequestMatcher(options ...DefaultRequestMatcherOptions) *DefaultRequestMatcher {
 	drm := DefaultRequestMatcher{
 		matchers: []RequestMatcherFunc{
 			DefaultHeaderMatcher,
@@ -72,7 +72,7 @@ func NewDefaultRequestMatcher(options ...DefaultRequestMatcherOptions) RequestMa
 }
 
 // NewMethodURLRequestMatcher creates a new implementation of RequestMatcher based on Method and URL.
-func NewMethodURLRequestMatcher(options ...DefaultRequestMatcherOptions) RequestMatcher {
+func NewMethodURLRequestMatcher(options ...DefaultRequestMatcherOptions) *DefaultRequestMatcher {
 	drm := DefaultRequestMatcher{
 		matchers: []RequestMatcherFunc{
 			DefaultMethodMatcher,

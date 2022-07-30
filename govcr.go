@@ -20,12 +20,18 @@ func NewVCR(settings ...Setting) *ControlPanel {
 		vcrSettings.client.Transport = http.DefaultTransport
 	}
 
+	// use a default RequestMatcher if none provided
+	if vcrSettings.requestMatcher == nil {
+		vcrSettings.requestMatcher = NewDefaultRequestMatcher()
+	}
+
 	// create VCR's HTTP client
 	vcrClient := &http.Client{
 		Transport: &vcrTransport{
-			pcb: &pcb{
-				requestMatcher:         NewDefaultRequestMatcher(),
+			pcb: &PrintedCircuitBoard{
+				requestMatcher:         vcrSettings.requestMatcher,
 				trackRecordingMutators: vcrSettings.trackRecordingMutators,
+				trackReplayingMutators: vcrSettings.trackReplayingMutators,
 			},
 			cassette:  vcrSettings.cassette,
 			transport: vcrSettings.client.Transport,

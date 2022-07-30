@@ -7,34 +7,40 @@ import (
 	"github.com/seborama/govcr/v5/cassette/track"
 )
 
-// pcb stands for Printed Circuit Board. It is a structure that holds some
-// facilities that are passed to the VCR machine to influence its internal
-// behaviour.
-type pcb struct {
-	requestMatcher         RequestMatcher
-	trackRecordingMutators TrackMutators
+// PrintedCircuitBoard is a structure that holds some facilities that are passed to
+// the VCR machine to influence its internal behaviour.
+type PrintedCircuitBoard struct {
+	requestMatcher RequestMatcher
+
+	// These mutators are applied before saving a track to a cassette.
+	trackRecordingMutators track.Mutators
+
+	// Replaying happens AFTER the request has been matched. As such, while the track's Request
+	// could be mutated, it will have no effect.
+	// However, the Request data can be referenced as part of mutating the Response.
+	trackReplayingMutators track.Mutators
 }
 
-func (pcbr *pcb) seekTrack(k7 *cassette.Cassette, httpRequest *http.Request) (*http.Response, error) {
+func (pcb *PrintedCircuitBoard) seekTrack(k7 *cassette.Cassette, httpRequest *http.Request) (*http.Response, error) {
 	request := track.FromHTTPRequest(httpRequest)
 
 	numberOfTracksInCassette := k7.NumberOfTracks()
 	for trackNumber := int32(0); trackNumber < numberOfTracksInCassette; trackNumber++ {
-		if pcbr.trackMatches(k7, trackNumber, request) {
-			return pcbr.replayResponse(k7, trackNumber, httpRequest)
+		if pcb.trackMatches(k7, trackNumber, request) {
+			return pcb.replayResponse(k7, trackNumber, httpRequest)
 		}
 	}
 	return nil, nil
 }
 
-func (pcbr *pcb) trackMatches(k7 *cassette.Cassette, trackNumber int32, request *track.Request) bool {
+func (pcb *PrintedCircuitBoard) trackMatches(k7 *cassette.Cassette, trackNumber int32, request *track.Request) bool {
 	t := k7.Track(trackNumber)
 
 	return !t.IsReplayed() &&
-		pcbr.requestMatcher.Match(request, t.GetRequest())
+		pcb.requestMatcher.Match(request, t.GetRequest())
 }
 
-func (pcbr *pcb) replayResponse(k7 *cassette.Cassette, trackNumber int32, httpRequest *http.Request) (*http.Response, error) {
+func (pcb *PrintedCircuitBoard) replayResponse(k7 *cassette.Cassette, trackNumber int32, httpRequest *http.Request) (*http.Response, error) {
 	replayedResponse, err := k7.ReplayResponse(trackNumber)
 
 	var httpResponse *http.Response
@@ -49,17 +55,27 @@ func (pcbr *pcb) replayResponse(k7 *cassette.Cassette, trackNumber int32, httpRe
 	return httpResponse, err
 }
 
-func (pcbr *pcb) mutateTrack(t *track.Track) {
-	pcbr.trackRecordingMutators.Mutate(t)
+func (pcb *PrintedCircuitBoard) mutateTrackRecording(t *track.Track) {
+	pcb.trackRecordingMutators.Mutate(t)
 }
 
 // AddRecordingMutators adds a collection of recording TrackMutator's.
-func (pcbr *pcb) AddRecordingMutators(mutators ...TrackMutator) {
-	pcbr.trackRecordingMutators = pcbr.trackRecordingMutators.Add(mutators...)
+func (pcb *PrintedCircuitBoard) AddRecordingMutators(mutators ...track.Mutator) {
+	pcb.trackRecordingMutators = pcb.trackRecordingMutators.Add(mutators...)
+}
+
+// AddReplayingMutators adds a collection of replaying TrackMutator's.
+// Replaying happens AFTER the request has been matched. As such, while the track's Request
+// could be mutated, it will have no effect.
+// However, the Request data can be referenced as part of mutating the Response.
+func (pcb *PrintedCircuitBoard) AddReplayingMutators(mutators ...track.Mutator) {
+	pcb.trackReplayingMutators = pcb.trackReplayingMutators.Add(mutators...)
 }
 
 // RequestMatcher is an interface that exposes the method to perform request comparison.
 // request comparison involves the HTTP request and the track request recorded on cassette.
+// TODO: there could be a case to have RequestMatchers (plural) that would work akin to track.Mutators.
+//       I.e. they could be chained and conditional.
 type RequestMatcher interface {
 	Match(httpRequest *track.Request, trackRequest *track.Request) bool
 }

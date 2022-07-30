@@ -3,6 +3,7 @@ package govcr
 import (
 	"net/http"
 
+	"github.com/seborama/govcr/v5/cassette/track"
 	"github.com/seborama/govcr/v5/stats"
 )
 
@@ -23,9 +24,17 @@ func (controlPanel *ControlPanel) LoadCassette(cassetteName string) error {
 	return controlPanel.vcrTransport().loadCassette(cassetteName)
 }
 
-// AddRecordingMutators adds a set of recording TrackMutator's to the VCR.
-func (controlPanel *ControlPanel) AddRecordingMutators(trackMutators ...TrackMutator) {
+// AddRecordingMutators adds a set of recording Track Mutator's to the VCR.
+func (controlPanel *ControlPanel) AddRecordingMutators(trackMutators ...track.Mutator) {
 	controlPanel.vcrTransport().AddRecordingMutators(trackMutators...)
+}
+
+// AddReplayingMutators adds a set of replaying Track Mutator's to the VCR.
+// Replaying happens AFTER the request has been matched. As such, while the track's Request
+// could be mutated, it will have no effect.
+// However, the Request data can be referenced as part of mutating the Response.
+func (controlPanel *ControlPanel) AddReplayingMutators(trackMutators ...track.Mutator) {
+	controlPanel.vcrTransport().AddReplayingMutators(trackMutators...)
 }
 
 // Player returns the http.Client that contains the VCR.

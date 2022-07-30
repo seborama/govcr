@@ -1,4 +1,4 @@
-package govcr_test
+package track_test
 
 import (
 	"errors"
@@ -6,12 +6,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/seborama/govcr/v5"
 	"github.com/seborama/govcr/v5/cassette/track"
 )
 
-func Test_TrackMutator_OnNoErr_WhenNoErr(t *testing.T) {
-	aMutator := govcr.TrackMutator(
+func Test_Mutator_OnNoErr_WhenNoErr(t *testing.T) {
+	aMutator := track.Mutator(
 		func(t *track.Track) {
 			t.Request.Method = t.Request.Method + " has been mutated"
 			t.Response.Status = t.Response.Status + " has been mutated"
@@ -33,8 +32,8 @@ func Test_TrackMutator_OnNoErr_WhenNoErr(t *testing.T) {
 	require.EqualValues(t, "ErrMsg was mutated", aTrack.ErrMsg)
 }
 
-func Test_TrackMutator_OnNoErr_WhenErr(t *testing.T) {
-	aMutator := govcr.TrackMutator(
+func Test_Mutator_OnNoErr_WhenErr(t *testing.T) {
+	aMutator := track.Mutator(
 		func(t *track.Track) {
 			t.Request.Method = t.Request.Method + " has been mutated"
 			t.Response.Status = t.Response.Status + " has been mutated"
@@ -56,8 +55,8 @@ func Test_TrackMutator_OnNoErr_WhenErr(t *testing.T) {
 	require.EqualValues(t, "an error", aTrack.ErrMsg)
 }
 
-func Test_TrackMutator_OnErr_WhenErr(t *testing.T) {
-	errorMutator := govcr.TrackMutator(
+func Test_Mutator_OnErr_WhenErr(t *testing.T) {
+	errorMutator := track.Mutator(
 		func(t *track.Track) {
 			t.Request.Method = t.Request.Method + " has been mutated"
 			t.Response.Status = t.Response.Status + " has been mutated"
@@ -79,8 +78,8 @@ func Test_TrackMutator_OnErr_WhenErr(t *testing.T) {
 	require.EqualValues(t, "ErrMsg was mutated", aTrack.ErrMsg)
 }
 
-func Test_TrackMutator_OnErr_WhenNoErr(t *testing.T) {
-	errorMutator := govcr.TrackMutator(
+func Test_Mutator_OnErr_WhenNoErr(t *testing.T) {
+	errorMutator := track.Mutator(
 		func(t *track.Track) {
 			t.Request.Method = t.Request.Method + " has been mutated"
 			t.Response.Status = t.Response.Status + " has been mutated"

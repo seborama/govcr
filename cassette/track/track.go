@@ -52,6 +52,9 @@ func (t *Track) GetRequest() *Request {
 }
 
 // GetResponse returns the HTTP Response object of this track.
+// The error returned is that which was recorded on the track at recording time.
+// TODO: disambiguation: it would be clearer to define an Error type to return here instead
+//       of the Go error which seems to imply a runtime error with govcr.
 func (t *Track) GetResponse() (*Response, error) {
 	var err error
 

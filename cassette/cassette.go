@@ -84,7 +84,7 @@ func (k7 *Cassette) NumberOfTracks() int32 {
 // ReplayResponse of the specified track number, as recorded on cassette.
 func (k7 *Cassette) ReplayResponse(trackNumber int32) (*track.Response, error) {
 	if trackNumber >= k7.NumberOfTracks() {
-		return nil, fmt.Errorf("invalid track number %d (only %d available)", trackNumber, k7.NumberOfTracks())
+		return nil, fmt.Errorf("invalid track number %d (only %d available) (track #0 stands for first track)", trackNumber, k7.NumberOfTracks())
 	}
 
 	k7.trackSliceMutex.Lock()
