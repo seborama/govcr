@@ -30,6 +30,16 @@ type DefaultRequestMatcher struct {
 	matchers []RequestMatcherFunc
 }
 
+// Match is the default implementation of RequestMatcher.
+func (rm *DefaultRequestMatcher) Match(httpRequest *track.Request, trackRequest *track.Request) bool {
+	for _, matcher := range rm.matchers {
+		if !matcher(httpRequest, trackRequest) {
+			return false
+		}
+	}
+	return true
+}
+
 // DefaultRequestMatcherOptions defines a signature to provide options
 // when creating a new DefaultRequestMatcher.
 type DefaultRequestMatcherOptions func(*DefaultRequestMatcher)
@@ -61,14 +71,20 @@ func NewDefaultRequestMatcher(options ...DefaultRequestMatcherOptions) RequestMa
 	return &drm
 }
 
-// Match is the default implementation of RequestMatcher.
-func (rm *DefaultRequestMatcher) Match(httpRequest *track.Request, trackRequest *track.Request) bool {
-	for _, matcher := range rm.matchers {
-		if !matcher(httpRequest, trackRequest) {
-			return false
-		}
+// NewMethodURLRequestMatcher creates a new implementation of RequestMatcher based on Method and URL.
+func NewMethodURLRequestMatcher(options ...DefaultRequestMatcherOptions) RequestMatcher {
+	drm := DefaultRequestMatcher{
+		matchers: []RequestMatcherFunc{
+			DefaultMethodMatcher,
+			DefaultURLMatcher,
+		},
 	}
-	return true
+
+	for _, option := range options {
+		option(&drm)
+	}
+
+	return &drm
 }
 
 // DefaultHeaderMatcher is the default implementation of HeaderMatcher.
