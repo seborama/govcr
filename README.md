@@ -2,11 +2,17 @@
 
 **A Word Of Warning About v5**
 
-I'm in the process of partly rewriting **govcr** to offer better support for cassette mutations. This is necessary because when I first designed **govcr**, I wanted cassettes to be immutable as much as golang can achieve this. Since then, I have received requests to permit cassette mutations at recording time.
+v5 is a partial re-write of **govcr** to offer better support for cassette mutations. This is necessary because when I first designed **govcr**, I wanted cassettes to be immutable as much as golang can achieve this. Since then, I have received requests to permit cassette mutations at recording time.
 
-The `master` branch is now pointing at an alpha release of **govcr** `v5` that will bring breaking changes for those who are using **govcr** v4 or older. In exchange for the inconvenience, it will bring new features and a refreshed code base for future enhancements.
+`v5` brings breaking changes for those who are using **govcr** v4 or older. In exchange for the inconvenience, it will bring new features and a refreshed code base for future enhancements.
 
-If you're happy with **govcr** as it is, use a dependency manager to lock the version of **govcr** you wish to use (perhaps v4)!
+If you're happy with **govcr** as it is, use a dependency manager to lock the version of **govcr** you wish to use (perhaps v4)! Note that only v5 and above use `go.mod`. To download a previous version you can use this trick:
+
+```bash
+# download legacy version of govcr (without go.mod)
+go get gopkg.in/seborama/govcr.v4
+```
+
 
 **End Of: A Word Of Warning**
 
@@ -19,21 +25,15 @@ This project is an adaptation for Google's Go / Golang programming language.
 ## Install
 
 ```bash
-go get github.com/seborama/govcr
+go get github.com/seborama/govcr/v5@latest
 ```
 
 For all available releases, please check the [releases](https://github.com/seborama/govcr/releases) tab on github.
 
-You can pick a specific major release for compatibility. For example, to use a v4.x release, use this command:
-
-```bash
-go get gopkg.in/seborama/govcr.v4
-```
-
 And your source code would use this import:
 
 ```go
-import "gopkg.in/seborama/govcr.v4"
+import "github.com/seborama/govcr/v5"
 ```
 
 ## Glossary of Terms
@@ -49,6 +49,8 @@ import "gopkg.in/seborama/govcr.v4"
 **PCB**: Printed Circuit Board. This is an analogy that refers to the ability to supply customisations to some aspects of the behaviour of the **VCR** (for instance, disable recordings or ignore certain HTTP headers in the request when looking for a previously recorded **track**).
 
 ## Documentation
+
+# THE DOC IS OUTDATED BELOW THIS POINT - AWAITING REFRESH - CHECK THE TESTS FOR UP-TO-DATE INFO
 
 **govcr** is a wrapper around the Go `http.Client` which offers the ability to replay pre-recorded HTTP requests ('**tracks**') instead of live HTTP calls.
 
