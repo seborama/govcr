@@ -20,21 +20,21 @@ import (
 
 func TestNewVCR(t *testing.T) {
 	unit := govcr.NewVCR()
-	assert.NotNil(t, unit.Player())
+	assert.NotNil(t, unit.HTTPClient())
 }
 
 func TestVCRControlPanel_LoadCassette_NewCassette(t *testing.T) {
 	unit := govcr.NewVCR()
-	err := unit.LoadCassette("govcr-fixtures/my.cassette")
+	err := unit.LoadCassette("temp-fixtures/my.cassette.json")
 	assert.NoError(t, err)
 }
 
 func TestVCRControlPanel_LoadCassette_WhenOneIsAlreadyLoaded(t *testing.T) {
 	unit := govcr.NewVCR()
-	err := unit.LoadCassette("govcr-fixtures/my.cassette")
+	err := unit.LoadCassette("temp-fixtures/my.cassette.json")
 	assert.NoError(t, err)
 
-	err = unit.LoadCassette("govcr-fixtures/my-other.cassette")
+	err = unit.LoadCassette("temp-fixtures/my-other.cassette.json")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "already loaded")
 }
@@ -43,60 +43,64 @@ func TestVCRControlPanel_LoadCassette_InvalidCassette(t *testing.T) {
 	unit := govcr.NewVCR()
 	assert.PanicsWithValue(
 		t,
-		"unable to load corrupted cassette 'test-fixtures/bad.cassette': failed to interpret cassette data in file: invalid character 'T' looking for beginning of value",
+		"unable to load corrupted cassette 'test-fixtures/bad.cassette.json': failed to interpret cassette data in file: invalid character 'T' looking for beginning of value",
 		func() {
-			_ = unit.LoadCassette("test-fixtures/bad.cassette")
+			_ = unit.LoadCassette("test-fixtures/bad.cassette.json")
 		})
 }
 
 func TestVCRControlPanel_LoadCassette_ValidSimpleLongPlayCassette(t *testing.T) {
 	unit := govcr.NewVCR()
-	err := unit.LoadCassette("test-fixtures/good_zipped_one_track.cassette.gz")
+	err := unit.LoadCassette("test-fixtures/good_zipped_one_track.cassette.json.gz")
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, unit.NumberOfTracks())
 }
 
 func TestVCRControlPanel_LoadCassette_ValidSimpleShortPlayCassette(t *testing.T) {
 	unit := govcr.NewVCR()
-	err := unit.LoadCassette("test-fixtures/good_one_track.cassette")
+	err := unit.LoadCassette("test-fixtures/good_one_track.cassette.json")
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, unit.NumberOfTracks())
 }
 
 func TestVCRControlPanel_LoadCassette_UnreadableCassette(t *testing.T) {
-	removeUnreadableCassette(t)
-	createUnreadableCassette(t)
+	const cassetteName = "test-fixtures/unreadable.cassette.json"
+
+	removeUnreadableCassette(t, cassetteName)
+	createUnreadableCassette(t, cassetteName)
 
 	unit := govcr.NewVCR()
 	assert.PanicsWithValue(
 		t,
-		"unable to load corrupted cassette 'test-fixtures/unreadable.cassette': failed to read cassette data from file: open test-fixtures/unreadable.cassette: permission denied",
+		"unable to load corrupted cassette '"+cassetteName+"': failed to read cassette data from file: open "+cassetteName+": permission denied",
 		func() {
-			_ = unit.LoadCassette("test-fixtures/unreadable.cassette")
+			_ = unit.LoadCassette(cassetteName)
 		})
 
-	removeUnreadableCassette(t)
+	removeUnreadableCassette(t, cassetteName)
 }
 
-func createUnreadableCassette(t *testing.T) {
-	err := ioutil.WriteFile("test-fixtures/unreadable.cassette", nil, 0111)
+func createUnreadableCassette(t *testing.T, name string) {
+	t.Helper()
+	err := ioutil.WriteFile(name, nil, 0111)
 	require.NoError(t, err)
 }
 
-func removeUnreadableCassette(t *testing.T) {
-	err := os.Chmod("test-fixtures/unreadable.cassette", 0711)
+func removeUnreadableCassette(t *testing.T, name string) {
+	t.Helper()
+	err := os.Chmod(name, 0711)
 	if os.IsNotExist(err) {
 		return
 	}
 	require.NoError(t, err)
 
-	err = os.Remove("test-fixtures/unreadable.cassette")
+	err = os.Remove(name)
 	require.NoError(t, err)
 }
 
 func TestVCRControlPanel_Player(t *testing.T) {
 	vcr := govcr.NewVCR()
-	unit := vcr.Player()
+	unit := vcr.HTTPClient()
 	assert.IsType(t, (*http.Client)(nil), unit)
 }
 
@@ -128,7 +132,7 @@ func (suite *GoVCRTestSuite) SetupTest() {
 	testServerClient := suite.testServer.Client()
 	testServerClient.Timeout = 3 * time.Second
 	suite.vcr = govcr.NewVCR(govcr.WithClient(testServerClient))
-	suite.cassetteName = "test-fixtures/TestRecordsTrack.cassette"
+	suite.cassetteName = "test-fixtures/TestRecordsTrack.cassette.json"
 	_ = os.Remove(suite.cassetteName)
 }
 
@@ -175,18 +179,17 @@ func (suite *GoVCRTestSuite) TestRoundTrip_ReplaysError() {
 			err := suite.vcr.LoadCassette(cassetteName)
 			suite.Require().NoError(err)
 
-			resp, err := suite.vcr.Player().Get(tc.reqURL)
+			resp, err := suite.vcr.HTTPClient().Get(tc.reqURL)
 			suite.Require().Error(err)
 			suite.EqualError(err, tc.wantErr)
 			suite.Require().Nil(resp)
-
-			suite.EqualValues(1, suite.vcr.NumberOfTracks())
 
 			actualStats := *suite.vcr.Stats()
 			suite.vcr.EjectCassette()
 			suite.EqualValues(0, suite.vcr.NumberOfTracks())
 
 			expectedStats := stats.Stats{
+				TotalTracks:    1,
 				TracksLoaded:   0,
 				TracksRecorded: 1,
 				TracksPlayed:   0,
@@ -199,18 +202,17 @@ func (suite *GoVCRTestSuite) TestRoundTrip_ReplaysError() {
 			suite.Require().NoError(err)
 			suite.EqualValues(1, suite.vcr.NumberOfTracks())
 
-			resp, err = suite.vcr.Player().Get(tc.reqURL)
+			resp, err = suite.vcr.HTTPClient().Get(tc.reqURL)
 			suite.Require().Error(err)
 			suite.EqualError(err, tc.wantVCRErr)
 			suite.Require().Nil(resp)
-
-			suite.EqualValues(1, suite.vcr.NumberOfTracks())
 
 			actualStats = *suite.vcr.Stats()
 			suite.vcr.EjectCassette()
 			suite.EqualValues(0, suite.vcr.NumberOfTracks())
 
 			expectedStats = stats.Stats{
+				TotalTracks:    1,
 				TracksLoaded:   1,
 				TracksRecorded: 0,
 				TracksPlayed:   1,
@@ -222,36 +224,53 @@ func (suite *GoVCRTestSuite) TestRoundTrip_ReplaysError() {
 
 func (suite *GoVCRTestSuite) TestRoundTrip_ReplaysPlainResponse() {
 	// 1st execution of set of calls
-	actualStats := suite.makeHTTPCalls_WithSuccess()
+	err := suite.vcr.LoadCassette(suite.cassetteName)
+	suite.Require().NoError(err)
+
+	actualStats := suite.makeHTTPCalls_WithSuccess(0)
 	expectedStats := stats.Stats{
+		TotalTracks:    2,
 		TracksLoaded:   0,
 		TracksRecorded: 2,
 		TracksPlayed:   0,
 	}
 	suite.EqualValues(expectedStats, actualStats)
 	suite.Require().FileExists(suite.cassetteName)
+	suite.vcr.EjectCassette()
 
-	// 2nd execution of set of calls (replayed)
-	actualStats = suite.makeHTTPCalls_WithSuccess()
+	// 2nd execution of set of calls (replayed with cassette reload)
+	err = suite.vcr.LoadCassette(suite.cassetteName)
+	suite.Require().NoError(err)
+
+	actualStats = suite.makeHTTPCalls_WithSuccess(0)
 	expectedStats = stats.Stats{
+		TotalTracks:    2,
 		TracksLoaded:   2,
 		TracksRecorded: 0,
 		TracksPlayed:   2,
 	}
 	suite.EqualValues(expectedStats, actualStats)
+
+	// 3rd execution of set of calls (replayed without cassette reload)
+	actualStats = suite.makeHTTPCalls_WithSuccess(int(expectedStats.TotalTracks))
+	expectedStats = stats.Stats{
+		TotalTracks:    4,
+		TracksLoaded:   2,
+		TracksRecorded: 2,
+		TracksPlayed:   2,
+	}
+	suite.EqualValues(expectedStats, actualStats)
+	suite.vcr.EjectCassette()
 }
 
-func (suite *GoVCRTestSuite) makeHTTPCalls_WithSuccess() stats.Stats {
-	err := suite.vcr.LoadCassette(suite.cassetteName)
-	suite.Require().NoError(err)
-
+func (suite *GoVCRTestSuite) makeHTTPCalls_WithSuccess(serverCurrentCount int) stats.Stats {
 	for i := 1; i <= 2; i++ {
 		req, err := http.NewRequest(http.MethodGet, suite.testServer.URL+fmt.Sprintf("?i=%d", i), nil)
 		suite.Require().NoError(err)
 		req.Header.Add("header", "value")
 		req.SetBasicAuth("not_a_username", "not_a_password")
 
-		resp, err := suite.vcr.Player().Do(req)
+		resp, err := suite.vcr.HTTPClient().Do(req)
 		suite.Require().NoError(err)
 
 		suite.Equal(http.StatusOK, resp.StatusCode)
@@ -263,17 +282,14 @@ func (suite *GoVCRTestSuite) makeHTTPCalls_WithSuccess() stats.Stats {
 		bodyBytes, err := ioutil.ReadAll(resp.Body)
 		suite.Require().NoError(err)
 		_ = resp.Body.Close()
-		suite.Equal(fmt.Sprintf("Hello, server responds '%d' to query '%d'", i, i), string(bodyBytes))
+		suite.Equal(fmt.Sprintf("Hello, server responds '%d' to query '%d'", serverCurrentCount+i, i), string(bodyBytes))
 
-		suite.Equal(int64(38+len(strconv.Itoa(i))), resp.ContentLength)
+		suite.Equal(int64(38+len(strconv.Itoa(serverCurrentCount+i))), resp.ContentLength)
 		suite.NotNil(resp.Request)
 		suite.NotNil(resp.TLS)
 	}
 
-	suite.EqualValues(2, suite.vcr.NumberOfTracks())
-
 	actualStats := *suite.vcr.Stats()
-	suite.vcr.EjectCassette()
 
 	return actualStats
 }

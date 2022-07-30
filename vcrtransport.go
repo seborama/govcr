@@ -22,31 +22,40 @@ type vcrTransport struct {
 }
 
 // RoundTrip is an implementation of http.RoundTripper.
+// Note: by convention resp should be nil if an error occurs with HTTP
 func (t *vcrTransport) RoundTrip(httpRequest *http.Request) (*http.Response, error) {
-	// Note: by convention resp should be nil if an error occurs with HTTP
-	var httpResponse *http.Response
-
 	httpRequestClone := track.CloneHTTPRequest(httpRequest)
-	if response, err := t.pcb.seekTrack(t.cassette, httpRequestClone); response != nil || err != nil {
-		// TODO: two thoughts
-		//     1- err can be set either from a runtime issue or as the track recorded error in the original HTTP request
-		//     2- response is not mutated using pcb.trackReplayingMutators
-		return response, err
+
+	trk, seekErr := t.pcb.seekTrack(t.cassette, httpRequestClone)
+	if seekErr != nil {
+		log.Printf("error retrieving track from cassette, continuing with live request (will not record): %v", seekErr)
+	} else {
+		if trk != nil {
+			t.pcb.mutateTrackReplaying(trk)
+
+			httpResponse := trk.ToHTTPResponse()
+			httpError := trk.ToErr()
+
+			return httpResponse, httpError //nolint: wrapcheck
+		}
 	}
 
 	httpResponse, reqErr := t.transport.RoundTrip(httpRequest)
-	response := track.FromHTTPResponse(httpResponse)
+	if seekErr == nil {
+		// record track only if previously seek cassette
+		trkResponse := track.ToResponse(httpResponse)
+		trkRequest := track.ToRequest(httpRequestClone)
+		newTrack := track.NewTrack(trkRequest, trkResponse, reqErr)
 
-	request := track.FromHTTPRequest(httpRequestClone)
+		t.pcb.mutateTrackRecording(newTrack)
 
-	newTrack := track.NewTrack(request, response, reqErr)
-	t.pcb.mutateTrackRecording(newTrack)
-	if err := cassette.AddTrackToCassette(t.cassette, newTrack); err != nil {
-		// TODO: this should probably be a panic as it's abnormal
-		log.Printf("RoundTrip failed to AddTrackToCassette: %v\n", err)
+		if err := cassette.AddTrackToCassette(t.cassette, newTrack); err != nil {
+			// TODO: this should probably be a panic as it's abnormal
+			log.Printf("RoundTrip failed to AddTrackToCassette: %v", err)
+		}
 	}
 
-	return httpResponse, reqErr
+	return httpResponse, reqErr //nolint: wrapcheck
 }
 
 // NumberOfTracks returns the number of tracks contained in the cassette.

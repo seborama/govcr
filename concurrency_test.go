@@ -20,7 +20,7 @@ import (
 )
 
 func TestConcurrencySafety(t *testing.T) {
-	cassetteName := "TestConcurrencySafety"
+	const cassetteName = "temp-fixtures/TestConcurrencySafety"
 	threadMax := int8(50)
 
 	// create a test server
@@ -41,15 +41,13 @@ func TestConcurrencySafety(t *testing.T) {
 	}))
 
 	testServerClient := ts.Client()
-	testServerClient.Timeout = 3 * time.Second
-
-	fmt.Println("Phase 1 ================================================")
+	testServerClient.Timeout = 5 * time.Second
 
 	_ = os.Remove(cassetteName)
 	defer func() { _ = os.Remove(cassetteName) }()
 
 	vcr := createVCR(cassetteName, testServerClient, false)
-	client := vcr.Player()
+	client := vcr.HTTPClient()
 
 	t.Run("main - phase 1", func(t *testing.T) {
 		// run requests
@@ -59,11 +57,12 @@ func TestConcurrencySafety(t *testing.T) {
 					t.Parallel()
 
 					func() {
-						resp, _ := client.Get(fmt.Sprintf("%s?num=%d", ts.URL, i1))
+						resp, err := client.Get(fmt.Sprintf("%s?num=%d", ts.URL, i1))
+						require.NoError(t, err)
 
 						// check outcome of the request
 						expectedBody := generateBinaryBody(i1)
-						err := validateResponseForTestPlaybackOrder(resp, expectedBody)
+						err = validateResponseForTestPlaybackOrder(resp, expectedBody)
 						require.NoError(t, err)
 					}()
 				})
@@ -71,10 +70,8 @@ func TestConcurrencySafety(t *testing.T) {
 		}
 	})
 
-	// err := vcr.LoadCassette(cassetteName)
-	// require.NoError(t, err)
-	// assert.EqualValues(t, threadMax, vcr.NumberOfTracks())
 	expectedStats := stats.Stats{
+		TotalTracks:    int32(threadMax),
 		TracksLoaded:   0,
 		TracksRecorded: int32(threadMax),
 		TracksPlayed:   0,
@@ -82,14 +79,12 @@ func TestConcurrencySafety(t *testing.T) {
 	require.EqualValues(t, expectedStats, *vcr.Stats())
 	vcr.EjectCassette()
 
-	fmt.Println("Phase 2 - Playback =====================================")
-
 	// re-run request and expect play back from vcr
 	vcr = createVCR(cassetteName, testServerClient, false)
-	client = vcr.Player()
+	client = vcr.HTTPClient()
 
 	// run requests
-	t.Run("main - phase 2", func(t *testing.T) {
+	t.Run("main - phase 2 - playback", func(t *testing.T) {
 		// run requests
 		for i := int8(1); i <= threadMax; i++ {
 			func(i1 int8) {
@@ -111,6 +106,7 @@ func TestConcurrencySafety(t *testing.T) {
 	})
 
 	expectedStats = stats.Stats{
+		TotalTracks:    int32(threadMax),
 		TracksLoaded:   int32(threadMax),
 		TracksRecorded: 0,
 		TracksPlayed:   int32(threadMax),

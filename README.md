@@ -40,7 +40,7 @@ import "github.com/seborama/govcr/v5"
 
 **VCR**: Video Cassette Recorder. In this context, a VCR refers to the overall engine and data that this project provides. A VCR is both an HTTP recorder and player. When you use a VCR, HTTP requests are replayed from previous recordings (**tracks** saved in **cassette** files on the filesystem). When no previous recording exists for the request, it is performed live on the HTTP server the request is intended to, after what it is saved to a **track** on the **cassette**.
 
-**cassette**: a sequential collection of **tracks**. This is in effect a JSON file saved under directory `./govcr-fixtures` (default). The **cassette** is given a name when creating the **VCR** which becomes the filename (with an extension of `.cassette`).
+**cassette**: a sequential collection of **tracks**. This is in effect a JSON file saved under directory `./temp-fixtures` (default). The **cassette** is given a name when creating the **VCR** which becomes the filename (with an extension of `.cassette`).
 
 **Long Play cassette**: a cassette compressed in gzip format. Such cassettes have a name that ends with '`.gz`'.
 
@@ -50,164 +50,96 @@ import "github.com/seborama/govcr/v5"
 
 ## Documentation
 
-# THE DOC IS OUTDATED BELOW THIS POINT - AWAITING REFRESH - CHECK THE TESTS FOR UP-TO-DATE INFO
+**govcr** is a wrapper around the Go `http.Client`. It can record live HTTP traffic to files (called "**cassettes**") and later replay HTTP requests ("**tracks**") from them instead of live HTTP calls.
 
-**govcr** is a wrapper around the Go `http.Client` which offers the ability to replay pre-recorded HTTP requests ('**tracks**') instead of live HTTP calls.
-
-**govcr** can replay both successful and failed HTTP transactions.
-
-The code documentation can be found on [godoc](http://godoc.org/github.com/seborama/govcr).
+The code documentation can be found on [godoc](http://pkg.go.dev/github.com/seborama/govcr).
 
 When using **govcr**'s `http.Client`, the request is matched against the **tracks** on the '**cassette**':
 
 - The **track** is played where a matching one exists on the **cassette**,
-- or the request is executed live to the HTTP server and then recorded on **cassette** for the next time (unless option **`DisableRecording`** is used).
+- otherwise the request is executed live to the HTTP server and then recorded on **cassette** for the next time.
 
-When  multiple matching **tracks** exist for the same request on the **cassette** (this can be crafted manually inside the **cassette** or can be simulated when using **`RequestFilters`**), the **tracks** will be replayed in the same order as they were recorded. See the tests for an example (`TestPlaybackOrder`).
+**Note on govcr typical flow**
 
-When the last request matching **track** has been replayed, **govcr** cycles back to the first **track** again and so on.
+The normal `**govcr**` flow is test-oriented. Traffic is recorded by default unless a track already existed on the cassette **at the time it was loaded**.
 
-**Cassette** recordings are saved under `./govcr-fixtures` (by default) as `*.cassette` files in JSON format. 
+A typical usage:
+- remove the cassette file (if present)
+- run your tests once to produce the cassette
+- from this point forward, when the test runs again, it will use the cassette
+
+During live recording, the same request can be repeated and recorded many times. Playback occurs in the order the requests were saved on the cassette.See the tests for an example (`TestConcurrencySafety`).
+
+**Cassette** recordings are saved in JSON format. 
 
 You can enable **Long Play** mode that will compress the cassette content. This is enabled by using the cassette name suffix `.gz`. The compression used is standard gzip.
 
-It should be noted that the cassette name will be of the form 'MyCassette.gz" in your code but it will appear as "MyCassette.cassette.gz" on the file system. You can use `gzip` to compress and de-compress cassettes at will. See `TestLongPlay()` in `govcr_test.go` for an example usage. After running this test, notice the presence of the file `govcr-fixtures/TestLongPlay.cassette.gz`. You can view its contents in various ways such as with the `gzcat` command.
-
-### VCRConfig
+### VCRSettings
 
 This structure contains parameters for configuring your **govcr** recorder.
 
-#### `VCRConfig.CassettePath` - change the location of **cassette** files
+Settings are populated via `With*` options:
+- Use `WithClient` to provide a custom http.Client otherwise the default Go http.Client will be used.
+- `WithCassette` loads the specified cassette.\
+  Note that it is also possible to call `LoadCassette` from the vcr instance.
+- See `vcrsettings.go` for more options such as `WithRequestMatcher`, `WithTrackRecordingMutators`, `WithTrackReplayingMutators`, ...
+- TODO in v5: `WithDisableRecording` disables track recording (but will replay matching tracks)
+- TODO in v5: `WithLogging` enables logging to help understand what govcr is doing internally.
+- TODO in v5: `WithSaveTLS` enables saving TLS in the track response.\
+  Note: this doesn't work well because of limitations in Go's json package and unspecified `any` in the PublicKey certificate struct.
 
-Example:
+## Match a request to a cassette track
 
-```go
-    vcr := govcr.NewVCR("MyCassette",
-        &govcr.VCRConfig{
-            CassettePath: "./govcr-fixtures",
-        })
-```
+By default, **govcr** uses a strict `RequestMatcher` function that compares the request's headers, method, full URL, body, and trailers.
 
-#### `VCRConfig.DisableRecording` - playback or execute live without recording
+Another RequestMatcher (obtained with `NewMethodURLRequestMatcher`) provides a more relaxed comparison based on just the method and the full URL.
 
-Example:
+In some scenarios, it may not possible to match **tracks** exactly as they were recorded.
 
-```go
-    vcr := govcr.NewVCR("MyCassette",
-        &govcr.VCRConfig{
-            DisableRecording: true,
-        })
-```
+This may be the case when the request contains a timestamp or a dynamically changing identifier, etc.
 
-In this configuration, govcr will still playback from **cassette** when a previously recorded **track** (HTTP interaction) exists or execute the request live if not. But in the latter case, it won't record a new **track** as per default behaviour.
+You can create your own matcher on any part of the request and in any manner (like ignoring or modifying some headers, etc).
 
-#### `VCRConfig.Logging` - disable logging
+## Track mutators
 
-Example:
+The live HTTP request and response traffic is protected against modifications. While *govcr** could easily support in-place mutation of the live traffic, this is not a goal.
 
-```go
-    vcr := govcr.NewVCR("MyCassette",
-        &govcr.VCRConfig{
-            Logging: false,
-        })
-```
+Nonetheless, **govcr** supports mutating tracks, either at recording time or at playback time.
 
-This simply redirects all **govcr** logging to the OS's standard Null device (e.g. `nul` on Windows, or `/dev/null` on UN*X, etc).
+In either case, this is achieved with track `Mutators`.
 
-#### `VCRConfig.RemoveTLS` - disable TLS recording
+A track recording mutator can change both the request and the response that will be persisted to the cassette.
 
-Example:
+A track replaying mutator transforms the track after it was matched and retrieved from the cassette. It does not change the cassette file.
 
-```go
-    vcr := govcr.NewVCR("MyCassette",
-        &govcr.VCRConfig{
-            RemoveTLS: true,
-        })
-```
+While a track replaying mutator could change the request, it serves no purpose since the request has already been made and matched to a track by the time the replaying mutator is invoked. The reason for supplying the request in the replaying mutator is for information. In some situations, the request details are needed to transform the response.
 
-As RemoveTLS is enabled, **govcr** will not record the TLS data from the HTTP response on the cassette track.
-
-## Features
-
-- Record extensive details about the request, response or error (network error, timeout, etc) to provide as accurate a playback as possible compared to the live HTTP request.
-
-- Recordings are JSON files and can be read in an editor.
-
-- Custom Go `http.Client`'s can be supplied.
-
-- Custom Go `http.Transport` / `http.RoundTrippers`.
-
-- http / https supported and any other protocol implemented by the supplied `http.Client`'s `http.RoundTripper`.
-
-- Hook to define HTTP headers that should be ignored from the HTTP request when attempting to retrieve a **track** for playback.
-  This is useful to deal with non-static HTTP headers (for example, containing a timestamp).
-
-- Hook to transform the Header / Body of an HTTP request to deal with non-static data. The purpose is similar to the hook for headers described above but with the ability to modify the data.
-
-- Hook to transform the Header / Body of the HTTP response to deal with non-static data. This is similar to the request hook however, the header / body of the request are also supplied (read-only) to help match data in the response with data in the request (such as a transaction Id).
-
-- Ability to switch off automatic recordings.
-  This allows to play back existing records or make
-  a live HTTP call without recording it to the **cassette**.
-
-- Record SSL certificates.
-
-## Filter functions
-
-In some scenarios, it may not possible to match **tracks** the way they were recorded.
-
-For instance, the request contains a timestamp or a dynamically changing identifier, etc.
-
-In other situations, the response needs a transformation to be receivable.
-
-Building on from the above example, the response may need to provide the same identifier that the request sent.
-
-Filters help you deal with this kind of practical aspects of dynamic exchanges.
-
-Refer to [examples/example6.go](examples/example6.go) for advanced examples.
-
-### Influencing request comparison programatically at runtime.
-
-`RequestFilters` receives the **request** Header / Body to allow their transformation. Both the live request and the recorded request on **track** are filtered in order to influence their comparison (e.g. remove an HTTP header to ignore it completely when matching).
-
-**Transformations are not persisted and only for the purpose of influencing comparison**.
-
-### Runtime transforming of the response before sending it back to the client.
-
-`ResponseFilters` is the flip side of `RequestFilters`. It receives the **response** Header / Body to allow their transformation. Unlike `RequestFilters`, this influences the response returned from the request to the client. The request header is also passed to `ResponseFilter` but read-only and solely for the purpose of extracting request data for situations where it is needed to transform the Response (such as to retrieve an identifier that must be the same in the request and the response).
+Refer to the tests for examples (search for `WithTrackRecordingMutators` and `WithTrackReplayingMutators`).
 
 ## Examples
 
 ### Example 1 - Simple VCR
 
-When no special HTTP Transport is required by your `http.Client`, you can use VCR with the default transport:
+When no special HTTP Transport is required by your `http.Client` (i.e. timeout settings, certificates, etc), you can use VCR with the default transport:
 
 ```go
-package main
+// See TestExample1 in tests for full working example
 
-import (
-    "fmt"
+func TestExample1() {
+	vcr := govcr.NewVCR(
+        govcr.WithCassette("MyCassette1.json"),
+        govcr.WithRequestMatcher(govcr.NewMethodURLRequestMatcher()), // use a "relaxed" request matcher
+    )
 
-    "github.com/seborama/govcr/v5"
-)
-
-const example1CassetteName = "MyCassette1"
-
-// Example1 is an example use of govcr.
-func Example1() {
-    vcr := govcr.NewVCR(example1CassetteName, nil)
     vcr.Client.Get("http://example.com/foo")
-    fmt.Printf("%+v\n", vcr.Stats())
 }
 ```
 
-If the **cassette** exists and a **track** matches the request, it will be played back without any real HTTP call to the live server.
+The first time you run this example, `MyCassette1.json` won't exist and `TestExample1` will make a live HTTP call.
 
-Otherwise, a real live HTTP call will be made and recorded in a new track added to the **cassette**.
+On subsequent executions, the HTTP call will be played back from the cassette and no live HTTP call will occur.
 
-**Tip:**
-
-To experiment with this example, run it at least twice: the first time (when the **cassette** does **not** exist), it will make a live call. Subsequent executions will use the **track** on **cassette** to retrieve the recorded response instead of making a live call.
+Delete `MyCassette1.json` to trigger a live HTTP call again.
 
 ### Example 2 - Custom VCR Transport
 
@@ -215,77 +147,49 @@ Sometimes, your application will create its own `http.Client` wrapper or will in
 
 In such cases, you can pass the `http.Client` object of your application to VCR.
 
-VCR will wrap your `http.Client` with its own which you can inject back into your application.
+VCR will wrap your `http.Client`. You should use `vcr.HTTPClient()` in your tests when making HTTP calls.
 
 ```go
-package main
+// See TestExample2 in tests for full working example
 
-import (
-    "crypto/tls"
-    "fmt"
-    "net/http"
-    "time"
+func TestExample2() {
+	// Create a custom http.Transport for our app.
+	tr := http.DefaultTransport.(*http.Transport)
+	tr.TLSClientConfig = &tls.Config{
+		InsecureSkipVerify: true, // just an example, not recommended
+	}
 
-    "github.com/seborama/govcr/v5"
-)
+	// Create an instance of myApp.
+	// It uses the custom Transport created above and a custom Timeout.
+	app := &myApp{
+		httpClient: &http.Client{
+			Transport: tr,
+			Timeout:   15 * time.Second,
+		},
+	}
 
-const example2CassetteName = "MyCassette2"
+	// Instantiate VCR.
+	vcr := govcr.NewVCR(
+		govcr.WithCassette(exampleCassetteName2),
+		govcr.WithClient(app.httpClient),
+	)
 
-// myApp is an application container.
-type myApp struct {
-    httpClient *http.Client
-}
+	// Inject VCR's http.Client wrapper.
+	// The original transport has been preserved, only just wrapped into VCR's.
+	app.httpClient = vcr.HTTPClient()
 
-func (app myApp) Get(url string) {
-    app.httpClient.Get(url)
-}
-
-// Example2 is an example use of govcr.
-// It shows the use of a VCR with a custom Client.
-// Here, the app executes a GET request.
-func Example2() {
-    // Create a custom http.Transport.
-    tr := http.DefaultTransport.(*http.Transport)
-    tr.TLSClientConfig = &tls.Config{
-        InsecureSkipVerify: true, // just an example, not recommended
-    }
-
-    // Create an instance of myApp.
-    // It uses the custom Transport created above and a custom Timeout.
-    myapp := &myApp{
-        httpClient: &http.Client{
-            Transport: tr,
-            Timeout:   15 * time.Second,
-        },
-    }
-
-    // Instantiate VCR.
-    vcr := govcr.NewVCR(example2CassetteName,
-        &govcr.VCRConfig{
-            Client: myapp.httpClient,
-        })
-
-    // Inject VCR's http.Client wrapper.
-    // The original transport has been preserved, only just wrapped into VCR's.
-    myapp.httpClient = vcr.Client
-
-    // Run request and display stats.
-    myapp.Get("https://example.com/foo")
-    fmt.Printf("%+v\n", vcr.Stats())
+	// Run request and display stats.
+	app.Get("https://example.com/foo")
 }
 ```
 
-### Example 3 - Custom VCR, POST method
-
-Please refer to the source file in the [examples](examples) directory.
-
-This example is identical to Example 2 but with a POST request rather than a GET.
+**TODO: BELOW THIS POINT, THE DOCUMENTATION IS OUTDATED**
 
 ### Example 4 - Custom VCR with a RequestFilters
 
 This example shows how to handle situations where a header in the request needs to be ignored (or the **track** would not match and hence would not be replayed).
 
-For this example, logging is switched on. This is achieved with `Logging: true` in `VCRConfig` when calling `NewVCR`.
+For this example, logging is switched on. This is achieved with `Logging: true` in `VCRSettings` when calling `NewVCR`.
 
 ```go
 package main
@@ -310,7 +214,7 @@ const example4CassetteName = "MyCassette4"
 // happen!
 func Example4() {
     vcr := govcr.NewVCR(example4CassetteName,
-        &govcr.VCRConfig{
+        &govcr.VCRSettings{
             RequestFilters: govcr.RequestFilters{
                 govcr.RequestDeleteHeaderKeys("X-Custom-My-Date"),
             },
@@ -332,7 +236,7 @@ func Example4() {
 
 **Tip:**
 
-Remove the RequestFilters from the VCRConfig and re-run the example. Check the stats: notice how the tracks **no longer** replay.
+Remove the RequestFilters from the VCRSettings and re-run the example. Check the stats: notice how the tracks **no longer** replay.
 
 ### Example 5 - Custom VCR with a RequestFilters and ResponseFilters
 
@@ -367,7 +271,7 @@ const example5CassetteName = "MyCassette5"
 // of the recorded response and our fictional application would reject the response on validation!
 func Example5() {
     vcr := govcr.NewVCR(example5CassetteName,
-        &govcr.VCRConfig{
+        &govcr.VCRSettings{
             RequestFilters: govcr.RequestFilters{
                 govcr.RequestDeleteHeaderKeys("X-Transaction-Id"),
             },
@@ -402,12 +306,6 @@ func Example5() {
 }
 ```
 
-### More examples
-
-Refer to [examples/example6.go](examples/example6.go) for advanced examples.
-
-All examples are in the [examples](examples) directory.
-
 ### Stats
 
 VCR provides some statistics.
@@ -434,59 +332,7 @@ make examples
 #### Manually
 
 ```bash
-cd examples
-go run *.go
-```
-
-#### Output
-
-First execution - notice the stats show that a **track** was recorded (from a live HTTP call).
-
-Second execution - no **track** is recorded (no live HTTP call) but 1 **track** is loaded and played back.
-
-```bash
-Running Example1...
-1st run =======================================================
-{TracksLoaded:0 TracksRecorded:1 TracksPlayed:0}
-2nd run =======================================================
-{TracksLoaded:1 TracksRecorded:0 TracksPlayed:1}
-Complete ======================================================
-
-Running Example2...
-1st run =======================================================
-{TracksLoaded:0 TracksRecorded:1 TracksPlayed:0}
-2nd run =======================================================
-{TracksLoaded:1 TracksRecorded:0 TracksPlayed:1}
-Complete ======================================================
-
-Running Example3...
-1st run =======================================================
-{TracksLoaded:0 TracksRecorded:1 TracksPlayed:0}
-2nd run =======================================================
-{TracksLoaded:1 TracksRecorded:0 TracksPlayed:1}
-Complete ======================================================
-
-Running Example4...
-1st run =======================================================
-2018/10/25 00:12:56 INFO - Cassette 'MyCassette4' - Executing request to live server for POST http://www.example.com/foo
-2018/10/25 00:12:56 INFO - Cassette 'MyCassette4' - Recording new track for POST http://www.example.com/foo as POST http://www.example.com/foo
-{TracksLoaded:0 TracksRecorded:1 TracksPlayed:0}
-2nd run =======================================================
-2018/10/25 00:12:56 INFO - Cassette 'MyCassette4' - Found a matching track for POST http://www.example.com/foo
-{TracksLoaded:1 TracksRecorded:0 TracksPlayed:1}
-Complete ======================================================
-
-Running Example5...
-1st run =======================================================
-2018/10/25 00:12:56 INFO - Cassette 'MyCassette5' - Executing request to live server for POST http://www.example.com/foo5
-2018/10/25 00:12:56 INFO - Cassette 'MyCassette5' - Recording new track for POST http://www.example.com/foo5 as POST http://www.example.com/foo5
-Header transaction Id verification failed - this would be the live request!
-{TracksLoaded:0 TracksRecorded:1 TracksPlayed:0}
-2nd run =======================================================
-2018/10/25 00:12:56 INFO - Cassette 'MyCassette5' - Found a matching track for POST http://www.example.com/foo5
-Header transaction Id verification passed - this would be the replayed track!
-{TracksLoaded:1 TracksRecorded:0 TracksPlayed:1}
-Complete ======================================================
+go test ./examples/...
 ```
 
 ## Run the tests
@@ -495,15 +341,9 @@ Complete ======================================================
 make test
 ```
 
-or
-
-```bash
-go test -race -cover
-```
-
 ## Bugs
 
-- None known
+- The recording of TLS data for PublicKeys is not reliable owing to a limitation in Go's json package and a non-deterministic and opaque use of a blank interface in Go's certificate structures. Some improvements are possible with `gob`.
 
 ## Improvements
 
@@ -515,8 +355,9 @@ go test -race -cover
 
 ### Go empty interfaces (`interface{}`)
 
-Some properties / objects in http.Response are defined as `interface{}`.
-This can cause json.Unmarshall to fail (example: when the original type was `big.Int` with a big interger indeed - `json.Unmarshal` attempts to convert to float64 and fails).
+Some properties / objects in http.Response are defined as `interface{}` (or `any`).
+
+This can cause `json.Unmarshal` to fail (example: when the original type was `big.Int` with a big integer indeed - `json.Unmarshal` attempts to convert to float64 and fails).
 
 Currently, this is dealt with by converting the output of the JSON produced by `json.Marshal` (big.Int is changed to a string).
 
@@ -526,7 +367,7 @@ Repeat HTTP headers may not be properly handled. A long standing TODO in the cod
 
 ### HTTP transport errors
 
-**govcr** also records `http.Client` errors (network down, blocking firewall, timeout, etc) in the **track** for future play back.
+**govcr** also records `http.Client` errors (network down, blocking firewall, timeout, etc) in the **track** for future playback.
 
 Since `errors` is an interface, when it is unmarshalled into JSON, the Go type of the `error` is lost.
 
@@ -542,4 +383,4 @@ Mitigation: Support for common errors (network down) has been implemented. Suppo
 
 You are welcome to submit a PR to contribute.
 
-Please follow a TDD workflow: tests must be present and avoid toxic DDT (dev driven testing).
+Please try and follow a TDD workflow: tests must be present and as much as is practical to you, avoid toxic DDT (development driven testing).

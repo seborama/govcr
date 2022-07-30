@@ -21,7 +21,7 @@ func (tm Mutator) On(predicate func(trk *Track) bool) Mutator {
 func (tm Mutator) OnErr() Mutator {
 	return tm.On(
 		func(trk *Track) bool {
-			return trk.ErrType != "" || trk.ErrMsg != ""
+			return trk.ErrType != nil
 		},
 	)
 }
@@ -30,7 +30,7 @@ func (tm Mutator) OnErr() Mutator {
 func (tm Mutator) OnNoErr() Mutator {
 	return tm.On(
 		func(trk *Track) bool {
-			return trk.ErrType == "" && trk.ErrMsg == ""
+			return trk.ErrType == nil
 		},
 	)
 }
@@ -55,6 +55,7 @@ func (tm Mutator) OnRequestPath(pathRegEx string) Mutator {
 	if pathRegEx == "" {
 		pathRegEx = ".*"
 	}
+
 	re := regexp.MustCompile(pathRegEx)
 
 	return tm.On(

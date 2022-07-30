@@ -37,8 +37,8 @@ func (controlPanel *ControlPanel) AddReplayingMutators(trackMutators ...track.Mu
 	controlPanel.vcrTransport().AddReplayingMutators(trackMutators...)
 }
 
-// Player returns the http.Client that contains the VCR.
-func (controlPanel *ControlPanel) Player() *http.Client {
+// HTTPClient returns the http.Client that contains the VCR.
+func (controlPanel *ControlPanel) HTTPClient() *http.Client {
 	return controlPanel.client
 }
 

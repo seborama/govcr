@@ -3,6 +3,9 @@ package stats
 // Stats holds information about the cassette and
 // VCR runtime.
 type Stats struct {
+	// TotalTracks is the total number of tracks on the cassette.
+	TotalTracks int32
+
 	// TracksLoaded is the number of tracks that were loaded from the cassette.
 	TracksLoaded int32
 

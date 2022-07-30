@@ -36,12 +36,12 @@ func NewVCR(settings ...Setting) *ControlPanel {
 			cassette:  vcrSettings.cassette,
 			transport: vcrSettings.client.Transport,
 		},
-	}
 
-	// copy the attributes of the original http.Client
-	vcrClient.CheckRedirect = vcrSettings.client.CheckRedirect
-	vcrClient.Jar = vcrSettings.client.Jar
-	vcrClient.Timeout = vcrSettings.client.Timeout
+		// copy the attributes of the original http.Client
+		CheckRedirect: vcrSettings.client.CheckRedirect,
+		Jar:           vcrSettings.client.Jar,
+		Timeout:       vcrSettings.client.Timeout,
+	}
 
 	// return
 	return &ControlPanel{

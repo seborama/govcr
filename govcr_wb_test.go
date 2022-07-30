@@ -53,8 +53,11 @@ func (suite *GoVCRWBTestSuite) SetupTest() {
 			trk.Response.Header.Add("TrackRecordingMutatorHeader", "headers have been mutated")
 		})
 
-	suite.vcr = NewVCR(WithClient(testServerClient), WithTrackRecordingMutators(trackMutator))
-	suite.cassetteName = "govcr-fixtures/TestRoundTrip_SavesMutatedCassetteTracks.cassette"
+	suite.vcr = NewVCR(
+		WithClient(testServerClient),
+		WithTrackRecordingMutators(trackMutator),
+	)
+	suite.cassetteName = "temp-fixtures/TestRoundTrip_SavesMutatedCassetteTracks.cassette.json"
 	_ = os.Remove(suite.cassetteName)
 }
 
@@ -81,6 +84,7 @@ func (suite *GoVCRWBTestSuite) TestRoundTrip_SavesAndReplaysMutatedTracksToCasse
 	// 1st execution of set of calls
 	actualStats := suite.makeHTTPCalls_WithSuccess()
 	expectedStats := stats.Stats{
+		TotalTracks:    2,
 		TracksLoaded:   0,
 		TracksRecorded: 2,
 		TracksPlayed:   0,
@@ -91,14 +95,15 @@ func (suite *GoVCRWBTestSuite) TestRoundTrip_SavesAndReplaysMutatedTracksToCasse
 	err = suite.vcr.LoadCassette(suite.cassetteName)
 	suite.NoError(err)
 
-	for trackNum, aTrack := range suite.vcr.vcrTransport().cassette.Tracks {
-		suite.Require().EqualValues("this_query_key_has_been_mutated", aTrack.Request.URL.Query().Get("mutated_query_key"), "track #%d", trackNum)
-		suite.Require().EqualValues("headers have been mutated", aTrack.Response.Header.Get("TrackRecordingMutatorHeader"), "track #%d", trackNum)
+	for trackNum, trk := range suite.vcr.vcrTransport().cassette.Tracks {
+		suite.Require().EqualValues("this_query_key_has_been_mutated", trk.Request.URL.Query().Get("mutated_query_key"), "track #%d", trackNum)
+		suite.Require().EqualValues("headers have been mutated", trk.Response.Header.Get("TrackRecordingMutatorHeader"), "track #%d", trackNum)
 	}
 
 	// 2nd execution of set of calls (replayed)
 	actualStats = suite.replayHTTPCalls_WithMutations_WithSuccess()
 	expectedStats = stats.Stats{
+		TotalTracks:    2,
 		TracksLoaded:   2,
 		TracksRecorded: 0,
 		TracksPlayed:   2,
@@ -113,7 +118,7 @@ func (suite *GoVCRWBTestSuite) makeHTTPCalls_WithSuccess() stats.Stats {
 		req.Header.Add("header", "value")
 		req.SetBasicAuth("not_a_username", "not_a_password")
 
-		resp, err := suite.vcr.Player().Do(req)
+		resp, err := suite.vcr.HTTPClient().Do(req)
 		suite.Require().NoError(err)
 
 		suite.Require().Equal("200 OK", resp.Status)
@@ -132,8 +137,6 @@ func (suite *GoVCRWBTestSuite) makeHTTPCalls_WithSuccess() stats.Stats {
 		suite.Require().NotNil(resp.Request)
 		suite.Require().NotNil(resp.TLS)
 	}
-
-	suite.Require().EqualValues(2, suite.vcr.NumberOfTracks())
 
 	actualStats := *suite.vcr.Stats()
 	suite.vcr.EjectCassette()
@@ -155,7 +158,7 @@ func (suite *GoVCRWBTestSuite) replayHTTPCalls_WithMutations_WithSuccess() stats
 		req.Header.Add("header", "value")
 		req.SetBasicAuth("not_a_username", "not_a_password")
 
-		resp, err := suite.vcr.Player().Do(req)
+		resp, err := suite.vcr.HTTPClient().Do(req)
 		suite.Require().NoError(err)
 
 		suite.Require().Equal("200 OK", resp.Status)
@@ -175,8 +178,6 @@ func (suite *GoVCRWBTestSuite) replayHTTPCalls_WithMutations_WithSuccess() stats
 		suite.Require().NotNil(resp.Request)
 		suite.Require().NotNil(resp.TLS)
 	}
-
-	suite.Require().EqualValues(2, suite.vcr.NumberOfTracks())
 
 	actualStats := *suite.vcr.Stats()
 	suite.vcr.EjectCassette()

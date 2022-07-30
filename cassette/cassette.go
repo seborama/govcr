@@ -47,10 +47,13 @@ func (k7 *Cassette) Stats() *stats.Stats {
 		return nil
 	}
 
-	s := stats.Stats{}
+	s := stats.Stats{
+		TotalTracks: k7.NumberOfTracks(),
+	}
 	s.TracksLoaded = atomic.LoadInt32(&k7.tracksLoaded)
 	s.TracksRecorded = k7.NumberOfTracks() - s.TracksLoaded
 	s.TracksPlayed = k7.tracksPlayed() - s.TracksRecorded
+
 	return &s
 }
 
@@ -81,8 +84,8 @@ func (k7 *Cassette) NumberOfTracks() int32 {
 	return int32(len(k7.Tracks))
 }
 
-// ReplayResponse of the specified track number, as recorded on cassette.
-func (k7 *Cassette) ReplayResponse(trackNumber int32) (*track.Response, error) {
+// ReplayTrack returns the specified track number, as recorded on cassette.
+func (k7 *Cassette) ReplayTrack(trackNumber int32) (*track.Track, error) {
 	if trackNumber >= k7.NumberOfTracks() {
 		return nil, fmt.Errorf("invalid track number %d (only %d available) (track #0 stands for first track)", trackNumber, k7.NumberOfTracks())
 	}
@@ -90,12 +93,12 @@ func (k7 *Cassette) ReplayResponse(trackNumber int32) (*track.Response, error) {
 	k7.trackSliceMutex.Lock()
 	defer k7.trackSliceMutex.Unlock()
 
-	t := &k7.Tracks[trackNumber]
+	trk := &k7.Tracks[trackNumber]
 
 	// mark the track as replayed so it doesn't get re-used
-	t.SetReplayed(true)
+	trk.SetReplayed(true)
 
-	return t.GetResponse()
+	return trk, nil
 }
 
 // AddTrack to cassette.
@@ -132,16 +135,17 @@ func (k7 *Cassette) save() error {
 	}
 
 	path := filepath.Dir(k7.name)
-	if err := os.MkdirAll(path, 0750); err != nil {
+	if err := os.MkdirAll(path, 0o750); err != nil {
 		return errors.Wrap(err, path)
 	}
 
-	err = ioutil.WriteFile(k7.name, gData, 0640)
+	err = ioutil.WriteFile(k7.name, gData, 0o640)
 	return errors.Wrap(err, k7.name)
 }
 
 // GzipFilter compresses the cassette data in gzip format if the cassette
 // name ends with '.gz', otherwise data is left as is (i.e. de-compressed)
+// TODO: above comment is wrong: testing IsLongPlay!
 func (k7 *Cassette) GzipFilter(data bytes.Buffer) ([]byte, error) {
 	if k7.IsLongPlay() {
 		return compression.Compress(data.Bytes())
@@ -151,6 +155,7 @@ func (k7 *Cassette) GzipFilter(data bytes.Buffer) ([]byte, error) {
 
 // GunzipFilter de-compresses the cassette data in gzip format if the cassette
 // name ends with '.gz', otherwise data is left as is (i.e. de-compressed)
+// TODO: above comment is wrong: testing IsLongPlay!
 func (k7 *Cassette) GunzipFilter(data []byte) ([]byte, error) {
 	if k7.IsLongPlay() {
 		return compression.Decompress(data)
@@ -209,7 +214,7 @@ func LoadCassette(cassetteName string) *Cassette {
 	}
 
 	// initial stats
-	k7.tracksLoaded = k7.NumberOfTracks()
+	atomic.StoreInt32(&k7.tracksLoaded, k7.NumberOfTracks())
 
 	return k7
 }
@@ -219,7 +224,7 @@ func LoadCassette(cassetteName string) *Cassette {
 func readCassetteFile(cassetteName string) (*Cassette, error) {
 	k7 := NewCassette(cassetteName)
 
-	data, err := ioutil.ReadFile(cassetteName) // nolint:gosec
+	data, err := ioutil.ReadFile(cassetteName) //nolint:gosec
 	if os.IsNotExist(err) {
 		return k7, nil
 	} else if err != nil {

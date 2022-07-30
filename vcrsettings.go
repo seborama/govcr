@@ -7,35 +7,23 @@ import (
 	"github.com/seborama/govcr/v5/cassette/track"
 )
 
-// Setting defines an optional functional parameter as received by NewVCR()
-type Setting func(vcrConfig *VCRSettings)
-
-// WithLongPlay is an optional functional parameter to provide a VCR
-// with the Long Play function enabled.
-// LongPlay simply compresses the contents of the cassette to make
-// it smaller.
-// TODO this is not needed if the LongPlay mode is auto-sensed from the cassette name
-//      ie if the name ends with '.gz'
-func WithLongPlay() Setting {
-	return func(vcrConfig *VCRSettings) {
-		vcrConfig.longPlay = true
-	}
-}
+// Setting defines an optional functional parameter as received by NewVCR().
+type Setting func(vcrSettings *VCRSettings)
 
 // WithClient is an optional functional parameter to provide a VCR with
 // a custom HTTP client.
 func WithClient(httpClient *http.Client) Setting {
-	return func(vcrConfig *VCRSettings) {
-		vcrConfig.client = httpClient
+	return func(vcrSettings *VCRSettings) {
+		vcrSettings.client = httpClient
 	}
 }
 
 // WithCassette is an optional functional parameter to provide a VCR with
 // a cassette to load.
 func WithCassette(cassetteName string) Setting {
-	return func(vcrConfig *VCRSettings) {
+	return func(vcrSettings *VCRSettings) {
 		k7 := cassette.LoadCassette(cassetteName)
-		vcrConfig.cassette = k7
+		vcrSettings.cassette = k7
 	}
 }
 
@@ -43,16 +31,16 @@ func WithCassette(cassetteName string) Setting {
 // a RequestMatcher applied when matching an HTTP/S request to an existing track
 // on a cassette.
 func WithRequestMatcher(matcher RequestMatcher) Setting {
-	return func(vcrConfig *VCRSettings) {
-		vcrConfig.requestMatcher = matcher
+	return func(vcrSettings *VCRSettings) {
+		vcrSettings.requestMatcher = matcher
 	}
 }
 
 // WithTrackRecordingMutators is an optional functional parameter to provide a VCR with
 // a set of track mutators applied when recording a track to a cassette.
 func WithTrackRecordingMutators(trackRecordingMutators ...track.Mutator) Setting {
-	return func(vcrConfig *VCRSettings) {
-		vcrConfig.trackRecordingMutators = vcrConfig.trackRecordingMutators.Add(trackRecordingMutators...)
+	return func(vcrSettings *VCRSettings) {
+		vcrSettings.trackRecordingMutators = vcrSettings.trackRecordingMutators.Add(trackRecordingMutators...)
 	}
 }
 
@@ -62,8 +50,8 @@ func WithTrackRecordingMutators(trackRecordingMutators ...track.Mutator) Setting
 // mutated, it will have no effect.
 // However, the Request data can be referenced as part of mutating the Response.
 func WithTrackReplayingMutators(trackReplayingMutators ...track.Mutator) Setting {
-	return func(vcrConfig *VCRSettings) {
-		vcrConfig.trackReplayingMutators = vcrConfig.trackReplayingMutators.Add(trackReplayingMutators...)
+	return func(vcrSettings *VCRSettings) {
+		vcrSettings.trackReplayingMutators = vcrSettings.trackReplayingMutators.Add(trackReplayingMutators...)
 	}
 }
 
@@ -71,7 +59,6 @@ func WithTrackReplayingMutators(trackReplayingMutators ...track.Mutator) Setting
 type VCRSettings struct {
 	client                 *http.Client
 	cassette               *cassette.Cassette
-	longPlay               bool
 	requestMatcher         RequestMatcher
 	trackRecordingMutators track.Mutators
 	trackReplayingMutators track.Mutators

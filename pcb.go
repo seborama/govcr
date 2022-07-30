@@ -21,42 +21,34 @@ type PrintedCircuitBoard struct {
 	trackReplayingMutators track.Mutators
 }
 
-func (pcb *PrintedCircuitBoard) seekTrack(k7 *cassette.Cassette, httpRequest *http.Request) (*http.Response, error) {
-	request := track.FromHTTPRequest(httpRequest)
+func (pcb *PrintedCircuitBoard) seekTrack(k7 *cassette.Cassette, httpRequest *http.Request) (*track.Track, error) {
+	request := track.ToRequest(httpRequest)
 
 	numberOfTracksInCassette := k7.NumberOfTracks()
 	for trackNumber := int32(0); trackNumber < numberOfTracksInCassette; trackNumber++ {
 		if pcb.trackMatches(k7, trackNumber, request) {
-			return pcb.replayResponse(k7, trackNumber, httpRequest)
+			return pcb.replayTrack(k7, trackNumber)
 		}
 	}
 	return nil, nil
 }
 
 func (pcb *PrintedCircuitBoard) trackMatches(k7 *cassette.Cassette, trackNumber int32, request *track.Request) bool {
-	t := k7.Track(trackNumber)
+	trk := k7.Track(trackNumber)
 
-	return !t.IsReplayed() &&
-		pcb.requestMatcher.Match(request, t.GetRequest())
+	return !trk.IsReplayed() && pcb.requestMatcher.Match(request, trk.GetRequest())
 }
 
-func (pcb *PrintedCircuitBoard) replayResponse(k7 *cassette.Cassette, trackNumber int32, httpRequest *http.Request) (*http.Response, error) {
-	replayedResponse, err := k7.ReplayResponse(trackNumber)
-
-	var httpResponse *http.Response
-
-	if replayedResponse != nil {
-		httpResponse = track.ToHTTPResponse(replayedResponse)
-		// See notes on http.response.request - Body is nil because it has already been consumed
-		httpResponse.Request = track.CloneHTTPRequest(httpRequest)
-		httpResponse.Request.Body = nil
-	}
-
-	return httpResponse, err
+func (pcb *PrintedCircuitBoard) replayTrack(k7 *cassette.Cassette, trackNumber int32) (*track.Track, error) {
+	return k7.ReplayTrack(trackNumber)
 }
 
 func (pcb *PrintedCircuitBoard) mutateTrackRecording(t *track.Track) {
 	pcb.trackRecordingMutators.Mutate(t)
+}
+
+func (pcb *PrintedCircuitBoard) mutateTrackReplaying(t *track.Track) {
+	pcb.trackReplayingMutators.Mutate(t)
 }
 
 // AddRecordingMutators adds a collection of recording TrackMutator's.
@@ -77,5 +69,5 @@ func (pcb *PrintedCircuitBoard) AddReplayingMutators(mutators ...track.Mutator) 
 // TODO: there could be a case to have RequestMatchers (plural) that would work akin to track.Mutators.
 //       I.e. they could be chained and conditional.
 type RequestMatcher interface {
-	Match(httpRequest *track.Request, trackRequest *track.Request) bool
+	Match(httpRequest, trackRequest *track.Request) bool
 }

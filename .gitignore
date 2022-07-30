@@ -1,7 +1,7 @@
 # Project-specific folders
 /.idea
 /.vscode
-govcr-fixtures
+temp-fixtures
 # Project-specific files
 *.swp
 *.DS_Store

@@ -8,8 +8,8 @@
         "Status": "200 OK",
         "StatusCode": 200
       },
-      "ErrType": "",
-      "ErrMsg": ""
+      "ErrType": null,
+      "ErrMsg": null
     }
   ]
 }

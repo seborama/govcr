@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"io/ioutil"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"strings"
@@ -14,16 +15,33 @@ import (
 )
 
 // Request is a track HTTP Request.
+// Several of these fields are present for use with mutators rather than
+// with a RequestMatcher (albeit perfectly possible).
+// These fields also help when converting Response to http.Response to
+// populate http.Response.Request.
 type Request struct {
-	Method  string
-	URL     *url.URL
-	Header  http.Header
-	Body    []byte
-	Trailer http.Header
+	Method           string
+	URL              *url.URL
+	Proto            string
+	ProtoMajor       int
+	ProtoMinor       int
+	Header           http.Header
+	Body             []byte
+	ContentLength    int64
+	TransferEncoding []string
+	Close            bool
+	Host             string
+	Form             url.Values
+	PostForm         url.Values
+	MultipartForm    *multipart.Form // attachments that get offset to temp files may not be supported (untested)
+	Trailer          http.Header
+	RemoteAddr       string
+	RequestURI       string
+	// TODO: Response ?
 }
 
-// FromHTTPRequest transcodes an HTTP Request to a track Request.
-func FromHTTPRequest(httpRequest *http.Request) *Request {
+// ToRequest transcodes an HTTP Request to a track Request.
+func ToRequest(httpRequest *http.Request) *Request {
 	if httpRequest == nil {
 		return nil
 	}
@@ -33,11 +51,23 @@ func FromHTTPRequest(httpRequest *http.Request) *Request {
 	bodyClone := cloneHTTPRequestBody(httpRequest)
 
 	return &Request{
-		Method:  httpRequest.Method,
-		URL:     cloneURL(httpRequest.URL),
-		Header:  headerClone,
-		Body:    bodyClone,
-		Trailer: trailerClone,
+		Method:        httpRequest.Method,
+		URL:           cloneURL(httpRequest.URL),
+		Proto:         httpRequest.Proto,
+		ProtoMajor:    httpRequest.ProtoMajor,
+		ProtoMinor:    httpRequest.ProtoMinor,
+		Header:        headerClone,
+		Body:          bodyClone,
+		ContentLength: httpRequest.ContentLength,
+		// TODO: TransferEncoding: []string{},
+		Close: httpRequest.Close,
+		Host:  httpRequest.Host,
+		// TODO: Form:          map[string][]string{},
+		// TODO: PostForm:      map[string][]string{},
+		// TODO: MultipartForm: &multipart.Form{},
+		Trailer:    trailerClone,
+		RemoteAddr: httpRequest.RemoteAddr,
+		RequestURI: httpRequest.RequestURI,
 	}
 }
 
@@ -57,8 +87,8 @@ type Response struct {
 	TLS              *tls.ConnectionState
 }
 
-// FromHTTPResponse transcodes an HTTP Response to a track Response.
-func FromHTTPResponse(httpResponse *http.Response) *Response {
+// ToResponse transcodes an HTTP Response to a track Response.
+func ToResponse(httpResponse *http.Response) *Response {
 	if httpResponse == nil {
 		return nil
 	}
@@ -89,25 +119,31 @@ func cloneTLS(tlsCS *tls.ConnectionState) *tls.ConnectionState {
 	if tlsCS == nil {
 		return nil
 	}
-	var signedCertificateTimestampsClone [][]byte // nolint:prealloc
+
+	var signedCertificateTimestampsClone [][]byte //nolint:prealloc
 	for _, data := range tlsCS.SignedCertificateTimestamps {
 		signedCertificateTimestampsClone = append(signedCertificateTimestampsClone, []byte(string(data)))
 	}
 
 	var peerCertificatesClone []*x509.Certificate
 	if err := copier.Copy(&peerCertificatesClone, tlsCS.PeerCertificates); err != nil {
-		log.Println("cannot deep copy tlsCS.PeerCertificates: " + err.Error())
+		log.Println("failed to deep copy tlsCS.PeerCertificates: " + err.Error())
+
 		peerCertificatesClone = tlsCS.PeerCertificates
 	}
 
-	var verifiedChainsClone [][]*x509.Certificate // nolint:prealloc
+	var verifiedChainsClone [][]*x509.Certificate //nolint:prealloc
 	for _, certSlice := range tlsCS.VerifiedChains {
 		var certSliceClone []*x509.Certificate
+
 		if err := copier.Copy(&certSliceClone, certSlice); err != nil {
-			log.Println("cannot deep copy tlsCS.VerifiedChains: " + err.Error())
+			log.Println("failed to deep copy tlsCS.VerifiedChains: " + err.Error())
+
 			verifiedChainsClone = tlsCS.VerifiedChains
+
 			break
 		}
+
 		verifiedChainsClone = append(verifiedChainsClone, certSliceClone)
 	}
 
@@ -117,51 +153,21 @@ func cloneTLS(tlsCS *tls.ConnectionState) *tls.ConnectionState {
 		DidResume:                   tlsCS.DidResume,
 		CipherSuite:                 tlsCS.CipherSuite,
 		NegotiatedProtocol:          tlsCS.NegotiatedProtocol,
-		NegotiatedProtocolIsMutual:  tlsCS.NegotiatedProtocolIsMutual,
+		NegotiatedProtocolIsMutual:  tlsCS.NegotiatedProtocolIsMutual, //nolint: staticcheck
 		ServerName:                  tlsCS.ServerName,
 		PeerCertificates:            peerCertificatesClone,
 		VerifiedChains:              verifiedChainsClone,
 		SignedCertificateTimestamps: signedCertificateTimestampsClone,
 		OCSPResponse:                []byte(string(tlsCS.OCSPResponse)),
-		TLSUnique:                   []byte(string(tlsCS.TLSUnique)),
+		TLSUnique:                   []byte(string(tlsCS.TLSUnique)), //nolint: staticcheck
 	}
 }
 
 func cloneStringSlice(stringSlice []string) []string {
 	stringSliceClone := make([]string, len(stringSlice))
 	copy(stringSliceClone, stringSlice)
+
 	return stringSliceClone
-}
-
-// ToHTTPResponse converts a track Response to an http.Response.
-// Note that this function sets http.Response.Request to nil. TODO confirm this is right
-func ToHTTPResponse(response *Response) *http.Response {
-	if response == nil {
-		return nil
-	}
-
-	httpResponse := http.Response{}
-
-	// create a ReadCloser to supply to httpResponse
-	bodyReadCloser := ioutil.NopCloser(bytes.NewReader(response.Body))
-
-	// re-create the Response object from track record
-	respTLS := response.TLS
-
-	httpResponse.Status = response.Status
-	httpResponse.StatusCode = response.StatusCode
-	httpResponse.Proto = response.Proto
-	httpResponse.ProtoMajor = response.ProtoMajor
-	httpResponse.ProtoMinor = response.ProtoMinor
-
-	httpResponse.Header = response.Header
-	httpResponse.Body = bodyReadCloser
-	httpResponse.ContentLength = response.ContentLength
-	httpResponse.TransferEncoding = response.TransferEncoding
-	httpResponse.Trailer = response.Trailer
-	httpResponse.TLS = respTLS
-
-	return &httpResponse
 }
 
 func cloneHTTPRequestBody(httpRequest *http.Request) []byte {
@@ -217,6 +223,7 @@ func cloneURLValues(urlValues url.Values) url.Values {
 		urlValuesClone[key] = make([]string, len(value))
 		copy(urlValuesClone[key], value)
 	}
+
 	return urlValuesClone
 }
 
@@ -226,6 +233,7 @@ func cloneURL(aURL *url.URL) *url.URL {
 	}
 
 	var user *url.Userinfo
+
 	if aURL.User != nil {
 		userPassword := strings.SplitN(aURL.User.String(), ":", 2)
 		if len(userPassword) == 1 {
@@ -245,6 +253,7 @@ func cloneURL(aURL *url.URL) *url.URL {
 		ForceQuery: aURL.ForceQuery,
 		RawQuery:   aURL.RawQuery,
 		Fragment:   aURL.Fragment,
+		// TODO: RawFragment?
 	}
 }
 
@@ -258,12 +267,13 @@ func CloneHTTPRequest(httpRequest *http.Request) *http.Request {
 	httpRequestClone := *httpRequest
 
 	// remove the channel reference
-	httpRequestClone.Cancel = nil // nolint:staticcheck
+	httpRequestClone.Cancel = nil //nolint:staticcheck
 
 	// deal with the URL
 	if httpRequest.URL != nil {
 		httpRequestClone.URL = cloneURL(httpRequest.URL)
 	}
+
 	httpRequestClone.Header = cloneHeader(httpRequest.Header)
 	httpRequestClone.Body = ioutil.NopCloser(bytes.NewBuffer(cloneHTTPRequestBody(httpRequest)))
 	httpRequestClone.Trailer = cloneHeader(httpRequest.Trailer)
@@ -279,9 +289,11 @@ func CloneHTTPRequest(httpRequest *http.Request) *http.Request {
 	if httpRequest.Response != nil {
 		if err := copier.Copy(&responseClone, httpRequest.Response); err != nil {
 			log.Println("cannot deep copy httpRequest.Response: " + err.Error())
+
 			responseClone = httpRequest.Response // TODO: if ever creating a cloneHTTPResponse() function, use it!
 		}
 	}
+
 	httpRequestClone.Response = responseClone
 
 	return &httpRequestClone

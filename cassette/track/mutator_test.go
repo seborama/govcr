@@ -11,92 +11,94 @@ import (
 
 func Test_Mutator_OnNoErr_WhenNoErr(t *testing.T) {
 	aMutator := track.Mutator(
-		func(t *track.Track) {
-			t.Request.Method = t.Request.Method + " has been mutated"
-			t.Response.Status = t.Response.Status + " has been mutated"
-			t.ErrType = "ErrType was mutated"
-			t.ErrMsg = "ErrMsg was mutated"
+		func(tk *track.Track) {
+			tk.Request.Method = tk.Request.Method + " has been mutated"
+			tk.Response.Status = tk.Response.Status + " has been mutated"
+			tk.ErrType = strPtr("ErrType was mutated")
+			tk.ErrMsg = strPtr("ErrMsg was mutated")
 		}).OnNoErr()
 
-	aTrack := track.NewTrack(&track.Request{
+	trk := track.NewTrack(&track.Request{
 		Method: "BadMethod",
 	}, &track.Response{
 		Status: "BadStatus",
 	}, nil)
 
-	aMutator(aTrack)
+	aMutator(trk)
 
-	require.EqualValues(t, "BadMethod has been mutated", aTrack.Request.Method)
-	require.EqualValues(t, "BadStatus has been mutated", aTrack.Response.Status)
-	require.EqualValues(t, "ErrType was mutated", aTrack.ErrType)
-	require.EqualValues(t, "ErrMsg was mutated", aTrack.ErrMsg)
+	require.Equal(t, "BadMethod has been mutated", trk.Request.Method)
+	require.Equal(t, "BadStatus has been mutated", trk.Response.Status)
+	require.Equal(t, strPtr("ErrType was mutated"), trk.ErrType)
+	require.Equal(t, strPtr("ErrMsg was mutated"), trk.ErrMsg)
 }
 
 func Test_Mutator_OnNoErr_WhenErr(t *testing.T) {
 	aMutator := track.Mutator(
-		func(t *track.Track) {
-			t.Request.Method = t.Request.Method + " has been mutated"
-			t.Response.Status = t.Response.Status + " has been mutated"
-			t.ErrType = "ErrType was mutated"
-			t.ErrMsg = "ErrMsg was mutated"
+		func(tk *track.Track) {
+			tk.Request.Method = tk.Request.Method + " has been mutated"
+			tk.Response.Status = tk.Response.Status + " has been mutated"
+			tk.ErrType = strPtr("ErrType was mutated")
+			tk.ErrMsg = strPtr("ErrMsg was mutated")
 		}).OnNoErr()
 
-	aTrack := track.NewTrack(&track.Request{
+	trk := track.NewTrack(&track.Request{
 		Method: "BadMethod",
 	}, &track.Response{
 		Status: "BadStatus",
 	}, errors.New("an error"))
 
-	aMutator(aTrack)
+	aMutator(trk)
 
-	require.EqualValues(t, "BadMethod", aTrack.Request.Method)
-	require.EqualValues(t, "BadStatus", aTrack.Response.Status)
-	require.Contains(t, aTrack.ErrType, "error")
-	require.EqualValues(t, "an error", aTrack.ErrMsg)
+	require.Equal(t, "BadMethod", trk.Request.Method)
+	require.Equal(t, "BadStatus", trk.Response.Status)
+	require.Equal(t, strPtr("*errors.errorString"), trk.ErrType)
+	require.Equal(t, strPtr("an error"), trk.ErrMsg)
 }
 
 func Test_Mutator_OnErr_WhenErr(t *testing.T) {
 	errorMutator := track.Mutator(
-		func(t *track.Track) {
-			t.Request.Method = t.Request.Method + " has been mutated"
-			t.Response.Status = t.Response.Status + " has been mutated"
-			t.ErrType = "ErrType was mutated"
-			t.ErrMsg = "ErrMsg was mutated"
+		func(tk *track.Track) {
+			tk.Request.Method = tk.Request.Method + " has been mutated"
+			tk.Response.Status = tk.Response.Status + " has been mutated"
+			tk.ErrType = strPtr("ErrType was mutated")
+			tk.ErrMsg = strPtr("ErrMsg was mutated")
 		}).OnErr()
 
-	aTrack := track.NewTrack(&track.Request{
+	trk := track.NewTrack(&track.Request{
 		Method: "BadMethod",
 	}, &track.Response{
 		Status: "BadStatus",
 	}, errors.New("an error"))
 
-	errorMutator(aTrack)
+	errorMutator(trk)
 
-	require.EqualValues(t, "BadMethod has been mutated", aTrack.Request.Method)
-	require.EqualValues(t, "BadStatus has been mutated", aTrack.Response.Status)
-	require.EqualValues(t, "ErrType was mutated", aTrack.ErrType)
-	require.EqualValues(t, "ErrMsg was mutated", aTrack.ErrMsg)
+	require.Equal(t, "BadMethod has been mutated", trk.Request.Method)
+	require.Equal(t, "BadStatus has been mutated", trk.Response.Status)
+	require.Equal(t, strPtr("ErrType was mutated"), trk.ErrType)
+	require.Equal(t, strPtr("ErrMsg was mutated"), trk.ErrMsg)
 }
 
 func Test_Mutator_OnErr_WhenNoErr(t *testing.T) {
 	errorMutator := track.Mutator(
-		func(t *track.Track) {
-			t.Request.Method = t.Request.Method + " has been mutated"
-			t.Response.Status = t.Response.Status + " has been mutated"
-			t.ErrType = "ErrType was mutated"
-			t.ErrMsg = "ErrMsg was mutated"
+		func(tk *track.Track) {
+			tk.Request.Method = tk.Request.Method + " has been mutated"
+			tk.Response.Status = tk.Response.Status + " has been mutated"
+			tk.ErrType = strPtr("ErrType was mutated")
+			tk.ErrMsg = strPtr("ErrMsg was mutated")
 		}).OnErr()
 
-	aTrack := track.NewTrack(&track.Request{
+	trk := track.NewTrack(&track.Request{
 		Method: "BadMethod",
 	}, &track.Response{
 		Status: "BadStatus",
 	}, nil)
 
-	errorMutator(aTrack)
+	errorMutator(trk)
 
-	require.EqualValues(t, "BadMethod", aTrack.Request.Method)
-	require.EqualValues(t, "BadStatus", aTrack.Response.Status)
-	require.EqualValues(t, "", aTrack.ErrType)
-	require.EqualValues(t, "", aTrack.ErrMsg)
+	require.Equal(t, "BadMethod", trk.Request.Method)
+	require.Equal(t, "BadStatus", trk.Response.Status)
+	require.Nil(t, trk.ErrType)
+	require.Nil(t, trk.ErrMsg)
 }
+
+func strPtr(s string) *string { return &s }

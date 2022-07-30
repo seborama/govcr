@@ -4,15 +4,15 @@ ifneq ($(MACHINE),aarch64)
 endif
 
 deps:
-	go get -d -t -v ./...
+	go mod tidy && go mod download
 
 test: deps
     # to run a single test inside a stretchr suite (e.g.):
     # go test -v ./... -run ^TestHandlerTestSuite$ -testify.m TestRoundTrip_ReplaysResponse
-	go test -timeout 15s -cover $(GORACE) -parallel 100 ./...
+	go test -timeout 20s -cover ./...
 
-examples: deps
-	go run ./examples/*.go
+	# note: -race significantly degrades performance hence a high "timeout" value and reduced parallelism
+	go test -timeout 60s -cover $(GORACE) -parallel 2 ./...
 
 lint: deps
 	./golangci-lint.sh || :
