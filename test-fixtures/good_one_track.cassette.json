@@ -1,0 +1,15 @@
+{
+  "Tracks": [
+    {
+      "Request": {
+        "Method": "GET"
+      },
+      "Response": {
+        "Status": "200 OK",
+        "StatusCode": 200
+      },
+      "ErrType": null,
+      "ErrMsg": null
+    }
+  ]
+}

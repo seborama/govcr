@@ -1,17 +1,17 @@
-package main
+package examples_test
 
 import (
 	"crypto/tls"
-	"fmt"
 	"net/http"
+	"testing"
 	"time"
 
-	"github.com/seborama/govcr"
+	"github.com/seborama/govcr/v5"
 )
 
-const example2CassetteName = "MyCassette2"
+const exampleCassetteName2 = "temp-fixtures/TestExample2.cassette.json"
 
-// myApp is an application container.
+// imaginary app
 type myApp struct {
 	httpClient *http.Client
 }
@@ -20,11 +20,9 @@ func (app myApp) Get(url string) {
 	app.httpClient.Get(url)
 }
 
-// Example2 is an example use of govcr.
-// It shows the use of a VCR with a custom Client.
-// Here, the app executes a GET request.
-func Example2() {
-	// Create a custom http.Transport.
+// TestExample2 is an example use of govcr.
+func TestExample2(t *testing.T) {
+	// Create a custom http.Transport for our app.
 	tr := http.DefaultTransport.(*http.Transport)
 	tr.TLSClientConfig = &tls.Config{
 		InsecureSkipVerify: true, // just an example, not recommended
@@ -32,7 +30,7 @@ func Example2() {
 
 	// Create an instance of myApp.
 	// It uses the custom Transport created above and a custom Timeout.
-	myapp := &myApp{
+	app := &myApp{
 		httpClient: &http.Client{
 			Transport: tr,
 			Timeout:   15 * time.Second,
@@ -40,16 +38,16 @@ func Example2() {
 	}
 
 	// Instantiate VCR.
-	vcr := govcr.NewVCR(example2CassetteName,
-		&govcr.VCRConfig{
-			Client: myapp.httpClient,
-		})
+	vcr := govcr.NewVCR(
+		govcr.WithCassette(exampleCassetteName2),
+		govcr.WithClient(app.httpClient),
+	)
 
 	// Inject VCR's http.Client wrapper.
 	// The original transport has been preserved, only just wrapped into VCR's.
-	myapp.httpClient = vcr.Client
+	app.httpClient = vcr.HTTPClient()
 
 	// Run request and display stats.
-	myapp.Get("https://www.example.com/foo")
-	fmt.Printf("%+v\n", vcr.Stats())
+	app.Get("https://example.com/foo")
+	t.Logf("%+v\n", vcr.Stats())
 }
