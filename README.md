@@ -1,20 +1,5 @@
 # govcr
 
-**A Word Of Warning About v5**
-
-v5 is a partial re-write of **govcr** to offer better support for cassette mutations. This is necessary because when I first designed **govcr**, I wanted cassettes to be immutable as much as golang can achieve this. Since then, I have received requests to permit cassette mutations at recording time.
-
-`v5` brings breaking changes for those who are using **govcr** v4 or older. In exchange for the inconvenience, it will bring new features and a refreshed code base for future enhancements.
-
-If you're happy with **govcr** as it is, use a dependency manager to lock the version of **govcr** you wish to use (perhaps v4)! Note that only v5 and above use `go.mod`. To download a previous version you can use this trick:
-
-```bash
-# download legacy version of govcr (without go.mod)
-go get gopkg.in/seborama/govcr.v4
-```
-
-**End Of: A Word Of Warning**
-
 Records and replays HTTP / HTTPS interactions for offline unit / behavioural / integration tests thereby acting as an HTTP mock.
 
 This project was inspired by [php-vcr](https://github.com/php-vcr/php-vcr) which is a PHP port of [VCR](https://github.com/vcr/vcr) for ruby.
@@ -36,9 +21,13 @@ func TestExample1() {
 }
 ```
 
-The first time you run this example, `MyCassette1.json` won't exist and `TestExample1` will make a live HTTP call.
+The **first time** you run this example, `MyCassette1.json` won't exist and `TestExample1` will make a live HTTP call.
 
-On subsequent executions (unless you delete the cassette file), the HTTP call will be played back from the cassette and no live HTTP call will occur.
+On **subsequent executions** (unless you delete the cassette file), the HTTP call will be played back from the cassette and no live HTTP call will occur.
+
+Note:
+
+We use a "relaxed" request matcher because `example.com` inject a `Age` header that varies per-request. Without a mutator, govcr's default strict matcher would not match the track on the cassette and keep sending live requests (and record them to the cassette).
 
 ## Install
 
@@ -52,6 +41,13 @@ And your source code would use this import:
 
 ```go
 import "github.com/seborama/govcr/v5"
+```
+
+For versions of **govcr** before v5 (which don't use go.mod), use a dependency manager to lock the version you wish to use (perhaps v4)!
+
+```bash
+# download legacy version of govcr (without go.mod)
+go get gopkg.in/seborama/govcr.v4
 ```
 
 ## Glossary of Terms
@@ -143,7 +139,7 @@ The **first time** they run, they perform a live HTTP call (`Executing request t
 However, on **second execution** (and subsequent executions as long as the **cassette** is not deleted)
 **govcr** retrieves the previously recorded request and plays it back without live HTTP call (`Found a matching track`). You can disconnect from the internet and still playback HTTP requests endlessly!
 
-### Example 2 - Custom VCR Transport
+### Example: Custom VCR Transport
 
 Sometimes, your application will create its own `http.Client` wrapper (for observation, etc) or will initialise the `http.Client`'s Transport (for instance when using https).
 
@@ -185,7 +181,7 @@ func TestExample2() {
 }
 ```
 
-### Example 4 - Custom VCR with a RequestFilters - **TODO: THIS EXAMPLE FOR v4 NOT v5**
+### Example: Custom VCR with a RequestFilters - **TODO: THIS EXAMPLE FOR v4 NOT v5**
 
 This example shows how to handle situations where a header in the request needs to be ignored (or the **track** would not match and hence would not be replayed).
 
@@ -238,7 +234,7 @@ func Example4() {
 
 Remove the RequestFilters from the VCRSettings and re-run the example. Check the stats: notice how the tracks **no longer** replay.
 
-### Example 5 - Custom VCR with a RequestFilters and ResponseFilters - **TODO: THIS EXAMPLE FOR v4 NOT v5**
+### Example: Custom VCR with a RequestFilters and ResponseFilters - **TODO: THIS EXAMPLE FOR v4 NOT v5**
 
 This example shows how to handle situations where a transaction Id in the header needs to be present in the response.
 This could be as part of a contract validation between server and client.
