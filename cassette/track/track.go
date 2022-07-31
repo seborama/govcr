@@ -15,6 +15,7 @@ type Track struct {
 	Response *Response
 	ErrType  *string
 	ErrMsg   *string
+	UUID     string // future enhancement to identify tracks in logs, etc
 
 	// replayed indicates whether the track has already been processed in the cassette playback.
 	replayed bool
