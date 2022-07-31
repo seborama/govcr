@@ -116,15 +116,15 @@ You can create your own matcher on any part of the request and in any manner (li
 
 ## Track mutators
 
-The live HTTP request and response traffic is protected against modifications. While *govcr** could easily support in-place mutation of the live traffic, this is not a goal.
+The live HTTP request and response traffic is protected against modifications. While **govcr** could easily support in-place mutation of the live traffic, this is not a goal.
 
 Nonetheless, **govcr** supports mutating tracks, either at recording time or at playback time.
 
 In either case, this is achieved with track `Mutators`.
 
-A track recording mutator can change both the request and the response that will be persisted to the cassette.
+A **track recording mutator** can change both the request and the response that will be persisted to the cassette.
 
-A track replaying mutator transforms the track after it was matched and retrieved from the cassette. It does not change the cassette file.
+A **track replaying mutator** transforms the track after it was matched and retrieved from the cassette. It does not change the cassette file.
 
 While a track replaying mutator could change the request, it serves no purpose since the request has already been made and matched to a track by the time the replaying mutator is invoked. The reason for supplying the request in the replaying mutator is for information. In some situations, the request details are needed to transform the response.
 
@@ -138,14 +138,14 @@ Please refer to the `examples` directory for examples of code and uses.
 
 **Observe the output of the examples between the `1st run` and the `2nd run` of each example.**
 
-The first time they run, they perform a live HTTP call (`Executing request to live server`).
+The **first time** they run, they perform a live HTTP call (`Executing request to live server`).
 
-However, on second execution (and subsequent executions as long as the **cassette** is not deleted)
+However, on **second execution** (and subsequent executions as long as the **cassette** is not deleted)
 **govcr** retrieves the previously recorded request and plays it back without live HTTP call (`Found a matching track`). You can disconnect from the internet and still playback HTTP requests endlessly!
 
 ### Example 2 - Custom VCR Transport
 
-Sometimes, your application will create its own `http.Client` wrapper or will initialise the `http.Client`'s Transport (for instance when using https).
+Sometimes, your application will create its own `http.Client` wrapper (for observation, etc) or will initialise the `http.Client`'s Transport (for instance when using https).
 
 In such cases, you can pass the `http.Client` object of your application to VCR.
 
@@ -185,9 +185,7 @@ func TestExample2() {
 }
 ```
 
-**TODO: BELOW THIS POINT, THE DOCUMENTATION IS OUTDATED**
-
-### Example 4 - Custom VCR with a RequestFilters
+### Example 4 - Custom VCR with a RequestFilters - **TODO: THIS EXAMPLE FOR v4 NOT v5**
 
 This example shows how to handle situations where a header in the request needs to be ignored (or the **track** would not match and hence would not be replayed).
 
@@ -240,7 +238,7 @@ func Example4() {
 
 Remove the RequestFilters from the VCRSettings and re-run the example. Check the stats: notice how the tracks **no longer** replay.
 
-### Example 5 - Custom VCR with a RequestFilters and ResponseFilters
+### Example 5 - Custom VCR with a RequestFilters and ResponseFilters - **TODO: THIS EXAMPLE FOR v4 NOT v5**
 
 This example shows how to handle situations where a transaction Id in the header needs to be present in the response.
 This could be as part of a contract validation between server and client.
