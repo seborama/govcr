@@ -75,7 +75,7 @@ When using **govcr**'s `http.Client`, the request is matched against the **track
 
 **Note on a govcr typical flow**
 
-The normal `**govcr**` flow is test-oriented. Traffic is recorded by default unless a track already existed on the cassette **at the time it was loaded**.
+The normal **govcr** flow is test-oriented. Traffic is recorded by default unless a track already existed on the cassette **at the time it was loaded**.
 
 A typical usage:
 - run your test once to produce the cassette
@@ -126,7 +126,7 @@ While a track replaying mutator could change the request, it serves no purpose s
 
 Refer to the tests for examples (search for `WithTrackRecordingMutators` and `WithTrackReplayingMutators`).
 
-## Examples
+## Cookbook
 
 ### Run the examples
 
@@ -139,7 +139,7 @@ The **first time** they run, they perform a live HTTP call (`Executing request t
 However, on **second execution** (and subsequent executions as long as the **cassette** is not deleted)
 **govcr** retrieves the previously recorded request and plays it back without live HTTP call (`Found a matching track`). You can disconnect from the internet and still playback HTTP requests endlessly!
 
-### Example: Custom VCR Transport
+### Recipe: VCR with custom `http.Client`
 
 Sometimes, your application will create its own `http.Client` wrapper (for observation, etc) or will initialise the `http.Client`'s Transport (for instance when using https).
 
@@ -181,7 +181,9 @@ func TestExample2() {
 }
 ```
 
-### Example: Custom VCR with a RequestFilters - **TODO: THIS EXAMPLE FOR v4 NOT v5**
+### Recipe: VCR with a RequestFilter
+
+**TODO: THIS EXAMPLE FOR v4 NOT v5**
 
 This example shows how to handle situations where a header in the request needs to be ignored (or the **track** would not match and hence would not be replayed).
 
@@ -234,7 +236,9 @@ func Example4() {
 
 Remove the RequestFilters from the VCRSettings and re-run the example. Check the stats: notice how the tracks **no longer** replay.
 
-### Example: Custom VCR with a RequestFilters and ResponseFilters - **TODO: THIS EXAMPLE FOR v4 NOT v5**
+### Recipe: VCR with a recoding Track Mutator
+
+**TODO: THIS EXAMPLE FOR v4 NOT v5**
 
 This example shows how to handle situations where a transaction Id in the header needs to be present in the response.
 This could be as part of a contract validation between server and client.
@@ -302,11 +306,15 @@ func Example5() {
 }
 ```
 
+### Recipe: VCR with a replaying Track Mutator
+
+**TODO: add example that includes the use of `.On*` predicates**
+
 ## Stats
 
 VCR provides some statistics.
 
-To access the stats, call `vcr.Stats()` where vcr is the `VCR` instance obtained from `NewVCR(...)`.
+To access the stats, call `vcr.Stats()` where vcr is the `ControlPanel` instance obtained from `NewVCR(...)`.
 
 ## Run the tests
 
