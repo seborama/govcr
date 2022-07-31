@@ -13,7 +13,6 @@ If you're happy with **govcr** as it is, use a dependency manager to lock the ve
 go get gopkg.in/seborama/govcr.v4
 ```
 
-
 **End Of: A Word Of Warning**
 
 Records and replays HTTP / HTTPS interactions for offline unit / behavioural / integration tests thereby acting as an HTTP mock.
@@ -21,6 +20,25 @@ Records and replays HTTP / HTTPS interactions for offline unit / behavioural / i
 This project was inspired by [php-vcr](https://github.com/php-vcr/php-vcr) which is a PHP port of [VCR](https://github.com/vcr/vcr) for ruby.
 
 This project is an adaptation for Google's Go / Golang programming language.
+
+## Simple VCR example
+
+```go
+// See TestExample1 in tests for full working example
+
+func TestExample1() {
+	vcr := govcr.NewVCR(
+        govcr.WithCassette("MyCassette1.json"),
+        govcr.WithRequestMatcher(govcr.NewMethodURLRequestMatcher()), // use a "relaxed" request matcher
+    )
+
+    vcr.Client.Get("http://example.com/foo")
+}
+```
+
+The first time you run this example, `MyCassette1.json` won't exist and `TestExample1` will make a live HTTP call.
+
+On subsequent executions (unless you delete the cassette file), the HTTP call will be played back from the cassette and no live HTTP call will occur.
 
 ## Install
 
@@ -38,15 +56,15 @@ import "github.com/seborama/govcr/v5"
 
 ## Glossary of Terms
 
-**VCR**: Video Cassette Recorder. In this context, a VCR refers to the overall engine and data that this project provides. A VCR is both an HTTP recorder and player. When you use a VCR, HTTP requests are replayed from previous recordings (**tracks** saved in **cassette** files on the filesystem). When no previous recording exists for the request, it is performed live on the HTTP server the request is intended to, after what it is saved to a **track** on the **cassette**.
+**VCR**: Video Cassette Recorder. In this context, a VCR refers to the engine and data that this project provides. A VCR is both an HTTP recorder and player. When you use a VCR, HTTP requests are replayed from previous recordings (**tracks** saved in **cassette** files on the filesystem). When no previous recording exists for the request, it is performed live on the HTTP server, after what it is saved to a **track** on the **cassette**.
 
-**cassette**: a sequential collection of **tracks**. This is in effect a JSON file saved under directory `./temp-fixtures` (default). The **cassette** is given a name when creating the **VCR** which becomes the filename (with an extension of `.cassette`).
+**cassette**: a sequential collection of **tracks**. This is in effect a JSON file.
 
 **Long Play cassette**: a cassette compressed in gzip format. Such cassettes have a name that ends with '`.gz`'.
 
 **tracks**: a record of an HTTP request. It contains the request data, the response data, if available, or the error that occurred.
 
-**PCB**: Printed Circuit Board. This is an analogy that refers to the ability to supply customisations to some aspects of the behaviour of the **VCR** (for instance, disable recordings or ignore certain HTTP headers in the request when looking for a previously recorded **track**).
+**ControlPanel**: the creation of a VCR instantiates a ControlPanel for interacting with the VCR and conceal its internals.
 
 ## Documentation
 
@@ -59,26 +77,22 @@ When using **govcr**'s `http.Client`, the request is matched against the **track
 - The **track** is played where a matching one exists on the **cassette**,
 - otherwise the request is executed live to the HTTP server and then recorded on **cassette** for the next time.
 
-**Note on govcr typical flow**
+**Note on a govcr typical flow**
 
 The normal `**govcr**` flow is test-oriented. Traffic is recorded by default unless a track already existed on the cassette **at the time it was loaded**.
 
 A typical usage:
-- remove the cassette file (if present)
-- run your tests once to produce the cassette
+- run your test once to produce the cassette
 - from this point forward, when the test runs again, it will use the cassette
 
-During live recording, the same request can be repeated and recorded many times. Playback occurs in the order the requests were saved on the cassette.See the tests for an example (`TestConcurrencySafety`).
-
-**Cassette** recordings are saved in JSON format. 
-
-You can enable **Long Play** mode that will compress the cassette content. This is enabled by using the cassette name suffix `.gz`. The compression used is standard gzip.
+During live recording, the same request can be repeated and recorded many times. Playback occurs in the order the requests were saved on the cassette. See the tests for an example (`TestConcurrencySafety`).
 
 ### VCRSettings
 
 This structure contains parameters for configuring your **govcr** recorder.
 
 Settings are populated via `With*` options:
+
 - Use `WithClient` to provide a custom http.Client otherwise the default Go http.Client will be used.
 - `WithCassette` loads the specified cassette.\
   Note that it is also possible to call `LoadCassette` from the vcr instance.
@@ -128,29 +142,6 @@ The first time they run, they perform a live HTTP call (`Executing request to li
 
 However, on second execution (and subsequent executions as long as the **cassette** is not deleted)
 **govcr** retrieves the previously recorded request and plays it back without live HTTP call (`Found a matching track`). You can disconnect from the internet and still playback HTTP requests endlessly!
-
-### Example 1 - Simple VCR
-
-When no special HTTP Transport is required by your `http.Client` (i.e. timeout settings, certificates, etc), you can use VCR with the default transport:
-
-```go
-// See TestExample1 in tests for full working example
-
-func TestExample1() {
-	vcr := govcr.NewVCR(
-        govcr.WithCassette("MyCassette1.json"),
-        govcr.WithRequestMatcher(govcr.NewMethodURLRequestMatcher()), // use a "relaxed" request matcher
-    )
-
-    vcr.Client.Get("http://example.com/foo")
-}
-```
-
-The first time you run this example, `MyCassette1.json` won't exist and `TestExample1` will make a live HTTP call.
-
-On subsequent executions, the HTTP call will be played back from the cassette and no live HTTP call will occur.
-
-Delete `MyCassette1.json` to trigger a live HTTP call again.
 
 ### Example 2 - Custom VCR Transport
 
