@@ -118,6 +118,17 @@ Refer to the tests for examples (search for `WithTrackRecordingMutators` and `Wi
 
 ## Examples
 
+### Run the examples
+
+Please refer to the `examples` directory for examples of code and uses.
+
+**Observe the output of the examples between the `1st run` and the `2nd run` of each example.**
+
+The first time they run, they perform a live HTTP call (`Executing request to live server`).
+
+However, on second execution (and subsequent executions as long as the **cassette** is not deleted)
+**govcr** retrieves the previously recorded request and plays it back without live HTTP call (`Found a matching track`). You can disconnect from the internet and still playback HTTP requests endlessly!
+
 ### Example 1 - Simple VCR
 
 When no special HTTP Transport is required by your `http.Client` (i.e. timeout settings, certificates, etc), you can use VCR with the default transport:
@@ -306,34 +317,11 @@ func Example5() {
 }
 ```
 
-### Stats
+## Stats
 
 VCR provides some statistics.
 
 To access the stats, call `vcr.Stats()` where vcr is the `VCR` instance obtained from `NewVCR(...)`.
-
-### Run the examples
-
-Please refer to the `examples` directory for examples of code and uses.
-
-**Observe the output of the examples between the `1st run` and the `2nd run` of each example.**
-
-The first time they run, they perform a live HTTP call (`Executing request to live server`).
-
-However, on second execution (and sub-sequent executions as long as the **cassette** is not deleted)
-**govcr** retrieves the previously recorded request and plays it back without live HTTP call (`Found a matching track`). You can disconnect from the internet and still playback HTTP requests endlessly!
-
-#### Make utility
-
-```bash
-make examples
-```
-
-#### Manually
-
-```bash
-go test ./examples/...
-```
 
 ## Run the tests
 
