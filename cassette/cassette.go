@@ -87,6 +87,7 @@ func (k7 *Cassette) NumberOfTracks() int32 {
 // ReplayTrack returns the specified track number, as recorded on cassette.
 func (k7 *Cassette) ReplayTrack(trackNumber int32) (*track.Track, error) {
 	if trackNumber >= k7.NumberOfTracks() {
+		//nolint: err113
 		return nil, fmt.Errorf("invalid track number %d (only %d available) (track #0 stands for first track)", trackNumber, k7.NumberOfTracks())
 	}
 
@@ -224,7 +225,7 @@ func LoadCassette(cassetteName string) *Cassette {
 func readCassetteFile(cassetteName string) (*Cassette, error) {
 	k7 := NewCassette(cassetteName)
 
-	data, err := ioutil.ReadFile(cassetteName) // nolint:gosec
+	data, err := ioutil.ReadFile(cassetteName) //nolint:gosec
 	if os.IsNotExist(err) {
 		return k7, nil
 	} else if err != nil {

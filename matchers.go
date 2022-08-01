@@ -112,7 +112,7 @@ func DefaultMethodMatcher(httpRequest, trackRequest *track.Request) bool {
 // DefaultURLMatcher is the default implementation of URLMatcher.
 // Because this function is meant to be called from DefaultRequestMatcher.Match(),
 // it doesn't check for either argument to be nil. Match() takes care of it.
-// nolint:gocyclo
+//nolint:gocyclo,gocognit
 func DefaultURLMatcher(httpRequest, trackRequest *track.Request) bool {
 	httpURL := httpRequest.URL
 	if httpURL == nil {
@@ -149,6 +149,7 @@ func DefaultTrailerMatcher(httpRequest, trackRequest *track.Request) bool {
 	return areHTTPHeadersEqual(httpRequest.Trailer, trackRequest.Trailer)
 }
 
+//nolint:gocyclo,gocognit
 func areHTTPHeadersEqual(httpHeaders1, httpHeaders2 http.Header) bool {
 	if len(httpHeaders1) != len(httpHeaders2) {
 		return false
