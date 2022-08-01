@@ -1741,7 +1741,7 @@ linters:
     # - nakedret
     - nestif
     - nilerr
-    - nilnil
+    #- nilnil
     # - nlreturn
     # - noctx
     - nolintlint

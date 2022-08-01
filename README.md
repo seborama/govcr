@@ -27,7 +27,7 @@ On **subsequent executions** (unless you delete the cassette file), the HTTP cal
 
 Note:
 
-We use a "relaxed" request matcher because `example.com` inject a `Age` header that varies per-request. Without a mutator, govcr's default strict matcher would not match the track on the cassette and keep sending live requests (and record them to the cassette).
+We use a "relaxed" request matcher because `example.com` injects an "`Age`" header that varies per-request. Without a mutator, govcr's default strict matcher would not match the track on the cassette and keep sending live requests (and record them to the cassette).
 
 ## Install
 
@@ -114,9 +114,11 @@ You can create your own matcher on any part of the request and in any manner (li
 
 The live HTTP request and response traffic is protected against modifications. While **govcr** could easily support in-place mutation of the live traffic, this is not a goal.
 
-Nonetheless, **govcr** supports mutating tracks, either at recording time or at playback time.
+Nonetheless, **govcr** supports mutating tracks, either at **recording time** or at **playback time**.
 
 In either case, this is achieved with track `Mutators`.
+
+A `Mutator` can be combined with one or more `On` conditions. At present, all `On` conditions attached to a mutator must be true for the mutator to apply.
 
 A **track recording mutator** can change both the request and the response that will be persisted to the cassette.
 

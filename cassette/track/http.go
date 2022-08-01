@@ -177,8 +177,18 @@ func cloneHTTPRequestBody(httpRequest *http.Request) []byte {
 
 	var httpBodyClone []byte
 	if httpRequest.Body != nil {
-		httpBodyClone, _ = ioutil.ReadAll(httpRequest.Body)
-		_ = httpRequest.Body.Close()
+		var err error
+
+		httpBodyClone, err = ioutil.ReadAll(httpRequest.Body)
+		if err != nil {
+			log.Println("cloneHTTPRequestBody - httpBodyClone:", err)
+		}
+
+		err = httpRequest.Body.Close()
+		if err != nil {
+			log.Println("cloneHTTPRequestBody - httpRequest.Body.Close:", err)
+		}
+
 		httpRequest.Body = ioutil.NopCloser(bytes.NewBuffer(httpBodyClone))
 	}
 
@@ -192,8 +202,18 @@ func cloneHTTPResponseBody(httpResponse *http.Response) []byte {
 
 	var httpBodyClone []byte
 	if httpResponse.Body != nil {
-		httpBodyClone, _ = ioutil.ReadAll(httpResponse.Body)
-		_ = httpResponse.Body.Close()
+		var err error
+
+		httpBodyClone, err = ioutil.ReadAll(httpResponse.Body)
+		if err != nil {
+			log.Println("cloneHTTPResponseBody - httpBodyClone:", err)
+		}
+
+		err = httpResponse.Body.Close()
+		if err != nil {
+			log.Println("cloneHTTPResponseBody - httpResponse.Body.Close:", err)
+		}
+
 		httpResponse.Body = ioutil.NopCloser(bytes.NewBuffer(httpBodyClone))
 	}
 

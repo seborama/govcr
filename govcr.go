@@ -22,7 +22,7 @@ func NewVCR(settings ...Setting) *ControlPanel {
 
 	// use a default RequestMatcher if none provided
 	if vcrSettings.requestMatcher == nil {
-		vcrSettings.requestMatcher = NewDefaultRequestMatcher()
+		vcrSettings.requestMatcher = NewStrictRequestMatcher()
 	}
 
 	// create VCR's HTTP client

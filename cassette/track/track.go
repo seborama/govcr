@@ -92,10 +92,12 @@ func (trk *Track) ToErr() error {
 			Net:    "govcr",
 			Source: nil,
 			Addr:   nil,
-			Err:    errors.New(errType + ": " + errMsg),
+			//nolint: err113
+			Err: errors.New(errType + ": " + errMsg),
 		}
 	}
 
+	//nolint: err113
 	return errors.New(errType + ": " + errMsg)
 }
 

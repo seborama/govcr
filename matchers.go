@@ -53,8 +53,23 @@ func WithRequestMatcherFunc(m RequestMatcherFunc) DefaultRequestMatcherOptions {
 	}
 }
 
-// NewDefaultRequestMatcher creates a new default implementation of RequestMatcher.
-func NewDefaultRequestMatcher(options ...DefaultRequestMatcherOptions) *DefaultRequestMatcher {
+// NewBlankRequestMatcher creates a new default implementation of RequestMatcher.
+// By default, it will always match any and all requests to a cassette track.
+// You should pass specific RequestMatcherFunc as options to customise its behaviour.
+// You can also use one of the predefined matchers such as those provided by
+// NewStrictRequestMatcher() or NewMethodURLRequestMatcher().
+func NewBlankRequestMatcher(options ...DefaultRequestMatcherOptions) *DefaultRequestMatcher {
+	drm := DefaultRequestMatcher{}
+
+	for _, option := range options {
+		option(&drm)
+	}
+
+	return &drm
+}
+
+// NewStrictRequestMatcher creates a new default implementation of RequestMatcher.
+func NewStrictRequestMatcher() *DefaultRequestMatcher {
 	drm := DefaultRequestMatcher{
 		matchers: []RequestMatcherFunc{
 			DefaultHeaderMatcher,
@@ -65,24 +80,16 @@ func NewDefaultRequestMatcher(options ...DefaultRequestMatcherOptions) *DefaultR
 		},
 	}
 
-	for _, option := range options {
-		option(&drm)
-	}
-
 	return &drm
 }
 
 // NewMethodURLRequestMatcher creates a new implementation of RequestMatcher based on Method and URL.
-func NewMethodURLRequestMatcher(options ...DefaultRequestMatcherOptions) *DefaultRequestMatcher {
+func NewMethodURLRequestMatcher() *DefaultRequestMatcher {
 	drm := DefaultRequestMatcher{
 		matchers: []RequestMatcherFunc{
 			DefaultMethodMatcher,
 			DefaultURLMatcher,
 		},
-	}
-
-	for _, option := range options {
-		option(&drm)
 	}
 
 	return &drm
@@ -105,7 +112,7 @@ func DefaultMethodMatcher(httpRequest, trackRequest *track.Request) bool {
 // DefaultURLMatcher is the default implementation of URLMatcher.
 // Because this function is meant to be called from DefaultRequestMatcher.Match(),
 // it doesn't check for either argument to be nil. Match() takes care of it.
-//nolint:gocyclo
+//nolint:gocyclo,gocognit
 func DefaultURLMatcher(httpRequest, trackRequest *track.Request) bool {
 	httpURL := httpRequest.URL
 	if httpURL == nil {
@@ -142,6 +149,7 @@ func DefaultTrailerMatcher(httpRequest, trackRequest *track.Request) bool {
 	return areHTTPHeadersEqual(httpRequest.Trailer, trackRequest.Trailer)
 }
 
+//nolint:gocyclo,gocognit
 func areHTTPHeadersEqual(httpHeaders1, httpHeaders2 http.Header) bool {
 	if len(httpHeaders1) != len(httpHeaders2) {
 		return false
