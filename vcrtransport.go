@@ -36,7 +36,7 @@ func (t *vcrTransport) RoundTrip(httpRequest *http.Request) (*http.Response, err
 			httpResponse := trk.ToHTTPResponse()
 			httpError := trk.ToErr()
 
-			return httpResponse, httpError //nolint: wrapcheck
+			return httpResponse, httpError // nolint: wrapcheck
 		}
 	}
 
@@ -55,7 +55,7 @@ func (t *vcrTransport) RoundTrip(httpRequest *http.Request) (*http.Response, err
 		}
 	}
 
-	return httpResponse, reqErr //nolint: wrapcheck
+	return httpResponse, reqErr // nolint: wrapcheck
 }
 
 // NumberOfTracks returns the number of tracks contained in the cassette.

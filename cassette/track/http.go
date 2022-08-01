@@ -120,7 +120,7 @@ func cloneTLS(tlsCS *tls.ConnectionState) *tls.ConnectionState {
 		return nil
 	}
 
-	var signedCertificateTimestampsClone [][]byte //nolint:prealloc
+	var signedCertificateTimestampsClone [][]byte // nolint:prealloc
 	for _, data := range tlsCS.SignedCertificateTimestamps {
 		signedCertificateTimestampsClone = append(signedCertificateTimestampsClone, []byte(string(data)))
 	}
@@ -132,7 +132,7 @@ func cloneTLS(tlsCS *tls.ConnectionState) *tls.ConnectionState {
 		peerCertificatesClone = tlsCS.PeerCertificates
 	}
 
-	var verifiedChainsClone [][]*x509.Certificate //nolint:prealloc
+	var verifiedChainsClone [][]*x509.Certificate // nolint:prealloc
 	for _, certSlice := range tlsCS.VerifiedChains {
 		var certSliceClone []*x509.Certificate
 
@@ -153,13 +153,13 @@ func cloneTLS(tlsCS *tls.ConnectionState) *tls.ConnectionState {
 		DidResume:                   tlsCS.DidResume,
 		CipherSuite:                 tlsCS.CipherSuite,
 		NegotiatedProtocol:          tlsCS.NegotiatedProtocol,
-		NegotiatedProtocolIsMutual:  tlsCS.NegotiatedProtocolIsMutual, //nolint: staticcheck
+		NegotiatedProtocolIsMutual:  tlsCS.NegotiatedProtocolIsMutual, // nolint: staticcheck
 		ServerName:                  tlsCS.ServerName,
 		PeerCertificates:            peerCertificatesClone,
 		VerifiedChains:              verifiedChainsClone,
 		SignedCertificateTimestamps: signedCertificateTimestampsClone,
 		OCSPResponse:                []byte(string(tlsCS.OCSPResponse)),
-		TLSUnique:                   []byte(string(tlsCS.TLSUnique)), //nolint: staticcheck
+		TLSUnique:                   []byte(string(tlsCS.TLSUnique)), // nolint: staticcheck
 	}
 }
 
@@ -267,7 +267,7 @@ func CloneHTTPRequest(httpRequest *http.Request) *http.Request {
 	httpRequestClone := *httpRequest
 
 	// remove the channel reference
-	httpRequestClone.Cancel = nil //nolint:staticcheck
+	httpRequestClone.Cancel = nil // nolint:staticcheck
 
 	// deal with the URL
 	if httpRequest.URL != nil {
