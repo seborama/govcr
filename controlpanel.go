@@ -24,6 +24,11 @@ func (controlPanel *ControlPanel) LoadCassette(cassetteName string) error {
 	return controlPanel.vcrTransport().loadCassette(cassetteName)
 }
 
+// SetRequestMatcher sets a new RequestMatcher to the VCR.
+func (controlPanel *ControlPanel) SetRequestMatcher(requestMatcher RequestMatcher) {
+	controlPanel.vcrTransport().SetRequestMatcher(requestMatcher)
+}
+
 // AddRecordingMutators adds a set of recording Track Mutator's to the VCR.
 func (controlPanel *ControlPanel) AddRecordingMutators(trackMutators ...track.Mutator) {
 	controlPanel.vcrTransport().AddRecordingMutators(trackMutators...)

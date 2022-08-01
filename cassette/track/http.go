@@ -46,9 +46,10 @@ func ToRequest(httpRequest *http.Request) *Request {
 		return nil
 	}
 
+	// deal with body first because Trailers are sent after Body.Read returns io.EOF and Body.Close() was called.
+	bodyClone := cloneHTTPRequestBody(httpRequest)
 	headerClone := cloneHeader(httpRequest.Header)
 	trailerClone := cloneHeader(httpRequest.Trailer)
-	bodyClone := cloneHTTPRequestBody(httpRequest)
 
 	return &Request{
 		Method:        httpRequest.Method,
@@ -93,9 +94,10 @@ func ToResponse(httpResponse *http.Response) *Response {
 		return nil
 	}
 
+	// deal with body first because Trailers are sent after Body.Read returns io.EOF and Body.Close() was called.
+	bodyClone := cloneHTTPResponseBody(httpResponse)
 	headerClone := cloneHeader(httpResponse.Header)
 	trailerClone := cloneHeader(httpResponse.Trailer)
-	bodyClone := cloneHTTPResponseBody(httpResponse)
 	tsfEncodingClone := cloneStringSlice(httpResponse.TransferEncoding)
 
 	tlsClone := cloneTLS(httpResponse.TLS)
@@ -294,8 +296,9 @@ func CloneHTTPRequest(httpRequest *http.Request) *http.Request {
 		httpRequestClone.URL = cloneURL(httpRequest.URL)
 	}
 
-	httpRequestClone.Header = cloneHeader(httpRequest.Header)
+	// deal with body first because Trailers are sent after Body.Read returns io.EOF and Body.Close() was called.
 	httpRequestClone.Body = ioutil.NopCloser(bytes.NewBuffer(cloneHTTPRequestBody(httpRequest)))
+	httpRequestClone.Header = cloneHeader(httpRequest.Header)
 	httpRequestClone.Trailer = cloneHeader(httpRequest.Trailer)
 	httpRequestClone.TransferEncoding = cloneStringSlice(httpRequest.TransferEncoding)
 	httpRequestClone.Form = cloneURLValues(httpRequest.Form)
