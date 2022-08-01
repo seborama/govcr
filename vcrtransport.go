@@ -78,6 +78,11 @@ func (t *vcrTransport) ejectCassette() {
 	t.cassette = nil
 }
 
+// SetRequestMatcher sets a new RequestMatcher to the VCR.
+func (t *vcrTransport) SetRequestMatcher(requestMatcher RequestMatcher) {
+	t.pcb.SetRequestMatcher(requestMatcher)
+}
+
 // AddRecordingMutators adds a set of recording Track Mutator's to the VCR.
 func (t *vcrTransport) AddRecordingMutators(mutators ...track.Mutator) {
 	t.pcb.AddRecordingMutators(mutators...)

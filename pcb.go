@@ -52,6 +52,11 @@ func (pcb *PrintedCircuitBoard) mutateTrackReplaying(t *track.Track) {
 	pcb.trackReplayingMutators.Mutate(t)
 }
 
+// SetRequestMatcher sets a new RequestMatcher to the VCR.
+func (pcb *PrintedCircuitBoard) SetRequestMatcher(requestMatcher RequestMatcher) {
+	pcb.requestMatcher = requestMatcher
+}
+
 // AddRecordingMutators adds a collection of recording TrackMutator's.
 func (pcb *PrintedCircuitBoard) AddRecordingMutators(mutators ...track.Mutator) {
 	pcb.trackRecordingMutators = pcb.trackRecordingMutators.Add(mutators...)
