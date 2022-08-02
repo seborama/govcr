@@ -232,7 +232,7 @@ func (suite *GoVCRTestSuite) TestVCR_OfflineMode() {
 
 	// 3rd execution of set of calls -- still offline only
 	// we've run out of tracks and we're in offline mode so we expect a transport error
-	req, err := http.NewRequest(http.MethodGet, suite.testServer.URL, nil) // +fmt.Sprintf("?i=%d", i), nil)
+	req, err := http.NewRequest(http.MethodGet, suite.testServer.URL, nil)
 	suite.Require().NoError(err)
 	resp, err := suite.vcr.HTTPClient().Do(req)
 	suite.Require().Error(err)

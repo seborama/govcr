@@ -110,12 +110,32 @@ func (t *vcrTransport) AddRecordingMutators(mutators ...track.Mutator) {
 	t.pcb.AddRecordingMutators(mutators...)
 }
 
+// SetRecordingMutators replaces the set of recording Track Mutator's in the VCR.
+func (t *vcrTransport) SetRecordingMutators(trackMutators ...track.Mutator) {
+	t.pcb.SetRecordingMutators(trackMutators...)
+}
+
+// ClearRecordingMutators clears the set of recording Track Mutator's from the VCR.
+func (t *vcrTransport) ClearRecordingMutators() {
+	t.pcb.ClearRecordingMutators()
+}
+
 // AddReplayingMutators adds a set of replaying Track Mutator's to the VCR.
 // Replaying happens AFTER the request has been matched. As such, while the track's Request
 // could be mutated, it will have no effect.
 // However, the Request data can be referenced as part of mutating the Response.
 func (t *vcrTransport) AddReplayingMutators(mutators ...track.Mutator) {
 	t.pcb.AddReplayingMutators(mutators...)
+}
+
+// SetReplayingMutators replaces the set of replaying Track Mutator's in the VCR.
+func (t *vcrTransport) SetReplayingMutators(trackMutators ...track.Mutator) {
+	t.pcb.SetReplayingMutators(trackMutators...)
+}
+
+// ClearReplayingMutators clears the set of replaying Track Mutator's from the VCR.
+func (t *vcrTransport) ClearReplayingMutators() {
+	t.pcb.ClearReplayingMutators()
 }
 
 func (t *vcrTransport) stats() *stats.Stats {

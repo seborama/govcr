@@ -49,12 +49,32 @@ func (controlPanel *ControlPanel) AddRecordingMutators(trackMutators ...track.Mu
 	controlPanel.vcrTransport().AddRecordingMutators(trackMutators...)
 }
 
+// SetRecordingMutators replaces the set of recording Track Mutator's in the VCR.
+func (controlPanel *ControlPanel) SetRecordingMutators(trackMutators ...track.Mutator) {
+	controlPanel.vcrTransport().SetRecordingMutators(trackMutators...)
+}
+
+// ClearRecordingMutators clears the set of recording Track Mutator's from the VCR.
+func (controlPanel *ControlPanel) ClearRecordingMutators() {
+	controlPanel.vcrTransport().ClearRecordingMutators()
+}
+
 // AddReplayingMutators adds a set of replaying Track Mutator's to the VCR.
 // Replaying happens AFTER the request has been matched. As such, while the track's Request
 // could be mutated, it will have no effect.
 // However, the Request data can be referenced as part of mutating the Response.
 func (controlPanel *ControlPanel) AddReplayingMutators(trackMutators ...track.Mutator) {
 	controlPanel.vcrTransport().AddReplayingMutators(trackMutators...)
+}
+
+// SetReplayingMutators replaces the set of replaying Track Mutator's in the VCR.
+func (controlPanel *ControlPanel) SetReplayingMutators(trackMutators ...track.Mutator) {
+	controlPanel.vcrTransport().SetReplayingMutators(trackMutators...)
+}
+
+// ClearReplayingMutators clears the set of replaying Track Mutator's from the VCR.
+func (controlPanel *ControlPanel) ClearReplayingMutators() {
+	controlPanel.vcrTransport().ClearReplayingMutators()
 }
 
 // HTTPClient returns the http.Client that contains the VCR.
