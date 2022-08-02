@@ -16,7 +16,3 @@ test: deps
 
 lint: deps
 	./golangci-lint.sh || :
-
-mutate: deps
-	./gomutesting.sh || :
-

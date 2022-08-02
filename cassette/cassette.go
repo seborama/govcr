@@ -14,9 +14,9 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/seborama/govcr/v5/cassette/track"
-	"github.com/seborama/govcr/v5/compression"
-	"github.com/seborama/govcr/v5/stats"
+	"github.com/seborama/govcr/v6/cassette/track"
+	"github.com/seborama/govcr/v6/compression"
+	"github.com/seborama/govcr/v6/stats"
 )
 
 // Cassette contains a set of tracks.

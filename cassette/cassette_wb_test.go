@@ -3,7 +3,7 @@ package cassette
 import (
 	"testing"
 
-	"github.com/seborama/govcr/v5/stats"
+	"github.com/seborama/govcr/v6/stats"
 	"github.com/stretchr/testify/assert"
 )
 

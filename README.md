@@ -32,7 +32,7 @@ We use a "relaxed" request matcher because `example.com` injects an "`Age`" head
 ## Install
 
 ```bash
-go get github.com/seborama/govcr/v5@latest
+go get github.com/seborama/govcr/v6@latest
 ```
 
 For all available releases, please check the [releases](https://github.com/seborama/govcr/releases) tab on github.
@@ -40,7 +40,7 @@ For all available releases, please check the [releases](https://github.com/sebor
 And your source code would use this import:
 
 ```go
-import "github.com/seborama/govcr/v5"
+import "github.com/seborama/govcr/v6"
 ```
 
 For versions of **govcr** before v5 (which don't use go.mod), use a dependency manager to lock the version you wish to use (perhaps v4)!
@@ -201,7 +201,7 @@ import (
 
     "net/http"
 
-    "github.com/seborama/govcr/v5"
+    "github.com/seborama/govcr/v6"
 )
 
 const example4CassetteName = "MyCassette4"
@@ -258,7 +258,7 @@ import (
 
     "net/http"
 
-    "github.com/seborama/govcr/v5"
+    "github.com/seborama/govcr/v6"
 )
 
 const example5CassetteName = "MyCassette5"

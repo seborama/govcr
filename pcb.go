@@ -3,8 +3,8 @@ package govcr
 import (
 	"net/http"
 
-	"github.com/seborama/govcr/v5/cassette"
-	"github.com/seborama/govcr/v5/cassette/track"
+	"github.com/seborama/govcr/v6/cassette"
+	"github.com/seborama/govcr/v6/cassette/track"
 )
 
 // PrintedCircuitBoard is a structure that holds some facilities that are passed to

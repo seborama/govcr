@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/seborama/govcr/v5/cassette/track"
+	"github.com/seborama/govcr/v6/cassette/track"
 )
 
 func Test_Mutator_OnNoErr_WhenNoErr(t *testing.T) {
