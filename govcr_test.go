@@ -14,8 +14,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/seborama/govcr/v5"
-	"github.com/seborama/govcr/v5/stats"
+	"github.com/seborama/govcr/v6"
+	"github.com/seborama/govcr/v6/stats"
 )
 
 func TestNewVCR(t *testing.T) {
