@@ -98,7 +98,7 @@ func removeUnreadableCassette(t *testing.T, name string) {
 	require.NoError(t, err)
 }
 
-func TestVCRControlPanel_Player(t *testing.T) {
+func TestVCRControlPanel_HTTPClient(t *testing.T) {
 	vcr := govcr.NewVCR()
 	unit := vcr.HTTPClient()
 	assert.IsType(t, (*http.Client)(nil), unit)
@@ -112,7 +112,7 @@ type GoVCRTestSuite struct {
 	cassetteName string
 }
 
-func TestHandlerTestSuite(t *testing.T) {
+func TestGoVCRTestSuite(t *testing.T) {
 	suite.Run(t, new(GoVCRTestSuite))
 }
 
@@ -132,12 +132,112 @@ func (suite *GoVCRTestSuite) SetupTest() {
 	testServerClient := suite.testServer.Client()
 	testServerClient.Timeout = 3 * time.Second
 	suite.vcr = govcr.NewVCR(govcr.WithClient(testServerClient))
-	suite.cassetteName = "test-fixtures/TestRecordsTrack.cassette.json"
+	suite.cassetteName = "temp-fixtures/TestGoVCRTestSuite.cassette.json"
 	_ = os.Remove(suite.cassetteName)
 }
 
 func (suite *GoVCRTestSuite) TearDownTest() {
 	_ = os.Remove(suite.cassetteName)
+}
+
+func (suite *GoVCRTestSuite) TestVCR_ReadOnlyMode() {
+	suite.vcr.SetReadOnlyMode(true)
+
+	err := suite.vcr.LoadCassette(suite.cassetteName)
+	suite.Require().NoError(err)
+
+	resp, err := suite.vcr.HTTPClient().Get(suite.testServer.URL)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(resp)
+
+	actualStats := *suite.vcr.Stats()
+	suite.vcr.EjectCassette()
+	suite.EqualValues(0, suite.vcr.NumberOfTracks())
+
+	expectedStats := stats.Stats{
+		TotalTracks:    0,
+		TracksLoaded:   0,
+		TracksRecorded: 0,
+		TracksPlayed:   0,
+	}
+	suite.EqualValues(expectedStats, actualStats)
+}
+
+func (suite *GoVCRTestSuite) TestVCR_LiveOnlyMode() {
+	suite.vcr.SetLiveOnlyMode(true)
+	suite.vcr.SetRequestMatcher(govcr.NewBlankRequestMatcher()) // ensure always matching
+
+	// 1st execution of set of calls
+	err := suite.vcr.LoadCassette(suite.cassetteName)
+	suite.Require().NoError(err)
+
+	actualStats := suite.makeHTTPCalls_WithSuccess(0)
+	expectedStats := stats.Stats{
+		TotalTracks:    2,
+		TracksLoaded:   0,
+		TracksRecorded: 2,
+		TracksPlayed:   0,
+	}
+	suite.EqualValues(expectedStats, actualStats)
+	suite.Require().FileExists(suite.cassetteName)
+	suite.vcr.EjectCassette()
+
+	// 2nd execution of set of calls
+	err = suite.vcr.LoadCassette(suite.cassetteName)
+	suite.Require().NoError(err)
+
+	actualStats = suite.makeHTTPCalls_WithSuccess(2) // as we're making live requests, the sever keeps on increasing the counter
+	expectedStats = stats.Stats{
+		TotalTracks:    4,
+		TracksLoaded:   2,
+		TracksRecorded: 2,
+		TracksPlayed:   0,
+	}
+	suite.EqualValues(expectedStats, actualStats)
+}
+
+func (suite *GoVCRTestSuite) TestVCR_OfflineMode() {
+	suite.vcr.SetRequestMatcher(govcr.NewBlankRequestMatcher()) // ensure always matching
+
+	// 1st execution of set of calls - populate cassette
+	suite.vcr.SetOfflineMode(false) // get data in the cassette
+	err := suite.vcr.LoadCassette(suite.cassetteName)
+	suite.Require().NoError(err)
+
+	actualStats := suite.makeHTTPCalls_WithSuccess(0)
+	expectedStats := stats.Stats{
+		TotalTracks:    2,
+		TracksLoaded:   0,
+		TracksRecorded: 2,
+		TracksPlayed:   0,
+	}
+	suite.EqualValues(expectedStats, actualStats)
+	suite.Require().FileExists(suite.cassetteName)
+	suite.vcr.EjectCassette()
+
+	// 2nd execution of set of calls -- offline only
+	suite.vcr.SetOfflineMode(true)
+
+	err = suite.vcr.LoadCassette(suite.cassetteName)
+	suite.Require().NoError(err)
+
+	actualStats = suite.makeHTTPCalls_WithSuccess(0)
+	expectedStats = stats.Stats{
+		TotalTracks:    2,
+		TracksLoaded:   2,
+		TracksRecorded: 0,
+		TracksPlayed:   2,
+	}
+	suite.EqualValues(expectedStats, actualStats)
+
+	// 3rd execution of set of calls -- still offline only
+	// we've run out of tracks and we're in offline mode so we expect a transport error
+	req, err := http.NewRequest(http.MethodGet, suite.testServer.URL, nil) // +fmt.Sprintf("?i=%d", i), nil)
+	suite.Require().NoError(err)
+	resp, err := suite.vcr.HTTPClient().Do(req)
+	suite.Require().Error(err)
+	suite.Assert().Contains(err.Error(), "no track matched on cassette and offline mode is active")
+	suite.Assert().Nil(resp)
 }
 
 func (suite *GoVCRTestSuite) TestRoundTrip_ReplaysError() {
@@ -252,7 +352,7 @@ func (suite *GoVCRTestSuite) TestRoundTrip_ReplaysPlainResponse() {
 	suite.EqualValues(expectedStats, actualStats)
 
 	// 3rd execution of set of calls (replayed without cassette reload)
-	actualStats = suite.makeHTTPCalls_WithSuccess(int(expectedStats.TotalTracks))
+	actualStats = suite.makeHTTPCalls_WithSuccess(int(expectedStats.TotalTracks)) // as we're making live requests, the sever keeps on increasing the counter
 	expectedStats = stats.Stats{
 		TotalTracks:    4,
 		TracksLoaded:   2,

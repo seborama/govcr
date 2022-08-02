@@ -26,6 +26,7 @@ type vcrTransport struct {
 func (t *vcrTransport) RoundTrip(httpRequest *http.Request) (*http.Response, error) {
 	httpRequestClone := track.CloneHTTPRequest(httpRequest)
 
+	// search for a matching track on cassette if liveOnly mode is not selected
 	trk, seekErr := t.pcb.seekTrack(t.cassette, httpRequestClone)
 	if seekErr != nil {
 		log.Printf("error retrieving track from cassette, continuing with live request (will not record): %v", seekErr)
@@ -40,9 +41,15 @@ func (t *vcrTransport) RoundTrip(httpRequest *http.Request) (*http.Response, err
 		}
 	}
 
+	if t.pcb.offlineMode {
+		return nil, errors.New("no track matched on cassette and offline mode is active")
+	}
+
 	httpResponse, reqErr := t.transport.RoundTrip(httpRequest)
-	if seekErr == nil {
-		// record track only if previously seek cassette
+	if seekErr == nil && !t.pcb.readOnly {
+		// record track if:
+		// - previously seek cassette was successful (otherwise we might dupe a track or corrupt the cassette further)
+		// - readOnly mode is not selected
 		trkResponse := track.ToResponse(httpResponse)
 		trkRequest := track.ToRequest(httpRequestClone)
 		newTrack := track.NewTrack(trkRequest, trkResponse, reqErr)
@@ -81,6 +88,21 @@ func (t *vcrTransport) ejectCassette() {
 // SetRequestMatcher sets a new RequestMatcher to the VCR.
 func (t *vcrTransport) SetRequestMatcher(requestMatcher RequestMatcher) {
 	t.pcb.SetRequestMatcher(requestMatcher)
+}
+
+// SetReadOnlyMode sets the VCR to read-only mode (true) or to normal read-write (false).
+func (t *vcrTransport) SetReadOnlyMode(state bool) {
+	t.pcb.SetReadOnlyMode(state)
+}
+
+// SetOfflineMode sets the VCR to offline mode (true) or to normal live/replay (false).
+func (t *vcrTransport) SetOfflineMode(state bool) {
+	t.pcb.SetOfflineMode(state)
+}
+
+// SetLiveOnlyMode sets the VCR to live-only mode (true) or to normal live/replay (false).
+func (t *vcrTransport) SetLiveOnlyMode(state bool) {
+	t.pcb.SetLiveOnlyMode(state)
 }
 
 // AddRecordingMutators adds a set of recording Track Mutator's to the VCR.

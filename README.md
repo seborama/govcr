@@ -183,6 +183,69 @@ func TestExample2() {
 }
 ```
 
+### Recipe: Remove Response TLS from cassette or from track playback
+
+Use the provided mutator `track.ResponseDeleteTLS`.
+
+Remove Response.TLS from the cassette recording:
+
+```go
+	vcr := govcr.NewVCR(
+		govcr.WithCassette(exampleCassetteName2),
+		govcr.WithTrackRecordingMutators(track.ResponseDeleteTLS),
+	)
+```
+
+Remove Response.TLS from the track at playback time:
+
+```go
+	vcr := govcr.NewVCR(
+		govcr.WithCassette(exampleCassetteName2),
+		govcr.WithTrackReplayingMutators(track.ResponseDeleteTLS),
+	)
+```
+
+### Recipe: Change the playback mode of the VCR
+
+**govcr** support operation modes:
+
+- Live only: never replay from the cassette.
+- Read only: normal behaviour except that recording to cassette is disabled.
+- Offline: playback from cassette only, return a transport error if no track matches.
+
+#### Live only
+
+```go
+	vcr := govcr.NewVCR(
+		govcr.WithCassette(exampleCassetteName2),
+		govcr.WithLiveOnlyMode(),
+	)
+    // or equally:
+    vcr.SetLiveOnlyMode(true) // `false` to disable option
+```
+
+#### Read only
+
+```go
+	vcr := govcr.NewVCR(
+		govcr.WithCassette(exampleCassetteName2),
+		govcr.WithReadOnlyMode(),
+	)
+    // or equally:
+    vcr.SetReadOnlyMode(true) // `false` to disable option
+```
+
+#### Offline
+
+```go
+	vcr := govcr.NewVCR(
+		govcr.WithCassette(exampleCassetteName2),
+		govcr.WithOfflineMode(),
+	)
+    // or equally:
+    vcr.SetOfflineMode(true) // `false` to disable option
+```
+
 ### Recipe: VCR with a RequestFilter
 
 **TODO: THIS EXAMPLE FOR v4 NOT v5**

@@ -55,6 +55,32 @@ func WithTrackReplayingMutators(trackReplayingMutators ...track.Mutator) Setting
 	}
 }
 
+// WithLiveOnlyMode sets the VCR to make live calls only, do not replay from cassette even
+// if a track would exist.
+// Perhaps more useful when used in combination with 'readOnly' to by-pass govcr entirely.
+func WithLiveOnlyMode() Setting {
+	return func(vcrSettings *VCRSettings) {
+		vcrSettings.liveOnly = true
+	}
+}
+
+// WithReadOnlyMode sets the VCR to replay tracks from cassette, if present, or make live
+// calls but do not records new tracks.
+func WithReadOnlyMode() Setting {
+	return func(vcrSettings *VCRSettings) {
+		vcrSettings.readOnly = true
+	}
+}
+
+// WithOfflineMode sets the VCR to replay tracks from cassette, if present, but do not make
+// live calls.
+// govcr will return a transport error if no track was found.
+func WithOfflineMode() Setting {
+	return func(vcrSettings *VCRSettings) {
+		vcrSettings.offlineMode = true
+	}
+}
+
 // VCRSettings holds a set of options for the VCR.
 type VCRSettings struct {
 	client                 *http.Client
@@ -62,4 +88,7 @@ type VCRSettings struct {
 	requestMatcher         RequestMatcher
 	trackRecordingMutators track.Mutators
 	trackReplayingMutators track.Mutators
+	liveOnly               bool
+	readOnly               bool
+	offlineMode            bool
 }

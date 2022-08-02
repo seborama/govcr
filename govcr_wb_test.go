@@ -23,7 +23,7 @@ type GoVCRWBTestSuite struct {
 	cassetteName string
 }
 
-func TestHandlerTestSuite(t *testing.T) {
+func TestGoVCRWBTestSuite(t *testing.T) {
 	suite.Run(t, new(GoVCRWBTestSuite))
 }
 
