@@ -93,10 +93,7 @@ Settings are populated via `With*` options:
 - `WithCassette` loads the specified cassette.\
   Note that it is also possible to call `LoadCassette` from the vcr instance.
 - See `vcrsettings.go` for more options such as `WithRequestMatcher`, `WithTrackRecordingMutators`, `WithTrackReplayingMutators`, ...
-- TODO in v5: `WithDisableRecording` disables track recording (but will replay matching tracks)
 - TODO in v5: `WithLogging` enables logging to help understand what govcr is doing internally.
-- TODO in v5: `WithSaveTLS` enables saving TLS in the track response.\
-  Note: this doesn't work well because of limitations in Go's json package and unspecified `any` in the PublicKey certificate struct.
 
 ## Match a request to a cassette track
 

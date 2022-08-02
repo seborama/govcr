@@ -92,12 +92,32 @@ func (pcb *PrintedCircuitBoard) AddRecordingMutators(mutators ...track.Mutator) 
 	pcb.trackRecordingMutators = pcb.trackRecordingMutators.Add(mutators...)
 }
 
+// SetRecordingMutators replaces the set of recording Track Mutator's in the VCR.
+func (pcb *PrintedCircuitBoard) SetRecordingMutators(trackMutators ...track.Mutator) {
+	pcb.trackRecordingMutators = trackMutators
+}
+
+// ClearRecordingMutators clears the set of recording Track Mutator's from the VCR.
+func (pcb *PrintedCircuitBoard) ClearRecordingMutators() {
+	pcb.trackRecordingMutators = nil
+}
+
 // AddReplayingMutators adds a collection of replaying TrackMutator's.
 // Replaying happens AFTER the request has been matched. As such, while the track's Request
 // could be mutated, it will have no effect.
 // However, the Request data can be referenced as part of mutating the Response.
 func (pcb *PrintedCircuitBoard) AddReplayingMutators(mutators ...track.Mutator) {
 	pcb.trackReplayingMutators = pcb.trackReplayingMutators.Add(mutators...)
+}
+
+// SetReplayingMutators replaces the set of replaying Track Mutator's in the VCR.
+func (pcb *PrintedCircuitBoard) SetReplayingMutators(trackMutators ...track.Mutator) {
+	pcb.trackReplayingMutators = trackMutators
+}
+
+// ClearReplayingMutators clears the set of replaying Track Mutator's from the VCR.
+func (pcb *PrintedCircuitBoard) ClearReplayingMutators() {
+	pcb.trackReplayingMutators = nil
 }
 
 // RequestMatcher is an interface that exposes the method to perform request comparison.

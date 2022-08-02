@@ -12,6 +12,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
 	"github.com/seborama/govcr/v6/cassette/track"
@@ -105,11 +106,15 @@ func (k7 *Cassette) ReplayTrack(trackNumber int32) (*track.Track, error) {
 // AddTrack to cassette.
 // Note that the Track does not receive mutations here, it must be mutated
 // before passed to the cassette for recording.
-func (k7 *Cassette) AddTrack(track *track.Track) {
+func (k7 *Cassette) AddTrack(trk *track.Track) {
 	k7.trackSliceMutex.Lock()
 	defer k7.trackSliceMutex.Unlock()
 
-	k7.Tracks = append(k7.Tracks, *track)
+	if trk.UUID == "" {
+		trk.UUID = uuid.NewString()
+	}
+
+	k7.Tracks = append(k7.Tracks, *trk)
 }
 
 // IsLongPlay returns true if the cassette content is compressed.
@@ -194,12 +199,12 @@ func transformInterfacesInJSON(jsonString []byte) []byte {
 }
 
 // AddTrackToCassette saves a new track using the specified details to a cassette.
-func AddTrackToCassette(cassette *Cassette, aTrack *track.Track) error {
+func AddTrackToCassette(cassette *Cassette, trk *track.Track) error {
 	// mark track as replayed since it's coming from a live Request!
-	aTrack.SetReplayed(true)
+	trk.SetReplayed(true)
 
 	// add track to cassette
-	cassette.AddTrack(aTrack)
+	cassette.AddTrack(trk)
 
 	// save cassette
 	return cassette.save()

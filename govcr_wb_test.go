@@ -1,10 +1,14 @@
 package govcr
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io/ioutil"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"testing"
 	"time"
@@ -71,10 +75,140 @@ func (suite *GoVCRWBTestSuite) TearDownTest() {
 }
 
 func (suite *GoVCRWBTestSuite) TestRoundTrip_DoesNotChangeLiveRequestOrResponse() {
+	suite.vcr.SetLiveOnlyMode(true) // ensure we always make live calls for this test
+
+	trackDestroyerMutator := track.Mutator(
+		func(trk *track.Track) {
+			newURL := url.URL{
+				Scheme:      "x",
+				Opaque:      "y",
+				User:        &url.Userinfo{},
+				Host:        "z",
+				Path:        "a",
+				RawPath:     "b",
+				ForceQuery:  false,
+				RawQuery:    "c",
+				Fragment:    "d",
+				RawFragment: "e",
+			}
+
+			trk.Request = track.Request{
+				Method:           "m",
+				URL:              &newURL,
+				Proto:            "p",
+				ProtoMajor:       2,
+				ProtoMinor:       3,
+				Header:           map[string][]string{"h": {"v"}},
+				Body:             []byte("body bytes"),
+				ContentLength:    200,
+				TransferEncoding: []string{"x"},
+				Close:            false,
+				Host:             "y",
+				Form:             map[string][]string{"i": {"n"}},
+				PostForm:         map[string][]string{"j": {"m"}},
+				MultipartForm: &multipart.Form{
+					Value: map[string][]string{"p": {"u"}},
+					File: map[string][]*multipart.FileHeader{
+						"s": {{
+							Filename: "f",
+							Header:   map[string][]string{"e": {"d"}},
+							Size:     7,
+						}},
+					},
+				},
+				Trailer:    map[string][]string{"k": {"l"}},
+				RemoteAddr: "b",
+				RequestURI: "c",
+			}
+
+			trk.Response = &track.Response{
+				Status:           "s1",
+				StatusCode:       3,
+				Proto:            "p1",
+				ProtoMajor:       7,
+				ProtoMinor:       8,
+				Header:           map[string][]string{"ch": {"cv"}},
+				Body:             []byte("resp body"),
+				ContentLength:    123,
+				TransferEncoding: []string{"t blah"},
+				Trailer:          map[string][]string{"h54": {"34v"}},
+				TLS: &tls.ConnectionState{
+					Version:                     120,
+					HandshakeComplete:           false,
+					DidResume:                   false,
+					CipherSuite:                 7,
+					NegotiatedProtocol:          "sfd",
+					NegotiatedProtocolIsMutual:  false,
+					ServerName:                  "4dc",
+					PeerCertificates:            []*x509.Certificate{{}},
+					VerifiedChains:              [][]*x509.Certificate{{{}}},
+					SignedCertificateTimestamps: [][]byte{[]byte("asd")},
+					OCSPResponse:                []byte("asdad"),
+					TLSUnique:                   []byte("fyjyt"),
+				},
+			}
+
+			trk.ErrMsg = func(s string) *string { return &s }("err msg")
+			trk.ErrType = func(s string) *string { return &s }("err type")
+		})
+
 	suite.vcr.SetRequestMatcher(NewBlankRequestMatcher())
-	suite.Fail("implement me")
-	// TODO: create a VCR with WithTrackRecordingMutators and WithTrackReplayingMutators
-	//       and confirm that both the live request and response remain un-mutated.
+	suite.vcr.SetRecordingMutators(trackDestroyerMutator) // replace all existing mutators with this one
+	suite.vcr.ClearReplayingMutators()                    // remove mutators
+
+	err := suite.vcr.LoadCassette(suite.cassetteName)
+	suite.NoError(err)
+
+	// 1st call
+	req, err := http.NewRequest(http.MethodGet, suite.testServer.URL, nil)
+	suite.Require().NoError(err)
+
+	preRoundTripReq := track.CloneHTTPRequest(req)
+
+	resp, err := suite.vcr.HTTPClient().Do(req)
+	suite.Require().NoError(err)
+
+	expectedStats := &stats.Stats{
+		TotalTracks:    1,
+		TracksLoaded:   0,
+		TracksRecorded: 1,
+		TracksPlayed:   0,
+	}
+	suite.Require().EqualValues(expectedStats, suite.vcr.Stats())
+
+	postRoundTripReq := track.CloneHTTPRequest(req)
+	suite.Require().EqualValues(preRoundTripReq, postRoundTripReq)
+
+	// 2nd call
+	suite.vcr.ClearRecordingMutators() // remove mutators
+	suite.vcr.ClearReplayingMutators() // remove mutators
+
+	req, err = http.NewRequest(http.MethodGet, suite.testServer.URL, nil)
+	suite.Require().NoError(err)
+
+	resp2, err := suite.vcr.HTTPClient().Do(req)
+	suite.Require().NoError(err)
+
+	expectedStats = &stats.Stats{
+		TotalTracks:    2,
+		TracksLoaded:   0,
+		TracksRecorded: 2, // we haven't ejected the cassette
+		TracksPlayed:   0,
+	}
+	suite.Require().EqualValues(expectedStats, suite.vcr.Stats())
+
+	// for simplification, we're using our own track.Response
+	// we'll make the assumption that if that's well, the rest ought to be too.
+	vcrResp := track.ToResponse(resp)
+	suite.Assert().Equal([]byte("Hello, server responds '1' to query ''"), vcrResp.Body)
+
+	vcrResp2 := track.ToResponse(resp2)
+	suite.Assert().Equal([]byte("Hello, server responds '2' to query ''"), vcrResp2.Body)
+
+	vcrResp, vcrResp2 = nil, nil
+
+	suite.Require().EqualValues(vcrResp, vcrResp2)
+
 }
 
 func (suite *GoVCRWBTestSuite) TestRoundTrip_WithRecordingAndReplayingMutations() {
