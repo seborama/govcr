@@ -198,6 +198,15 @@ func ResponseChangeBody(fn func(b []byte) []byte) Mutator {
 	}
 }
 
+// ResponseDeleteTLS removes TLS data from the response.
+func ResponseDeleteTLS(key, value string) Mutator {
+	return func(trk *Track) {
+		if trk != nil {
+			trk.Response.TLS = nil
+		}
+	}
+}
+
 // Mutators is a collection of Track Mutator's.
 type Mutators []Mutator
 

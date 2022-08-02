@@ -19,9 +19,24 @@ type PrintedCircuitBoard struct {
 	// could be mutated, it will have no effect.
 	// However, the Request data can be referenced as part of mutating the Response.
 	trackReplayingMutators track.Mutators
+
+	// Make live calls only, do not replay from cassette even if a track would exist.
+	// Perhaps more useful when used in combination with 'readOnly' to by-pass govcr entirely.
+	liveOnly bool
+
+	// Replay tracks from cassette, if present, or make live calls but do not records new tracks.
+	readOnly bool
+
+	// Replay tracks from cassette, if present, but do not make live calls.
+	// govcr will return a transport error if no track was found.
+	offlineMode bool
 }
 
 func (pcb *PrintedCircuitBoard) seekTrack(k7 *cassette.Cassette, httpRequest *http.Request) (*track.Track, error) {
+	if pcb.liveOnly {
+		return nil, nil
+	}
+
 	request := track.ToRequest(httpRequest)
 
 	numberOfTracksInCassette := k7.NumberOfTracks()
@@ -55,6 +70,21 @@ func (pcb *PrintedCircuitBoard) mutateTrackReplaying(t *track.Track) {
 // SetRequestMatcher sets a new RequestMatcher to the VCR.
 func (pcb *PrintedCircuitBoard) SetRequestMatcher(requestMatcher RequestMatcher) {
 	pcb.requestMatcher = requestMatcher
+}
+
+// SetReadOnlyMode sets the VCR to read-only mode (true) or to normal read-write (false).
+func (pcb *PrintedCircuitBoard) SetReadOnlyMode(state bool) {
+	pcb.readOnly = state
+}
+
+// SetOfflineMode sets the VCR to offline mode (true) or to normal live/replay (false).
+func (pcb *PrintedCircuitBoard) SetOfflineMode(state bool) {
+	pcb.offlineMode = state
+}
+
+// SetLiveOnlyMode sets the VCR to live-only mode (true) or to normal live/replay (false).
+func (pcb *PrintedCircuitBoard) SetLiveOnlyMode(state bool) {
+	pcb.liveOnly = state
 }
 
 // AddRecordingMutators adds a collection of recording TrackMutator's.

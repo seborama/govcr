@@ -29,6 +29,21 @@ func (controlPanel *ControlPanel) SetRequestMatcher(requestMatcher RequestMatche
 	controlPanel.vcrTransport().SetRequestMatcher(requestMatcher)
 }
 
+// SetReadOnlyMode sets the VCR to read-only mode (true) or to normal read-write (false).
+func (controlPanel *ControlPanel) SetReadOnlyMode(state bool) {
+	controlPanel.vcrTransport().SetReadOnlyMode(state)
+}
+
+// SetOfflineMode sets the VCR to offline mode (true) or to normal live/replay (false).
+func (controlPanel *ControlPanel) SetOfflineMode(state bool) {
+	controlPanel.vcrTransport().SetOfflineMode(state)
+}
+
+// SetLiveOnlyMode sets the VCR to live-only mode (true) or to normal live/replay (false).
+func (controlPanel *ControlPanel) SetLiveOnlyMode(state bool) {
+	controlPanel.vcrTransport().SetLiveOnlyMode(state)
+}
+
 // AddRecordingMutators adds a set of recording Track Mutator's to the VCR.
 func (controlPanel *ControlPanel) AddRecordingMutators(trackMutators ...track.Mutator) {
 	controlPanel.vcrTransport().AddRecordingMutators(trackMutators...)
