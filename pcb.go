@@ -52,7 +52,10 @@ func (pcb *PrintedCircuitBoard) seekTrack(k7 *cassette.Cassette, httpRequest *ht
 func (pcb *PrintedCircuitBoard) trackMatches(k7 *cassette.Cassette, trackNumber int32, request *track.Request) bool {
 	trk := k7.Track(trackNumber)
 
-	return !trk.IsReplayed() && pcb.requestMatcher.Match(request, trk.GetRequest())
+	requestClone := request.Clone()
+	trackReqClone := trk.Request.Clone()
+
+	return !trk.IsReplayed() && pcb.requestMatcher.Match(requestClone, trackReqClone)
 }
 
 func (pcb *PrintedCircuitBoard) replayTrack(k7 *cassette.Cassette, trackNumber int32) (*track.Track, error) {

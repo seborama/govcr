@@ -45,7 +45,7 @@ func NewCassette(name string, options ...Options) *Cassette {
 // Stats returns the cassette's Stats.
 func (k7 *Cassette) Stats() *stats.Stats {
 	if k7 == nil {
-		return nil
+		return &stats.Stats{}
 	}
 
 	s := stats.Stats{
@@ -59,6 +59,10 @@ func (k7 *Cassette) Stats() *stats.Stats {
 }
 
 func (k7 *Cassette) tracksPlayed() int32 {
+	if k7 == nil {
+		return 0
+	}
+
 	replayed := int32(0)
 
 	k7.trackSliceMutex.RLock()
@@ -88,7 +92,7 @@ func (k7 *Cassette) NumberOfTracks() int32 {
 // ReplayTrack returns the specified track number, as recorded on cassette.
 func (k7 *Cassette) ReplayTrack(trackNumber int32) (*track.Track, error) {
 	if trackNumber >= k7.NumberOfTracks() {
-		//nolint: err113
+		//nolint: goerr113
 		return nil, fmt.Errorf("invalid track number %d (only %d available) (track #0 stands for first track)", trackNumber, k7.NumberOfTracks())
 	}
 

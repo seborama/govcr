@@ -152,7 +152,16 @@ func (suite *GoVCRWBTestSuite) TestRoundTrip_DoesNotChangeLiveRequestOrResponse(
 			trk.ErrType = func(s string) *string { return &s }("err type")
 		})
 
-	suite.vcr.SetRequestMatcher(NewBlankRequestMatcher())
+	suite.vcr.SetRequestMatcher(NewBlankRequestMatcher(
+		WithRequestMatcherFunc(
+			// attempt to destroy the requests at request matching time
+			func(httpRequest, trackRequest *track.Request) bool {
+				httpRequest = &track.Request{}
+				trackRequest = &track.Request{}
+				return true
+			},
+		),
+	))
 	suite.vcr.SetRecordingMutators(trackDestroyerMutator) // replace all existing mutators with this one
 	suite.vcr.ClearReplayingMutators()                    // remove mutators
 

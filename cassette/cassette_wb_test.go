@@ -13,11 +13,19 @@ func Test_cassette_NumberOfTracks_ZeroWhenNoCassette(t *testing.T) {
 	assert.Zero(t, unit.NumberOfTracks())
 }
 
-func Test_cassette_Stats_NilWhenNoCassette(t *testing.T) {
+func Test_cassette_Stats_ZeroWhenNoCassette(t *testing.T) {
 	var unit *Cassette
 
 	got := unit.Stats()
-	assert.Nil(t, got)
+
+	expected := &stats.Stats{
+		TotalTracks:    0,
+		TracksLoaded:   0,
+		TracksRecorded: 0,
+		TracksPlayed:   0,
+	}
+
+	assert.Equal(t, got, expected)
 }
 
 func Test_cassette_Stats_ZeroWhenEmptyCassette(t *testing.T) {
