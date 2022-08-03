@@ -180,26 +180,34 @@ func TestExample2() {
 }
 ```
 
-### Recipe: Remove Response TLS from cassette or from track playback
+### Recipe: Remove Response TLS
 
 Use the provided mutator `track.ResponseDeleteTLS`.
 
-Remove Response.TLS from the cassette recording:
+Remove Response.TLS from the cassette **recording**:
 
 ```go
 	vcr := govcr.NewVCR(
 		govcr.WithCassette(exampleCassetteName2),
-		govcr.WithTrackRecordingMutators(track.ResponseDeleteTLS),
+		govcr.WithTrackRecordingMutators(track.ResponseDeleteTLS()),
+        //             ^^^^^^^^^
 	)
+    // or, similarly:
+    vcr.AddRecordingMutators(track.ResponseDeleteTLS())
+    //     ^^^^^^^^^
 ```
 
-Remove Response.TLS from the track at playback time:
+Remove Response.TLS from the track at **playback** time:
 
 ```go
 	vcr := govcr.NewVCR(
 		govcr.WithCassette(exampleCassetteName2),
-		govcr.WithTrackReplayingMutators(track.ResponseDeleteTLS),
+		govcr.WithTrackReplayingMutators(track.ResponseDeleteTLS()),
+        //             ^^^^^^^^^
 	)
+    // or, similarly:
+    vcr.AddReplayingMutators(track.ResponseDeleteTLS())
+    //     ^^^^^^^^^
 ```
 
 ### Recipe: Change the playback mode of the VCR

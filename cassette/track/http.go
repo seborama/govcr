@@ -40,6 +40,106 @@ type Request struct {
 	// TODO: Response ?
 }
 
+// Clone returns a copy of r or nil if r is nil.
+// Note: this is inaccurate: MultipartForm cannot be truly cloned.
+func (r *Request) Clone() *Request {
+	if r == nil {
+		return nil
+	}
+
+	body := make([]byte, len(r.Body))
+	copy(body, r.Body)
+
+	transferEncoding := make([]string, len(r.TransferEncoding))
+	copy(transferEncoding, r.TransferEncoding)
+
+	newR := &Request{
+		Method:           r.Method,
+		URL:              cloneURL(r.URL),
+		Proto:            r.Proto,
+		ProtoMajor:       r.ProtoMajor,
+		ProtoMinor:       r.ProtoMinor,
+		Header:           r.Header.Clone(),
+		Body:             body,
+		ContentLength:    r.ContentLength,
+		TransferEncoding: transferEncoding,
+		Close:            r.Close,
+		Host:             r.Host,
+		Form:             cloneMapOfSlices(r.Form),
+		PostForm:         cloneMapOfSlices(r.PostForm),
+		MultipartForm:    cloneMultipartForm(r.MultipartForm),
+		Trailer:          cloneMapOfSlices(r.Trailer),
+		RemoteAddr:       r.RemoteAddr,
+		RequestURI:       r.RequestURI,
+	}
+
+	return newR
+}
+
+func cloneMultipartForm(src *multipart.Form) *multipart.Form {
+	if src == nil {
+		return nil
+	}
+
+	dst := &multipart.Form{
+		Value: cloneMapOfSlices(src.Value),
+		File:  cloneMultipartFormFile(src.File),
+	}
+
+	return dst
+}
+
+// Note: this is inaccurate: FileHeader cannot be truly cloned.
+func cloneMultipartFormFile(src map[string][]*multipart.FileHeader) map[string][]*multipart.FileHeader {
+	if src == nil {
+		return nil
+	}
+
+	dst := map[string][]*multipart.FileHeader{}
+
+	for k, v := range src {
+		dst[k] = cloneSliceOfMultipartFileHeader(v)
+	}
+
+	return dst
+}
+
+// Note: this is inaccurate: FileHeader cannot be truly cloned.
+func cloneSliceOfMultipartFileHeader(src []*multipart.FileHeader) []*multipart.FileHeader {
+	if src == nil {
+		return src
+	}
+
+	dst := make([]*multipart.FileHeader, len(src))
+
+	for k, v := range src {
+		dst[k] = &multipart.FileHeader{
+			Filename: v.Filename,
+			Header:   cloneMapOfSlices(v.Header),
+			Size:     v.Size,
+		}
+	}
+
+	return dst
+}
+
+func cloneMapOfSlices(src map[string][]string) map[string][]string {
+	if src == nil {
+		return nil
+	}
+
+	dst := map[string][]string{}
+
+	for k, v := range src {
+		vCopy := make([]string, len(v))
+		copy(vCopy, v)
+
+		dst[k] = vCopy
+	}
+
+	return dst
+}
+
 // ToRequest transcodes an HTTP Request to a track Request.
 func ToRequest(httpRequest *http.Request) *Request {
 	if httpRequest == nil {
@@ -48,8 +148,8 @@ func ToRequest(httpRequest *http.Request) *Request {
 
 	// deal with body first because Trailers are sent after Body.Read returns io.EOF and Body.Close() was called.
 	bodyClone := cloneHTTPRequestBody(httpRequest)
-	headerClone := cloneHeader(httpRequest.Header)
-	trailerClone := cloneHeader(httpRequest.Trailer)
+	headerClone := httpRequest.Header.Clone()
+	trailerClone := httpRequest.Trailer.Clone()
 
 	return &Request{
 		Method:        httpRequest.Method,
@@ -96,8 +196,8 @@ func ToResponse(httpResponse *http.Response) *Response {
 
 	// deal with body first because Trailers are sent after Body.Read returns io.EOF and Body.Close() was called.
 	bodyClone := cloneHTTPResponseBody(httpResponse)
-	headerClone := cloneHeader(httpResponse.Header)
-	trailerClone := cloneHeader(httpResponse.Trailer)
+	headerClone := httpResponse.Header.Clone()
+	trailerClone := httpResponse.Trailer.Clone()
 	tsfEncodingClone := cloneStringSlice(httpResponse.TransferEncoding)
 
 	tlsClone := cloneTLS(httpResponse.TLS)
@@ -222,19 +322,6 @@ func cloneHTTPResponseBody(httpResponse *http.Response) []byte {
 	return httpBodyClone
 }
 
-func cloneHeader(headers http.Header) http.Header {
-	if headers == nil {
-		return nil
-	}
-
-	headersClone := make(http.Header)
-	for key, value := range headers {
-		headersClone[key] = make([]string, len(value))
-		copy(headersClone[key], value)
-	}
-	return headersClone
-}
-
 func cloneURLValues(urlValues url.Values) url.Values {
 	if urlValues == nil {
 		return nil
@@ -298,8 +385,8 @@ func CloneHTTPRequest(httpRequest *http.Request) *http.Request {
 
 	// deal with body first because Trailers are sent after Body.Read returns io.EOF and Body.Close() was called.
 	httpRequestClone.Body = ioutil.NopCloser(bytes.NewBuffer(cloneHTTPRequestBody(httpRequest)))
-	httpRequestClone.Header = cloneHeader(httpRequest.Header)
-	httpRequestClone.Trailer = cloneHeader(httpRequest.Trailer)
+	httpRequestClone.Header = httpRequest.Header.Clone()
+	httpRequestClone.Trailer = httpRequest.Trailer.Clone()
 	httpRequestClone.TransferEncoding = cloneStringSlice(httpRequest.TransferEncoding)
 	httpRequestClone.Form = cloneURLValues(httpRequest.Form)
 	httpRequestClone.PostForm = cloneURLValues(httpRequest.PostForm)

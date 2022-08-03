@@ -2,11 +2,14 @@ package track
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
+
+	"github.com/pkg/errors"
+
+	trkerr "github.com/seborama/govcr/v6/cassette/track/errors"
 )
 
 // Track is a recording (HTTP Request + Response) in a cassette.
@@ -51,17 +54,6 @@ func NewTrack(req *Request, resp *Response, reqErr error) *Track {
 	return track
 }
 
-// GetRequest returns the HTTP Request object of this track.
-func (trk *Track) GetRequest() *Request {
-	return &trk.Request
-}
-
-// GetResponse returns the HTTP Response object of this track.
-// Note: by convention, when an HTTP error occurred, the Response should be nil.
-func (trk *Track) GetResponse() *Response {
-	return trk.Response
-}
-
 // IsReplayed returns true if the Track has already been replayed, otherwise
 // it returns false.
 func (trk *Track) IsReplayed() bool {
@@ -92,13 +84,11 @@ func (trk *Track) ToErr() error {
 			Net:    "govcr",
 			Source: nil,
 			Addr:   nil,
-			//nolint: err113
-			Err: errors.New(errType + ": " + errMsg),
+			Err:    errors.WithStack(trkerr.NewErrTransportFailure(errType, errMsg)),
 		}
 	}
 
-	//nolint: err113
-	return errors.New(errType + ": " + errMsg)
+	return errors.WithStack(trkerr.NewErrTransportFailure(errType, errMsg))
 }
 
 // toHTTPRequest converts the track Request to an http.Request.
