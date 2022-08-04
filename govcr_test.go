@@ -152,7 +152,6 @@ func (suite *GoVCRTestSuite) TestVCR_ReadOnlyMode() {
 
 	actualStats := *suite.vcr.Stats()
 	suite.vcr.EjectCassette()
-	suite.EqualValues(0, suite.vcr.NumberOfTracks())
 
 	expectedStats := stats.Stats{
 		TotalTracks:    0,
@@ -286,7 +285,6 @@ func (suite *GoVCRTestSuite) TestRoundTrip_ReplaysError() {
 
 			actualStats := *suite.vcr.Stats()
 			suite.vcr.EjectCassette()
-			suite.EqualValues(0, suite.vcr.NumberOfTracks())
 
 			expectedStats := stats.Stats{
 				TotalTracks:    1,
@@ -309,7 +307,6 @@ func (suite *GoVCRTestSuite) TestRoundTrip_ReplaysError() {
 
 			actualStats = *suite.vcr.Stats()
 			suite.vcr.EjectCassette()
-			suite.EqualValues(0, suite.vcr.NumberOfTracks())
 
 			expectedStats = stats.Stats{
 				TotalTracks:    1,

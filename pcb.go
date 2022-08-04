@@ -22,6 +22,7 @@ type PrintedCircuitBoard struct {
 
 	// Make live calls only, do not replay from cassette even if a track would exist.
 	// Perhaps more useful when used in combination with 'readOnly' to by-pass govcr entirely.
+	// TODO: note it probably does not make sense to have Offline true and LiveOnly true
 	liveOnly bool
 
 	// Replay tracks from cassette, if present, or make live calls but do not records new tracks.
@@ -29,6 +30,7 @@ type PrintedCircuitBoard struct {
 
 	// Replay tracks from cassette, if present, but do not make live calls.
 	// govcr will return a transport error if no track was found.
+	// TODO: note it probably does not make sense to have Offline true and LiveOnly true
 	offlineMode bool
 }
 
@@ -49,13 +51,14 @@ func (pcb *PrintedCircuitBoard) seekTrack(k7 *cassette.Cassette, httpRequest *ht
 	return nil, nil
 }
 
-func (pcb *PrintedCircuitBoard) trackMatches(k7 *cassette.Cassette, trackNumber int32, request *track.Request) bool {
+func (pcb *PrintedCircuitBoard) trackMatches(k7 *cassette.Cassette, trackNumber int32, httpRequest *track.Request) bool {
 	trk := k7.Track(trackNumber)
 
-	requestClone := request.Clone()
+	// protect the original objects against mutation by the matcher
+	httpRequestClone := httpRequest.Clone()
 	trackReqClone := trk.Request.Clone()
 
-	return !trk.IsReplayed() && pcb.requestMatcher.Match(requestClone, trackReqClone)
+	return !trk.IsReplayed() && pcb.requestMatcher.Match(httpRequestClone, trackReqClone)
 }
 
 func (pcb *PrintedCircuitBoard) replayTrack(k7 *cassette.Cassette, trackNumber int32) (*track.Track, error) {

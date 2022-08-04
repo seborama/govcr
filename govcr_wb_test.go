@@ -1,11 +1,8 @@
 package govcr
 
 import (
-	"crypto/tls"
-	"crypto/x509"
 	"fmt"
 	"io/ioutil"
-	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -74,101 +71,40 @@ func (suite *GoVCRWBTestSuite) TearDownTest() {
 	_ = os.Remove(suite.cassetteName)
 }
 
-func (suite *GoVCRWBTestSuite) TestRoundTrip_DoesNotChangeLiveRequestOrResponse() {
-	suite.vcr.SetLiveOnlyMode(true) // ensure we always make live calls for this test
+func (suite *GoVCRWBTestSuite) TestRoundTrip_RequestMatcherDoesNotMutateState() {
+	suite.vcr.ClearRecordingMutators() // mutators by definition cannot change the live request / response, only the track
+	suite.vcr.ClearReplayingMutators() // mutators by definition cannot change the live request / response, only the track
 
-	trackDestroyerMutator := track.Mutator(
-		func(trk *track.Track) {
-			newURL := url.URL{
-				Scheme:      "x",
-				Opaque:      "y",
-				User:        &url.Userinfo{},
-				Host:        "z",
-				Path:        "a",
-				RawPath:     "b",
-				ForceQuery:  false,
-				RawQuery:    "c",
-				Fragment:    "d",
-				RawFragment: "e",
-			}
+	suite.vcr.SetLiveOnlyMode(true) // ensure we record one track so we can have a request matcher execution later (no track on cassette = no request matching)
 
-			trk.Request = track.Request{
-				Method:           "m",
-				URL:              &newURL,
-				Proto:            "p",
-				ProtoMajor:       2,
-				ProtoMinor:       3,
-				Header:           map[string][]string{"h": {"v"}},
-				Body:             []byte("body bytes"),
-				ContentLength:    200,
-				TransferEncoding: []string{"x"},
-				Close:            false,
-				Host:             "y",
-				Form:             map[string][]string{"i": {"n"}},
-				PostForm:         map[string][]string{"j": {"m"}},
-				MultipartForm: &multipart.Form{
-					Value: map[string][]string{"p": {"u"}},
-					File: map[string][]*multipart.FileHeader{
-						"s": {{
-							Filename: "f",
-							Header:   map[string][]string{"e": {"d"}},
-							Size:     7,
-						}},
-					},
-				},
-				Trailer:    map[string][]string{"k": {"l"}},
-				RemoteAddr: "b",
-				RequestURI: "c",
-			}
-
-			trk.Response = &track.Response{
-				Status:           "s1",
-				StatusCode:       3,
-				Proto:            "p1",
-				ProtoMajor:       7,
-				ProtoMinor:       8,
-				Header:           map[string][]string{"ch": {"cv"}},
-				Body:             []byte("resp body"),
-				ContentLength:    123,
-				TransferEncoding: []string{"t blah"},
-				Trailer:          map[string][]string{"h54": {"34v"}},
-				TLS: &tls.ConnectionState{
-					Version:                     120,
-					HandshakeComplete:           false,
-					DidResume:                   false,
-					CipherSuite:                 7,
-					NegotiatedProtocol:          "sfd",
-					NegotiatedProtocolIsMutual:  false,
-					ServerName:                  "4dc",
-					PeerCertificates:            []*x509.Certificate{{}},
-					VerifiedChains:              [][]*x509.Certificate{{{}}},
-					SignedCertificateTimestamps: [][]byte{[]byte("asd")},
-					OCSPResponse:                []byte("asdad"),
-					TLSUnique:                   []byte("fyjyt"),
-				},
-			}
-
-			trk.ErrMsg = func(s string) *string { return &s }("err msg")
-			trk.ErrType = func(s string) *string { return &s }("err type")
-		})
+	requestMatcherCount := 0
 
 	suite.vcr.SetRequestMatcher(NewBlankRequestMatcher(
 		WithRequestMatcherFunc(
-			// attempt to destroy the requests at request matching time
+			// attempt to mutate state
 			func(httpRequest, trackRequest *track.Request) bool {
+				requestMatcherCount++
+
+				httpRequest.Method = "test"
+				httpRequest.URL = &url.URL{}
+				httpRequest.Body = nil
+
+				trackRequest.Method = "test"
+				trackRequest.URL = &url.URL{}
+				trackRequest.Body = nil
+
 				httpRequest = &track.Request{}
 				trackRequest = &track.Request{}
-				return true
+
+				return false // we want to attempt but not satisfy request matching so to check if the live request was altered
 			},
 		),
 	))
-	suite.vcr.SetRecordingMutators(trackDestroyerMutator) // replace all existing mutators with this one
-	suite.vcr.ClearReplayingMutators()                    // remove mutators
 
+	// 1st call - live
 	err := suite.vcr.LoadCassette(suite.cassetteName)
 	suite.NoError(err)
 
-	// 1st call
 	req, err := http.NewRequest(http.MethodGet, suite.testServer.URL, nil)
 	suite.Require().NoError(err)
 
@@ -185,12 +121,22 @@ func (suite *GoVCRWBTestSuite) TestRoundTrip_DoesNotChangeLiveRequestOrResponse(
 	}
 	suite.Require().EqualValues(expectedStats, suite.vcr.Stats())
 
+	suite.Require().Equal(0, requestMatcherCount) // no track on cassette so no matching attempted by govcr
+
 	postRoundTripReq := track.CloneHTTPRequest(req)
 	suite.Require().EqualValues(preRoundTripReq, postRoundTripReq)
 
-	// 2nd call
-	suite.vcr.ClearRecordingMutators() // remove mutators
-	suite.vcr.ClearReplayingMutators() // remove mutators
+	// for simplification, we're using our own track.Response
+	// we'll make the assumption that if that's well, the rest ought to be too.
+	vcrResp := track.ToResponse(resp)
+	suite.Assert().Equal("Hello, server responds '1' to query ''", string(vcrResp.Body))
+	vcrResp.Body = nil
+
+	// 2nd call - live
+	suite.vcr.EjectCassette() // reset cassette state so to allow track replay (newly recorded tracks are marked at replayed)
+	err = suite.vcr.LoadCassette(suite.cassetteName)
+	suite.Require().NoError(err)
+	suite.vcr.SetLiveOnlyMode(false) // ensure we attempt request matching
 
 	req, err = http.NewRequest(http.MethodGet, suite.testServer.URL, nil)
 	suite.Require().NoError(err)
@@ -200,24 +146,80 @@ func (suite *GoVCRWBTestSuite) TestRoundTrip_DoesNotChangeLiveRequestOrResponse(
 
 	expectedStats = &stats.Stats{
 		TotalTracks:    2,
-		TracksLoaded:   0,
-		TracksRecorded: 2, // we haven't ejected the cassette
+		TracksLoaded:   1,
+		TracksRecorded: 1,
 		TracksPlayed:   0,
 	}
 	suite.Require().EqualValues(expectedStats, suite.vcr.Stats())
 
-	// for simplification, we're using our own track.Response
-	// we'll make the assumption that if that's well, the rest ought to be too.
-	vcrResp := track.ToResponse(resp)
-	suite.Assert().Equal([]byte("Hello, server responds '1' to query ''"), vcrResp.Body)
+	suite.Require().Equal(1, requestMatcherCount) // an attempt to match the request should be made (albeit unsuccessful)
+
+	postRoundTripReq = track.CloneHTTPRequest(req)
+	suite.Require().EqualValues(preRoundTripReq, postRoundTripReq)
 
 	vcrResp2 := track.ToResponse(resp2)
-	suite.Assert().Equal([]byte("Hello, server responds '2' to query ''"), vcrResp2.Body)
-
-	vcrResp, vcrResp2 = nil, nil
+	suite.Assert().Equal("Hello, server responds '2' to query ''", string(vcrResp2.Body))
+	vcrResp2.Body = nil
 
 	suite.Require().EqualValues(vcrResp, vcrResp2)
 
+	// 3rd call - replayed
+	suite.vcr.EjectCassette() // reset cassette state so to allow track replay (newly recorded tracks are marked at replayed)
+	err = suite.vcr.LoadCassette(suite.cassetteName)
+	suite.Require().NoError(err)
+	suite.vcr.SetLiveOnlyMode(false)
+	suite.vcr.SetOfflineMode(true)
+
+	requestMatcherCount = 0
+	suite.vcr.SetRequestMatcher(NewBlankRequestMatcher(
+		WithRequestMatcherFunc(
+			// attempt to mutate state
+			func(httpRequest, trackRequest *track.Request) bool {
+				requestMatcherCount++
+
+				httpRequest.Method = "test"
+				httpRequest.URL = &url.URL{}
+				httpRequest.Body = nil
+
+				trackRequest.Method = "test"
+				trackRequest.URL = &url.URL{}
+				trackRequest.Body = nil
+
+				httpRequest = &track.Request{}
+				trackRequest = &track.Request{}
+
+				return true // satisfy request matching and force replay from track to ensure no mutation
+			},
+		),
+	))
+
+	req, err = http.NewRequest(http.MethodGet, suite.testServer.URL, nil)
+	suite.Require().NoError(err)
+
+	resp3, err := suite.vcr.HTTPClient().Do(req)
+	suite.Require().NoError(err)
+
+	expectedStats = &stats.Stats{
+		TotalTracks:    2,
+		TracksLoaded:   2,
+		TracksRecorded: 0,
+		TracksPlayed:   1,
+	}
+	suite.Require().EqualValues(expectedStats, suite.vcr.Stats())
+
+	suite.Require().Equal(1, requestMatcherCount)
+
+	postRoundTripReq = track.CloneHTTPRequest(req)
+	suite.Require().EqualValues(preRoundTripReq, postRoundTripReq)
+
+	// for simplification, we're using our own track.Response
+	// we'll make the assumption that if that's well, the rest ought to be too.
+	vcrResp3 := track.ToResponse(resp3)
+	suite.Assert().Equal("Hello, server responds '1' to query ''", string(vcrResp3.Body))
+	vcrResp3.Body = nil
+
+	vcrResp.TLS, vcrResp3.TLS = nil, nil // TLS will not match fully
+	suite.Require().EqualValues(vcrResp, vcrResp3)
 }
 
 func (suite *GoVCRWBTestSuite) TestRoundTrip_WithRecordingAndReplayingMutations() {

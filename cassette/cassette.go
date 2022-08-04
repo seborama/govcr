@@ -45,7 +45,7 @@ func NewCassette(name string, options ...Options) *Cassette {
 // Stats returns the cassette's Stats.
 func (k7 *Cassette) Stats() *stats.Stats {
 	if k7 == nil {
-		return &stats.Stats{}
+		return nil
 	}
 
 	s := stats.Stats{
@@ -59,10 +59,6 @@ func (k7 *Cassette) Stats() *stats.Stats {
 }
 
 func (k7 *Cassette) tracksPlayed() int32 {
-	if k7 == nil {
-		return 0
-	}
-
 	replayed := int32(0)
 
 	k7.trackSliceMutex.RLock()
@@ -79,10 +75,6 @@ func (k7 *Cassette) tracksPlayed() int32 {
 
 // NumberOfTracks returns the number of tracks contained in the cassette.
 func (k7 *Cassette) NumberOfTracks() int32 {
-	if k7 == nil {
-		return 0
-	}
-
 	k7.trackSliceMutex.RLock()
 	defer k7.trackSliceMutex.RUnlock()
 
