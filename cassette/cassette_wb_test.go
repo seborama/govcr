@@ -7,10 +7,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_cassette_NumberOfTracks_ZeroWhenNoCassette(t *testing.T) {
+func Test_cassette_NumberOfTracks_PanicsWhenNoCassette(t *testing.T) {
 	var unit *Cassette
 
-	assert.Zero(t, unit.NumberOfTracks())
+	assert.Panics(t, func() { unit.NumberOfTracks() })
 }
 
 func Test_cassette_Stats_ZeroWhenNoCassette(t *testing.T) {
@@ -18,14 +18,7 @@ func Test_cassette_Stats_ZeroWhenNoCassette(t *testing.T) {
 
 	got := unit.Stats()
 
-	expected := &stats.Stats{
-		TotalTracks:    0,
-		TracksLoaded:   0,
-		TracksRecorded: 0,
-		TracksPlayed:   0,
-	}
-
-	assert.Equal(t, got, expected)
+	assert.Nil(t, got)
 }
 
 func Test_cassette_Stats_ZeroWhenEmptyCassette(t *testing.T) {
@@ -40,5 +33,5 @@ func Test_cassette_Stats_ZeroWhenEmptyCassette(t *testing.T) {
 		TracksPlayed:   0,
 	}
 
-	assert.Equal(t, got, expected)
+	assert.Equal(t, expected, got)
 }
