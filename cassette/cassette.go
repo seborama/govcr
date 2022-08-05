@@ -170,6 +170,7 @@ func (k7 *Cassette) GunzipFilter(data []byte) ([]byte, error) {
 func (k7 *Cassette) Track(trackNumber int32) track.Track {
 	k7.trackSliceMutex.RLock()
 	defer k7.trackSliceMutex.RUnlock()
+
 	return k7.Tracks[trackNumber]
 }
 
