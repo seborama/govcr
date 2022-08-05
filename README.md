@@ -12,7 +12,7 @@ This project is an adaptation for Google's Go / Golang programming language.
 // See TestExample1 in tests for full working example
 
 func TestExample1() {
-	vcr := govcr.NewVCR(
+    vcr := govcr.NewVCR(
         govcr.WithCassette("MyCassette1.json"),
         govcr.WithRequestMatcher(govcr.NewMethodURLRequestMatcher()), // use a "relaxed" request matcher
     )
@@ -107,6 +107,8 @@ This may be the case when the request contains a timestamp or a dynamically chan
 
 You can create your own matcher on any part of the request and in any manner (like ignoring or modifying some headers, etc).
 
+The input parameters received by a `RequestMatcherFunc` are scoped to the `RequestMatcher`. It is safe to modify them as needed. This affects the other `RequestMatcherFunc`'s in the `RequestMatcher`. But it does **not** permeate to the original incoming HTTP request or the tracks read from or written to the cassette.
+
 ## Track mutators
 
 The live HTTP request and response traffic is protected against modifications. While **govcr** could easily support in-place mutation of the live traffic, this is not a goal.
@@ -115,7 +117,15 @@ Nonetheless, **govcr** supports mutating tracks, either at **recording time** or
 
 In either case, this is achieved with track `Mutators`.
 
-A `Mutator` can be combined with one or more `On` conditions. At present, all `On` conditions attached to a mutator must be true for the mutator to apply.
+A `Mutator` can be combined with one or more `On` conditions. All `On` conditions attached to a mutator must be true for the mutator to apply. The predicate 'Any' provides an alternative and will only require one of its conditions to be true. `Any` can be combined with an `On` conditional mutator to achieve a logical `Or` within the `On` condition.
+
+Example:
+
+```go
+    myMutator.
+        On(Any(...)).
+        On(...)
+```
 
 A **track recording mutator** can change both the request and the response that will be persisted to the cassette.
 
@@ -150,33 +160,33 @@ VCR will wrap your `http.Client`. You should use `vcr.HTTPClient()` in your test
 // See TestExample2 in tests for full working example
 
 func TestExample2() {
-	// Create a custom http.Transport for our app.
-	tr := http.DefaultTransport.(*http.Transport)
-	tr.TLSClientConfig = &tls.Config{
-		InsecureSkipVerify: true, // just an example, not recommended
-	}
+    // Create a custom http.Transport for our app.
+    tr := http.DefaultTransport.(*http.Transport)
+    tr.TLSClientConfig = &tls.Config{
+        InsecureSkipVerify: true, // just an example, not recommended
+    }
 
-	// Create an instance of myApp.
-	// It uses the custom Transport created above and a custom Timeout.
-	app := &myApp{
-		httpClient: &http.Client{
-			Transport: tr,
-			Timeout:   15 * time.Second,
-		},
-	}
+    // Create an instance of myApp.
+    // It uses the custom Transport created above and a custom Timeout.
+    app := &myApp{
+        httpClient: &http.Client{
+            Transport: tr,
+            Timeout:   15 * time.Second,
+        },
+    }
 
-	// Instantiate VCR.
-	vcr := govcr.NewVCR(
-		govcr.WithCassette(exampleCassetteName2),
-		govcr.WithClient(app.httpClient),
-	)
+    // Instantiate VCR.
+    vcr := govcr.NewVCR(
+        govcr.WithCassette(exampleCassetteName2),
+        govcr.WithClient(app.httpClient),
+    )
 
-	// Inject VCR's http.Client wrapper.
-	// The original transport has been preserved, only just wrapped into VCR's.
-	app.httpClient = vcr.HTTPClient()
+    // Inject VCR's http.Client wrapper.
+    // The original transport has been preserved, only just wrapped into VCR's.
+    app.httpClient = vcr.HTTPClient()
 
-	// Run request and display stats.
-	app.Get("https://example.com/foo")
+    // Run request and display stats.
+    app.Get("https://example.com/foo")
 }
 ```
 
@@ -187,11 +197,11 @@ Use the provided mutator `track.ResponseDeleteTLS`.
 Remove Response.TLS from the cassette **recording**:
 
 ```go
-	vcr := govcr.NewVCR(
-		govcr.WithCassette(exampleCassetteName2),
-		govcr.WithTrackRecordingMutators(track.ResponseDeleteTLS()),
+    vcr := govcr.NewVCR(
+        govcr.WithCassette(exampleCassetteName2),
+        govcr.WithTrackRecordingMutators(track.ResponseDeleteTLS()),
         //             ^^^^^^^^^
-	)
+    )
     // or, similarly:
     vcr.AddRecordingMutators(track.ResponseDeleteTLS())
     //     ^^^^^^^^^
@@ -200,11 +210,11 @@ Remove Response.TLS from the cassette **recording**:
 Remove Response.TLS from the track at **playback** time:
 
 ```go
-	vcr := govcr.NewVCR(
-		govcr.WithCassette(exampleCassetteName2),
-		govcr.WithTrackReplayingMutators(track.ResponseDeleteTLS()),
+    vcr := govcr.NewVCR(
+        govcr.WithCassette(exampleCassetteName2),
+        govcr.WithTrackReplayingMutators(track.ResponseDeleteTLS()),
         //             ^^^^^^^^^
-	)
+    )
     // or, similarly:
     vcr.AddReplayingMutators(track.ResponseDeleteTLS())
     //     ^^^^^^^^^
@@ -221,10 +231,10 @@ Remove Response.TLS from the track at **playback** time:
 #### Live only
 
 ```go
-	vcr := govcr.NewVCR(
-		govcr.WithCassette(exampleCassetteName2),
-		govcr.WithLiveOnlyMode(),
-	)
+    vcr := govcr.NewVCR(
+        govcr.WithCassette(exampleCassetteName2),
+        govcr.WithLiveOnlyMode(),
+    )
     // or equally:
     vcr.SetLiveOnlyMode(true) // `false` to disable option
 ```
@@ -232,10 +242,10 @@ Remove Response.TLS from the track at **playback** time:
 #### Read only
 
 ```go
-	vcr := govcr.NewVCR(
-		govcr.WithCassette(exampleCassetteName2),
-		govcr.WithReadOnlyMode(),
-	)
+    vcr := govcr.NewVCR(
+        govcr.WithCassette(exampleCassetteName2),
+        govcr.WithReadOnlyMode(),
+    )
     // or equally:
     vcr.SetReadOnlyMode(true) // `false` to disable option
 ```
@@ -243,74 +253,44 @@ Remove Response.TLS from the track at **playback** time:
 #### Offline
 
 ```go
-	vcr := govcr.NewVCR(
-		govcr.WithCassette(exampleCassetteName2),
-		govcr.WithOfflineMode(),
-	)
+    vcr := govcr.NewVCR(
+        govcr.WithCassette(exampleCassetteName2),
+        govcr.WithOfflineMode(),
+    )
     // or equally:
     vcr.SetOfflineMode(true) // `false` to disable option
 ```
 
-### Recipe: VCR with a RequestFilter
+### Recipe: VCR with a custom RequestFilter
 
-**TODO: THIS EXAMPLE FOR v4 NOT v5**
+This example shows how to handle situations where a header in the request needs to be ignored, in this case header `X-Custom-Timestamp` (or the **track** would not match and hence would not be replayed).
 
-This example shows how to handle situations where a header in the request needs to be ignored (or the **track** would not match and hence would not be replayed).
-
-For this example, logging is switched on. This is achieved with `Logging: true` in `VCRSettings` when calling `NewVCR`.
+This could be necessary because the header value is not predictable or changes for each request.
 
 ```go
-package main
+    vcr.SetRequestMatcher(NewBlankRequestMatcher(
+        WithRequestMatcherFunc(DefaultMethodMatcher),
+        WithRequestMatcherFunc(DefaultURLMatcher),
+        WithRequestMatcherFunc(
+            func(httpRequest, trackRequest *track.Request) bool {
+                // we can safely mutate our inputs:
+                // mutations affect other RequestMatcherFunc's but _not_ the
+                // original HTTP request or the cassette Tracks.
+                httpRequest.Header.Del("X-Custom-Timestamp")
+                trackRequest.Header.Del("X-Custom-Timestamp")
 
-import (
-    "fmt"
-    "strings"
-    "time"
-
-    "net/http"
-
-    "github.com/seborama/govcr/v6"
-)
-
-const example4CassetteName = "MyCassette4"
-
-// Example4 is an example use of govcr.
-// The request contains a custom header 'X-Custom-My-Date' which varies with every request.
-// This example shows how to exclude a particular header from the request to facilitate
-// matching a previous recording.
-// Without the RequestFilters, the headers would not match and hence the playback would not
-// happen!
-func Example4() {
-    vcr := govcr.NewVCR(example4CassetteName,
-        &govcr.VCRSettings{
-            RequestFilters: govcr.RequestFilters{
-                govcr.RequestDeleteHeaderKeys("X-Custom-My-Date"),
+                return DefaultHeaderMatcher(httpRequest, trackRequest)
             },
-            Logging: true,
-        })
-
-    // create a request with our custom header
-    req, err := http.NewRequest("POST", "http://example.com/foo", nil)
-    if err != nil {
-        fmt.Println(err)
-    }
-    req.Header.Add("X-Custom-My-Date", time.Now().String())
-
-    // run the request
-    vcr.Client.Do(req)
-    fmt.Printf("%+v\n", vcr.Stats())
-}
+        ),
+    ))
 ```
-
-**Tip:**
-
-Remove the RequestFilters from the VCRSettings and re-run the example. Check the stats: notice how the tracks **no longer** replay.
 
 ### Recipe: VCR with a recoding Track Mutator
 
 **TODO: THIS EXAMPLE FOR v4 NOT v5**
 
 This example shows how to handle situations where a transaction Id in the header needs to be present in the response.
+
 This could be as part of a contract validation between server and client.
 
 Note: This is useful when some of the data in the **request** Header / Body needs to be transformed
@@ -345,10 +325,10 @@ func Example5() {
             RequestFilters: govcr.RequestFilters{
                 govcr.RequestDeleteHeaderKeys("X-Transaction-Id"),
             },
-			ResponseFilters: govcr.ResponseFilters{
-				// overwrite X-Transaction-Id in the Response with that from the Request
-				govcr.ResponseTransferHeaderKeys("X-Transaction-Id"),
-			},
+            ResponseFilters: govcr.ResponseFilters{
+                // overwrite X-Transaction-Id in the Response with that from the Request
+                govcr.ResponseTransferHeaderKeys("X-Transaction-Id"),
+            },
             Logging: true,
         })
 
@@ -404,7 +384,7 @@ make test
 
 ## Limitations
 
-### Go empty interfaces (`interface{}`)
+### Go empty interfaces (`interface{}` / `any`)
 
 Some properties / objects in http.Response are defined as `interface{}` (or `any`).
 
