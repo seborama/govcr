@@ -122,9 +122,9 @@ A `Mutator` can be combined with one or more `On` conditions. All `On` condition
 Example:
 
 ```go
-    myMutator.
-        On(Any(...)).
-        On(...)
+myMutator.
+    On(Any(...)).
+    On(...)
 ```
 
 A **track recording mutator** can change both the request and the response that will be persisted to the cassette.
@@ -197,27 +197,27 @@ Use the provided mutator `track.ResponseDeleteTLS`.
 Remove Response.TLS from the cassette **recording**:
 
 ```go
-    vcr := govcr.NewVCR(
-        govcr.WithCassette(exampleCassetteName2),
-        govcr.WithTrackRecordingMutators(track.ResponseDeleteTLS()),
-        //             ^^^^^^^^^
-    )
-    // or, similarly:
-    vcr.AddRecordingMutators(track.ResponseDeleteTLS())
-    //     ^^^^^^^^^
+vcr := govcr.NewVCR(
+    govcr.WithCassette(exampleCassetteName2),
+    govcr.WithTrackRecordingMutators(track.ResponseDeleteTLS()),
+    //             ^^^^^^^^^
+)
+// or, similarly:
+vcr.AddRecordingMutators(track.ResponseDeleteTLS())
+//     ^^^^^^^^^
 ```
 
 Remove Response.TLS from the track at **playback** time:
 
 ```go
-    vcr := govcr.NewVCR(
-        govcr.WithCassette(exampleCassetteName2),
-        govcr.WithTrackReplayingMutators(track.ResponseDeleteTLS()),
-        //             ^^^^^^^^^
-    )
-    // or, similarly:
-    vcr.AddReplayingMutators(track.ResponseDeleteTLS())
-    //     ^^^^^^^^^
+vcr := govcr.NewVCR(
+    govcr.WithCassette(exampleCassetteName2),
+    govcr.WithTrackReplayingMutators(track.ResponseDeleteTLS()),
+    //             ^^^^^^^^^
+)
+// or, similarly:
+vcr.AddReplayingMutators(track.ResponseDeleteTLS())
+//     ^^^^^^^^^
 ```
 
 ### Recipe: Change the playback mode of the VCR
@@ -231,34 +231,34 @@ Remove Response.TLS from the track at **playback** time:
 #### Live only
 
 ```go
-    vcr := govcr.NewVCR(
-        govcr.WithCassette(exampleCassetteName2),
-        govcr.WithLiveOnlyMode(),
-    )
-    // or equally:
-    vcr.SetLiveOnlyMode(true) // `false` to disable option
+vcr := govcr.NewVCR(
+    govcr.WithCassette(exampleCassetteName2),
+    govcr.WithLiveOnlyMode(),
+)
+// or equally:
+vcr.SetLiveOnlyMode(true) // `false` to disable option
 ```
 
 #### Read only
 
 ```go
-    vcr := govcr.NewVCR(
-        govcr.WithCassette(exampleCassetteName2),
-        govcr.WithReadOnlyMode(),
-    )
-    // or equally:
-    vcr.SetReadOnlyMode(true) // `false` to disable option
+vcr := govcr.NewVCR(
+    govcr.WithCassette(exampleCassetteName2),
+    govcr.WithReadOnlyMode(),
+)
+// or equally:
+vcr.SetReadOnlyMode(true) // `false` to disable option
 ```
 
 #### Offline
 
 ```go
-    vcr := govcr.NewVCR(
-        govcr.WithCassette(exampleCassetteName2),
-        govcr.WithOfflineMode(),
-    )
-    // or equally:
-    vcr.SetOfflineMode(true) // `false` to disable option
+vcr := govcr.NewVCR(
+    govcr.WithCassette(exampleCassetteName2),
+    govcr.WithOfflineMode(),
+)
+// or equally:
+vcr.SetOfflineMode(true) // `false` to disable option
 ```
 
 ### Recipe: VCR with a custom RequestFilter
@@ -268,21 +268,21 @@ This example shows how to handle situations where a header in the request needs 
 This could be necessary because the header value is not predictable or changes for each request.
 
 ```go
-    vcr.SetRequestMatcher(NewBlankRequestMatcher(
-        WithRequestMatcherFunc(DefaultMethodMatcher),
-        WithRequestMatcherFunc(DefaultURLMatcher),
-        WithRequestMatcherFunc(
-            func(httpRequest, trackRequest *track.Request) bool {
-                // we can safely mutate our inputs:
-                // mutations affect other RequestMatcherFunc's but _not_ the
-                // original HTTP request or the cassette Tracks.
-                httpRequest.Header.Del("X-Custom-Timestamp")
-                trackRequest.Header.Del("X-Custom-Timestamp")
+vcr.SetRequestMatcher(NewBlankRequestMatcher(
+    WithRequestMatcherFunc(DefaultMethodMatcher),
+    WithRequestMatcherFunc(DefaultURLMatcher),
+    WithRequestMatcherFunc(
+        func(httpRequest, trackRequest *track.Request) bool {
+            // we can safely mutate our inputs:
+            // mutations affect other RequestMatcherFunc's but _not_ the
+            // original HTTP request or the cassette Tracks.
+            httpRequest.Header.Del("X-Custom-Timestamp")
+            trackRequest.Header.Del("X-Custom-Timestamp")
 
-                return DefaultHeaderMatcher(httpRequest, trackRequest)
-            },
-        ),
-    ))
+            return DefaultHeaderMatcher(httpRequest, trackRequest)
+        },
+    ),
+))
 ```
 
 ### Recipe: VCR with a recoding Track Mutator
@@ -374,11 +374,11 @@ make test
 
 ## Bugs
 
-- The recording of TLS data for PublicKeys is not reliable owing to a limitation in Go's json package and a non-deterministic and opaque use of a blank interface in Go's certificate structures. Some improvements are possible with `gob`.
+- The recording of TLS data for PublicKey's is not reliable owing to a limitation in Go's json package and a non-deterministic and opaque use of a blank interface in Go's certificate structures. Some improvements are possible with `gob`.
 
 ## Improvements
 
-- When unmarshaling the cassette fails, rather than fail altogether, it would be preferable to revert to live HTTP call.
+- When unmarshaling the cassette fails, rather than fail altogether, it may be preferable to revert to live HTTP call.
 
 - The code has a number of TODO's which should either be taken action upon or removed!
 
@@ -390,7 +390,7 @@ Some properties / objects in http.Response are defined as `interface{}` (or `any
 
 This can cause `json.Unmarshal` to fail (example: when the original type was `big.Int` with a big integer indeed - `json.Unmarshal` attempts to convert to float64 and fails).
 
-Currently, this is dealt with by converting the output of the JSON produced by `json.Marshal` (big.Int is changed to a string).
+Currently, this is dealt with by removing known untyped fields from the tracks. This is the case for PublicKey in certificate chains of the TLS data structure.
 
 ### Support for multiple values in HTTP headers
 

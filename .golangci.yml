@@ -384,15 +384,22 @@ linters-settings:
     # To check which checks are enabled run `GL_DEBUG=gocritic golangci-lint run`.
     # By default, list of stable checks is used.
     enabled-checks:
+      - captLocal
+      - elseif
+      - hugeParam
       - nestingReduce
-      - unnamedResult
+      - rangeExprCopy
+      - rangeValCopy
       - ruleguard
+      - tooManyResultsChecker
       - truncateCmp
+      - underef
+      - unnamedResult
+
 
     # Which checks should be disabled; can't be combined with 'enabled-checks'.
     # Default: []
     disabled-checks:
-      - regexpMust
 
     # Enable multiple checks by tags, run `GL_DEBUG=gocritic golangci-lint run` to see all tags and checks.
     # See https://github.com/go-critic/go-critic#usage -> section "Tags".
@@ -556,11 +563,6 @@ linters-settings:
     # It's a comma-separated list of prefixes.
     # Default: ""
     local-prefixes: github.com/seborama
-
-  golint:
-    # Minimal confidence for issues.
-    # Default: 0.8
-    min-confidence: 0.7
 
   gomnd:
     # List of enabled checks, see https://github.com/tommy-muehle/go-mnd/#checks for description.
@@ -835,33 +837,25 @@ linters-settings:
     disable:
       - asmdecl
       - assign
-      - atomic
-      - atomicalign
       - bools
       - buildtag
       - cgocall
       - composites
-      - copylocks
       - deepequalerrors
       - errorsas
-      - fieldalignment
       - findcall
       - framepointer
       - httpresponse
       - ifaceassert
-      - loopclosure
-      - lostcancel
       - nilfunc
       - nilness
       - printf
       - reflectvaluecompare
-      - shadow
       - shift
       - sigchanyzer
       - sortslice
       - stdmethods
       - stringintconv
-      - structtag
       - testinggoroutine
       - tests
       - unmarshal
@@ -1643,15 +1637,15 @@ linters:
   enable:
     # - asciicheck
     # - bidichk
-    # - bodyclose
-    # - containedctx
-    # - contextcheck
-    # - cyclop
+    - bodyclose
+    - containedctx
+    - contextcheck
+    - cyclop
     - deadcode
     # - decorder
     # - depguard
-    # - dogsled
-    # - dupl
+    - dogsled
+    - dupl
     - durationcheck
     - errcheck
     # - errchkjson
@@ -1669,7 +1663,7 @@ linters:
     - gocognit
     # - goconst
     - gocritic
-    # - gocyclo
+    - gocyclo
     # - godot
     # - godox
     - goerr113
@@ -1677,44 +1671,44 @@ linters:
     - gofumpt
     # - goheader
     - goimports
-    - golint
-    # - gomnd
-    # - gomoddirectives
-    # - gomodguard
-    # - goprintffuncname
+    #- golint
+    #- gomnd
+    #- gomoddirectives
+    #- gomodguard
+    #- goprintffuncname
     - gosec
     - gosimple
     - govet
-    # - grouper
-    # - ifshort
-    # - importas
+    #- grouper
+    #- ifshort
+    #- importas
     - ineffassign
-    # - interfacer
-    # - ireturn
-    # - lll
-    # - maintidx
-    # - makezero
-    # - maligned
-    # - misspell
-    # - nakedret
+    #- interfacer
+    #- ireturn
+    #- lll
+    #- maintidx
+    #- makezero
+    #- maligned
+    #- misspell
+    #- nakedret
     - nestif
     - nilerr
     #- nilnil
-    # - nlreturn
-    # - noctx
+    #- nlreturn
+    #- noctx
     - nolintlint
-    # - paralleltest
-    # - prealloc
-    # - predeclared
-    # - promlinter
-    # - revive
-    # - rowserrcheck
-    - scopelint
+    #- paralleltest
+    #- prealloc
+    #- predeclared
+    #- promlinter
+    #- revive
+    - rowserrcheck
+    #- scopelint
     - sqlclosecheck
     - staticcheck
     - structcheck
-    # - stylecheck
-    # - tagliatelle
+    - stylecheck
+    - tagliatelle
     # - tenv
     # - testpackage
     - thelper
@@ -1809,9 +1803,6 @@ issues:
 
   # Show only new issues created after git revision `REV`.
   new-from-rev: HEAD
-
-  # Show only new issues created in git patch with set file path.
-  new-from-patch: path/to/patch/file
 
   # Fix found issues (if it's supported by the linter).
   fix: true
