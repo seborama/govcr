@@ -33,4 +33,4 @@ jobs:
           go-version: 1.17
 
       - name: Test
-        run: go test -count 1 -parallel 2 ./...
+        run: make test
