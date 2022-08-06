@@ -234,6 +234,8 @@ func cloneTLS(tlsCS *tls.ConnectionState) *tls.ConnectionState {
 		peerCertificatesClone = tlsCS.PeerCertificates
 	}
 
+	removePublicKey(peerCertificatesClone)
+
 	var verifiedChainsClone [][]*x509.Certificate //nolint:prealloc
 	for _, certSlice := range tlsCS.VerifiedChains {
 		var certSliceClone []*x509.Certificate
@@ -245,6 +247,8 @@ func cloneTLS(tlsCS *tls.ConnectionState) *tls.ConnectionState {
 
 			break
 		}
+
+		removePublicKey(certSliceClone)
 
 		verifiedChainsClone = append(verifiedChainsClone, certSliceClone)
 	}
@@ -262,6 +266,13 @@ func cloneTLS(tlsCS *tls.ConnectionState) *tls.ConnectionState {
 		SignedCertificateTimestamps: signedCertificateTimestampsClone,
 		OCSPResponse:                []byte(string(tlsCS.OCSPResponse)),
 		TLSUnique:                   []byte(string(tlsCS.TLSUnique)), //nolint: staticcheck
+	}
+}
+
+func removePublicKey(certs []*x509.Certificate) {
+	for i := range certs {
+		// destroy PublicKey as it's untyped and breaks with the json package.
+		certs[i].PublicKey = nil
 	}
 }
 

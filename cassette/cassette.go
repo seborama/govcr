@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -128,10 +127,7 @@ func (k7 *Cassette) save() error {
 		return errors.WithStack(err)
 	}
 
-	// TODO: need to find a way around this - not reliable as is
-	tData := transformInterfacesInJSON(data)
-
-	gData, err := k7.GzipFilter(*bytes.NewBuffer(tData))
+	gData, err := k7.GzipFilter(*bytes.NewBuffer(data))
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -179,22 +175,6 @@ func (k7 *Cassette) Name() string {
 	return k7.name
 }
 
-// transformInterfacesInJSON looks for known properties in the JSON that are defined as interface{}
-// in their original Go structure and don't Unmarshal correctly.
-//
-// Example x509.Certificate.PublicKey:
-// When the type is rsa.PublicKey, Unmarshal attempts to map property "N" to a float64 because it is a number.
-// However, it really is a big.Int which does not fit float64 and makes Unmarshal fail.
-//
-// This is not an ideal solution but it works. In the future, we could consider adding a property that
-// records the original type and re-creates it post Unmarshal.
-func transformInterfacesInJSON(jsonString []byte) []byte {
-	// TODO: precompile this regexp perhaps via a receiver
-	regex := regexp.MustCompile(`( *"N" *: *)([0-9]+)`) // TODO: this is really not reliable!!!!
-
-	return []byte(regex.ReplaceAllString(string(jsonString), `$1"$2"`))
-}
-
 // AddTrackToCassette saves a new track using the specified details to a cassette.
 func AddTrackToCassette(cassette *Cassette, trk *track.Track) error {
 	// mark track as replayed since it's coming from a live Request!
@@ -239,7 +219,7 @@ func readCassetteFile(cassetteName string) (*Cassette, error) {
 		return nil, err
 	}
 
-	// NOTE: Properties which are of type 'interface{}' are not handled very well
+	// NOTE: Properties which are of type 'interface{} / any' are not handled very well
 	if err := json.Unmarshal(cData, k7); err != nil {
 		return nil, errors.Wrap(err, "failed to interpret cassette data in file")
 	}
