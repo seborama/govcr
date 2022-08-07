@@ -364,16 +364,16 @@ func cloneURL(aURL *url.URL) *url.URL {
 	}
 
 	return &url.URL{
-		Scheme:     aURL.Scheme,
-		Opaque:     aURL.Opaque,
-		User:       user,
-		Host:       aURL.Host,
-		Path:       aURL.Path,
-		RawPath:    aURL.RawPath,
-		ForceQuery: aURL.ForceQuery,
-		RawQuery:   aURL.RawQuery,
-		Fragment:   aURL.Fragment,
-		// TODO: RawFragment?
+		Scheme:      aURL.Scheme,
+		Opaque:      aURL.Opaque,
+		User:        user,
+		Host:        aURL.Host,
+		Path:        aURL.Path,
+		RawPath:     aURL.RawPath,
+		ForceQuery:  aURL.ForceQuery,
+		RawQuery:    aURL.RawQuery,
+		Fragment:    aURL.Fragment,
+		RawFragment: aURL.RawFragment,
 	}
 }
 
