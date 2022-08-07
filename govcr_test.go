@@ -14,8 +14,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/seborama/govcr/v6"
-	"github.com/seborama/govcr/v6/stats"
+	"github.com/seborama/govcr/v7"
+	"github.com/seborama/govcr/v7/stats"
 )
 
 func TestNewVCR(t *testing.T) {
@@ -163,7 +163,7 @@ func (suite *GoVCRTestSuite) TestVCR_ReadOnlyMode() {
 }
 
 func (suite *GoVCRTestSuite) TestVCR_LiveOnlyMode() {
-	suite.vcr.SetLiveOnlyMode(true)
+	suite.vcr.SetLiveOnlyMode()
 	suite.vcr.SetRequestMatcher(govcr.NewBlankRequestMatcher()) // ensure always matching
 
 	// 1st execution of set of calls
@@ -199,7 +199,7 @@ func (suite *GoVCRTestSuite) TestVCR_OfflineMode() {
 	suite.vcr.SetRequestMatcher(govcr.NewBlankRequestMatcher()) // ensure always matching
 
 	// 1st execution of set of calls - populate cassette
-	suite.vcr.SetOfflineMode(false) // get data in the cassette
+	suite.vcr.SetNormalMode() // get data in the cassette
 	err := suite.vcr.LoadCassette(suite.cassetteName)
 	suite.Require().NoError(err)
 
@@ -215,7 +215,7 @@ func (suite *GoVCRTestSuite) TestVCR_OfflineMode() {
 	suite.vcr.EjectCassette()
 
 	// 2nd execution of set of calls -- offline only
-	suite.vcr.SetOfflineMode(true)
+	suite.vcr.SetOfflineMode()
 
 	err = suite.vcr.LoadCassette(suite.cassetteName)
 	suite.Require().NoError(err)

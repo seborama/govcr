@@ -50,9 +50,6 @@ func (r *Request) Clone() *Request {
 	body := make([]byte, len(r.Body))
 	copy(body, r.Body)
 
-	transferEncoding := make([]string, len(r.TransferEncoding))
-	copy(transferEncoding, r.TransferEncoding)
-
 	newR := &Request{
 		Method:           r.Method,
 		URL:              cloneURL(r.URL),
@@ -62,7 +59,7 @@ func (r *Request) Clone() *Request {
 		Header:           r.Header.Clone(),
 		Body:             body,
 		ContentLength:    r.ContentLength,
-		TransferEncoding: transferEncoding,
+		TransferEncoding: cloneStringSlice(r.TransferEncoding),
 		Close:            r.Close,
 		Host:             r.Host,
 		Form:             cloneMapOfSlices(r.Form),
@@ -150,25 +147,26 @@ func ToRequest(httpRequest *http.Request) *Request {
 	bodyClone := cloneHTTPRequestBody(httpRequest)
 	headerClone := httpRequest.Header.Clone()
 	trailerClone := httpRequest.Trailer.Clone()
+	tsfEncodingClone := cloneStringSlice(httpRequest.TransferEncoding)
 
 	return &Request{
-		Method:        httpRequest.Method,
-		URL:           cloneURL(httpRequest.URL),
-		Proto:         httpRequest.Proto,
-		ProtoMajor:    httpRequest.ProtoMajor,
-		ProtoMinor:    httpRequest.ProtoMinor,
-		Header:        headerClone,
-		Body:          bodyClone,
-		ContentLength: httpRequest.ContentLength,
-		// TODO: TransferEncoding: []string{},
-		Close: httpRequest.Close,
-		Host:  httpRequest.Host,
-		// TODO: Form:          map[string][]string{},
-		// TODO: PostForm:      map[string][]string{},
-		// TODO: MultipartForm: &multipart.Form{},
-		Trailer:    trailerClone,
-		RemoteAddr: httpRequest.RemoteAddr,
-		RequestURI: httpRequest.RequestURI,
+		Method:           httpRequest.Method,
+		URL:              cloneURL(httpRequest.URL),
+		Proto:            httpRequest.Proto,
+		ProtoMajor:       httpRequest.ProtoMajor,
+		ProtoMinor:       httpRequest.ProtoMinor,
+		Header:           headerClone,
+		Body:             bodyClone,
+		ContentLength:    httpRequest.ContentLength,
+		TransferEncoding: tsfEncodingClone,
+		Close:            httpRequest.Close,
+		Host:             httpRequest.Host,
+		Form:             cloneMapOfSlices(httpRequest.Form),
+		PostForm:         cloneMapOfSlices(httpRequest.PostForm),
+		MultipartForm:    cloneMultipartForm(httpRequest.MultipartForm),
+		Trailer:          trailerClone,
+		RemoteAddr:       httpRequest.RemoteAddr,
+		RequestURI:       httpRequest.RequestURI,
 	}
 }
 
@@ -401,9 +399,7 @@ func CloneHTTPRequest(httpRequest *http.Request) *http.Request {
 	httpRequestClone.TransferEncoding = cloneStringSlice(httpRequest.TransferEncoding)
 	httpRequestClone.Form = cloneURLValues(httpRequest.Form)
 	httpRequestClone.PostForm = cloneURLValues(httpRequest.PostForm)
-
-	// TODO:
-	// MultipartForm
+	httpRequestClone.MultipartForm = cloneMultipartForm(httpRequest.MultipartForm)
 	httpRequestClone.TLS = cloneTLS(httpRequest.TLS)
 
 	var responseClone *http.Response

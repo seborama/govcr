@@ -3,8 +3,23 @@ package govcr
 import (
 	"net/http"
 
-	"github.com/seborama/govcr/v6/cassette"
-	"github.com/seborama/govcr/v6/cassette/track"
+	"github.com/seborama/govcr/v7/cassette"
+	"github.com/seborama/govcr/v7/cassette/track"
+)
+
+// HTTPMode defines govcr's mode for HTTP requests.
+// See specific modes for further details.
+type HTTPMode int
+
+const (
+	// HTTPModeNormal replays from cassette if a match exists or execute live request.
+	HTTPModeNormal HTTPMode = iota
+
+	// HTTPModeLiveOnly executes live calls for all requests, ignores cassette.
+	HTTPModeLiveOnly
+
+	// HTTPModeOffline, plays back from cassette or if no match, return a transport error.
+	HTTPModeOffline
 )
 
 // PrintedCircuitBoard is a structure that holds some facilities that are passed to
@@ -20,22 +35,15 @@ type PrintedCircuitBoard struct {
 	// However, the Request data can be referenced as part of mutating the Response.
 	trackReplayingMutators track.Mutators
 
-	// Make live calls only, do not replay from cassette even if a track would exist.
-	// Perhaps more useful when used in combination with 'readOnly' to by-pass govcr entirely.
-	// TODO: note it probably does not make sense to have Offline true and LiveOnly true
-	liveOnly bool
+	// httpMode govcr's mode for HTTP request - see httpMode for details.
+	httpMode HTTPMode
 
 	// Replay tracks from cassette, if present, or make live calls but do not records new tracks.
 	readOnly bool
-
-	// Replay tracks from cassette, if present, but do not make live calls.
-	// govcr will return a transport error if no track was found.
-	// TODO: note it probably does not make sense to have Offline true and LiveOnly true
-	offlineMode bool
 }
 
 func (pcb *PrintedCircuitBoard) seekTrack(k7 *cassette.Cassette, httpRequest *http.Request) (*track.Track, error) {
-	if pcb.liveOnly {
+	if pcb.httpMode == HTTPModeLiveOnly {
 		return nil, nil
 	}
 
@@ -83,14 +91,19 @@ func (pcb *PrintedCircuitBoard) SetReadOnlyMode(state bool) {
 	pcb.readOnly = state
 }
 
-// SetOfflineMode sets the VCR to offline mode (true) or to normal live/replay (false).
-func (pcb *PrintedCircuitBoard) SetOfflineMode(state bool) {
-	pcb.offlineMode = state
+// SetNormalMode sets the VCR to normal HTTP mode.
+func (pcb *PrintedCircuitBoard) SetNormalMode() {
+	pcb.httpMode = HTTPModeNormal
 }
 
-// SetLiveOnlyMode sets the VCR to live-only mode (true) or to normal live/replay (false).
-func (pcb *PrintedCircuitBoard) SetLiveOnlyMode(state bool) {
-	pcb.liveOnly = state
+// SetOfflineMode sets the VCR to offline mode.
+func (pcb *PrintedCircuitBoard) SetOfflineMode() {
+	pcb.httpMode = HTTPModeOffline
+}
+
+// SetLiveOnlyMode sets the VCR to live-only mode.
+func (pcb *PrintedCircuitBoard) SetLiveOnlyMode() {
+	pcb.httpMode = HTTPModeLiveOnly
 }
 
 // AddRecordingMutators adds a collection of recording TrackMutator's.

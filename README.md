@@ -32,7 +32,7 @@ We use a "relaxed" request matcher because `example.com` injects an "`Age`" head
 ## Install
 
 ```bash
-go get github.com/seborama/govcr/v6@latest
+go get github.com/seborama/govcr/v7@latest
 ```
 
 For all available releases, please check the [releases](https://github.com/seborama/govcr/releases) tab on github.
@@ -40,7 +40,7 @@ For all available releases, please check the [releases](https://github.com/sebor
 And your source code would use this import:
 
 ```go
-import "github.com/seborama/govcr/v6"
+import "github.com/seborama/govcr/v7"
 ```
 
 For versions of **govcr** before v5 (which don't use go.mod), use a dependency manager to lock the version you wish to use (perhaps v4)!
@@ -93,7 +93,7 @@ Settings are populated via `With*` options:
 - `WithCassette` loads the specified cassette.\
   Note that it is also possible to call `LoadCassette` from the vcr instance.
 - See `vcrsettings.go` for more options such as `WithRequestMatcher`, `WithTrackRecordingMutators`, `WithTrackReplayingMutators`, ...
-- TODO in v5: `WithLogging` enables logging to help understand what govcr is doing internally.
+- TODO: `WithLogging` enables logging to help understand what govcr is doing internally.
 
 ## Match a request to a cassette track
 
@@ -228,7 +228,18 @@ vcr.AddReplayingMutators(track.ResponseDeleteTLS())
 - Read only: normal behaviour except that recording to cassette is disabled.
 - Offline: playback from cassette only, return a transport error if no track matches.
 
-#### Live only
+#### Normal HTTP mode
+
+```go
+vcr := govcr.NewVCR(
+    govcr.WithCassette(exampleCassetteName2),
+    // Normal mode is default, no special option required :)
+)
+// or equally:
+vcr.SetNormalMode()
+```
+
+#### Live only HTTP mode
 
 ```go
 vcr := govcr.NewVCR(
@@ -236,10 +247,10 @@ vcr := govcr.NewVCR(
     govcr.WithLiveOnlyMode(),
 )
 // or equally:
-vcr.SetLiveOnlyMode(true) // `false` to disable option
+vcr.SetLiveOnlyMode()
 ```
 
-#### Read only
+#### Read only cassette mode
 
 ```go
 vcr := govcr.NewVCR(
@@ -250,7 +261,7 @@ vcr := govcr.NewVCR(
 vcr.SetReadOnlyMode(true) // `false` to disable option
 ```
 
-#### Offline
+#### Offline HTTP mode
 
 ```go
 vcr := govcr.NewVCR(
@@ -258,7 +269,7 @@ vcr := govcr.NewVCR(
     govcr.WithOfflineMode(),
 )
 // or equally:
-vcr.SetOfflineMode(true) // `false` to disable option
+vcr.SetOfflineMode()
 ```
 
 ### Recipe: VCR with a custom RequestFilter
@@ -306,7 +317,7 @@ import (
 
     "net/http"
 
-    "github.com/seborama/govcr/v6"
+    "github.com/seborama/govcr/v7"
 )
 
 const example5CassetteName = "MyCassette5"
