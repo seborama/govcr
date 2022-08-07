@@ -117,14 +117,20 @@ Nonetheless, **govcr** supports mutating tracks, either at **recording time** or
 
 In either case, this is achieved with track `Mutators`.
 
-A `Mutator` can be combined with one or more `On` conditions. All `On` conditions attached to a mutator must be true for the mutator to apply. The predicate 'Any' provides an alternative and will only require one of its conditions to be true. `Any` can be combined with an `On` conditional mutator to achieve a logical `Or` within the `On` condition.
+A `Mutator` can be combined with one or more `On` conditions. All `On` conditions attached to a mutator must be true for the mutator to apply - in other word, they are logically "and-ed".
+
+To help construct more complex yet readable predicates easily, **govcr** provides these pre-defined functions for use with `On`:
+- `Any` achieves a logical "**or**" of the provided predicates.
+- `All` achieves a logical "**and**" of the provided predicates.
+- `Not` achieves a logical "**not**" of the provided predicates.
 
 Example:
 
 ```go
 myMutator.
-    On(Any(...)).
-    On(...)
+    On(Any(...)). // proceeds if any of the "`...`" predicates is true
+    On(Not(Any(...)))  // proceeds if none of the "`...`" predicates is true (i.e. all predicates are false)
+    On(Not(All(...))).  // proceeds if not every of the "`...`" predicates is true (i.e. at least one predicate is false)
 ```
 
 A **track recording mutator** can change both the request and the response that will be persisted to the cassette.
@@ -224,9 +230,10 @@ vcr.AddReplayingMutators(track.ResponseDeleteTLS())
 
 **govcr** support operation modes:
 
-- Live only: never replay from the cassette.
-- Read only: normal behaviour except that recording to cassette is disabled.
-- Offline: playback from cassette only, return a transport error if no track matches.
+- **Normal HTTP mode**: replay from the cassette if a track matches otherwise place a live call.
+- **Live only**: never replay from the cassette.
+- **Offline**: playback from cassette only, return a transport error if no track matches.
+- **Read only**: normal behaviour except that recording to cassette is disabled.
 
 #### Normal HTTP mode
 

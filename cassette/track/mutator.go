@@ -5,11 +5,57 @@ import (
 	"regexp"
 )
 
+// It is used to construct conditional mutators.
+type Predicate func(trk *Track) bool
+
+// Any accepts one or more predicates and returns a new predicate that will evaluate
+// to true when any the supplied predicate is true, otherwise false.
+func Any(predicates ...Predicate) Predicate {
+	return Predicate(
+		func(trk *Track) bool {
+			for _, p := range predicates {
+				if p(trk) {
+					return true
+				}
+			}
+
+			return false
+		},
+	)
+}
+
+// All accepts one or more predicates and returns a new predicate that will evaluate
+// to true when every of the supplied predicate is true, otherwise false.
+func All(predicates ...Predicate) Predicate {
+	return Predicate(
+		func(trk *Track) bool {
+			for _, p := range predicates {
+				if !p(trk) {
+					return false
+				}
+			}
+
+			return true
+		},
+	)
+}
+
+// Not accepts one predicate and returns its logically contrary evaluation.
+// I.e. it returns true when the supplied predicate is false and vice-versa.
+func Not(predicate Predicate) Predicate {
+	return Predicate(
+		func(trk *Track) bool {
+			return !predicate(trk)
+		},
+	)
+}
+
 // Mutator is a function signature for a Track mutator.
 // A Mutator can be used to mutate a track at recording or replaying time.
 type Mutator func(*Track)
 
 // On accepts a mutator only when the predicate is true.
+// On will cowardly avoid the case when trk is nil.
 func (tm Mutator) On(predicate Predicate) Mutator {
 	return func(trk *Track) {
 		if trk != nil && predicate(trk) {
@@ -18,37 +64,7 @@ func (tm Mutator) On(predicate Predicate) Mutator {
 	}
 }
 
-// TODO: Create an OnAll?
-
-// Any accepts a mutator when any the supplied predicate is true.
-// See also the alias "Or".
-// TODO: Rename to OnAny? Then delete Or() >> new major version
-//       Other Option: Any become a Predicate (to be used with On()) and not a Mutator
-func (tm Mutator) Any(predicates ...Predicate) Mutator {
-	return func(trk *Track) {
-		if trk == nil {
-			return
-		}
-
-		for _, p := range predicates {
-			if p(trk) {
-				tm(trk)
-				return
-			}
-		}
-	}
-}
-
-// Or accepts a mutator when any the supplied predicate is true.
-// It is an alias of "Any".
-func (tm Mutator) Or(predicates ...Predicate) Mutator {
-	return tm.Any(predicates...)
-}
-
 // Predicate is a function signature that takes a track.Track and returns a boolean.
-// It is used to construct conditional mutators.
-type Predicate func(trk *Track) bool
-
 // OnErr accepts a mutator only when an (HTTP/net) error occurred.
 func (tm Mutator) OnErr() Mutator {
 	return tm.On(

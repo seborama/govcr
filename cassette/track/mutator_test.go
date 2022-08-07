@@ -55,15 +55,7 @@ func Test_Mutator_On(t *testing.T) {
 	require.Equal(t, 0, mutatorCallCounter)
 }
 
-func Test_Mutator_Or(t *testing.T) {
-	mutatorCallCounter := 0
-
-	unitMutator := track.Mutator(
-		func(tk *track.Track) {
-			mutatorCallCounter++
-		},
-	)
-
+func Test_Mutator_Any(t *testing.T) {
 	pTrue := track.Predicate(
 		func(trk *track.Track) bool {
 			return true
@@ -76,29 +68,91 @@ func Test_Mutator_Or(t *testing.T) {
 		},
 	)
 
-	trk := track.NewTrack(
-		&track.Request{},
-		&track.Response{
-			StatusCode: 172,
+	trk := track.NewTrack(nil, nil, nil)
+
+	result := track.Any(pFalse, pTrue)(nil)
+	require.True(t, result)
+
+	result = track.Any(pFalse, pTrue)(trk)
+	require.True(t, result)
+
+	result = track.Any(pFalse, pFalse)(trk)
+	require.False(t, result)
+
+	result = track.Any(pTrue, pTrue)(trk)
+	require.True(t, result)
+}
+
+func Test_Mutator_All(t *testing.T) {
+	pTrue := track.Predicate(
+		func(trk *track.Track) bool {
+			return true
 		},
-		nil,
 	)
 
-	mutatorCallCounter = 0
-	unitMutator.Or(pFalse, pTrue)(nil)
-	require.Equal(t, 0, mutatorCallCounter)
+	pFalse := track.Predicate(
+		func(trk *track.Track) bool {
+			return false
+		},
+	)
 
-	mutatorCallCounter = 0
-	unitMutator.Or(pFalse, pTrue)(trk)
-	require.Equal(t, 1, mutatorCallCounter)
+	trk := track.NewTrack(nil, nil, nil)
 
-	mutatorCallCounter = 0
-	unitMutator.Or(pFalse, pFalse)(trk)
-	require.Equal(t, 0, mutatorCallCounter)
+	result := track.All(pFalse, pTrue)(nil)
+	require.False(t, result)
 
-	mutatorCallCounter = 0
-	unitMutator.Or(pTrue, pTrue)(trk)
-	require.Equal(t, 1, mutatorCallCounter)
+	result = track.All(pFalse, pTrue)(trk)
+	require.False(t, result)
+
+	result = track.All(pFalse, pFalse)(trk)
+	require.False(t, result)
+
+	result = track.All(pTrue, pTrue)(trk)
+	require.True(t, result)
+}
+
+func Test_Mutator_Not(t *testing.T) {
+	pTrue := track.Predicate(
+		func(trk *track.Track) bool {
+			return true
+		},
+	)
+
+	pFalse := track.Predicate(
+		func(trk *track.Track) bool {
+			return false
+		},
+	)
+
+	result := track.Not(pFalse)(nil)
+	require.True(t, result)
+	result = track.Not(pTrue)(nil)
+	require.False(t, result)
+
+	trk := track.NewTrack(nil, nil, nil)
+
+	result = track.Not(pFalse)(trk)
+	require.True(t, result)
+	result = track.Not(pTrue)(trk)
+	require.False(t, result)
+
+	result = track.Not(track.Any(pFalse, pTrue))(trk)
+	require.False(t, result)
+	result = track.Not(track.Any(pTrue, pFalse))(trk)
+	require.False(t, result)
+	result = track.Not(track.Any(pFalse, pFalse))(trk)
+	require.True(t, result)
+	result = track.Not(track.Any(pTrue, pTrue))(trk)
+	require.False(t, result)
+
+	result = track.Not(track.All(pFalse, pTrue))(trk)
+	require.True(t, result)
+	result = track.Not(track.All(pTrue, pFalse))(trk)
+	require.True(t, result)
+	result = track.Not(track.All(pFalse, pFalse))(trk)
+	require.True(t, result)
+	result = track.Not(track.All(pTrue, pTrue))(trk)
+	require.False(t, result)
 }
 
 func Test_Mutator_HasErr(t *testing.T) {
