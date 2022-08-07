@@ -38,14 +38,9 @@ func NewTrack(req *Request, resp *Response, reqErr error) *Track {
 		reqValue = *req
 	}
 
-	var respValue Response
-	if resp != nil {
-		respValue = *resp
-	}
-
 	track := &Track{
 		Request:  reqValue,
-		Response: &respValue,
+		Response: resp,
 		ErrType:  reqErrType,
 		ErrMsg:   reqErrMsg,
 		replayed: false,

@@ -1,6 +1,7 @@
 package track
 
 import (
+	"net/http"
 	"regexp"
 )
 
@@ -17,12 +18,15 @@ func (tm Mutator) On(predicate Predicate) Mutator {
 	}
 }
 
+// TODO: Create an OnAll?
+
 // Any accepts a mutator when any the supplied predicate is true.
 // See also the alias "Or".
-// TODO: add tests.
+// TODO: Rename to OnAny? Then delete Or() >> new major version
+//       Other Option: Any become a Predicate (to be used with On()) and not a Mutator
 func (tm Mutator) Any(predicates ...Predicate) Mutator {
 	return func(trk *Track) {
-		if trk != nil {
+		if trk == nil {
 			return
 		}
 
@@ -150,6 +154,9 @@ func (tm Mutator) OnStatusCode(codes ...int) Mutator {
 func RequestAddHeaderValue(key, value string) Mutator {
 	return func(trk *Track) {
 		if trk != nil {
+			if trk.Request.Header == nil {
+				trk.Request.Header = http.Header{}
+			}
 			trk.Request.Header.Add(key, value)
 		}
 	}
@@ -170,6 +177,9 @@ func RequestDeleteHeaderKeys(keys ...string) Mutator {
 func ResponseAddHeaderValue(key, value string) Mutator {
 	return func(trk *Track) {
 		if trk != nil {
+			if trk.Response.Header == nil {
+				trk.Response.Header = http.Header{}
+			}
 			trk.Response.Header.Add(key, value)
 		}
 	}
@@ -189,8 +199,19 @@ func ResponseDeleteHeaderKeys(keys ...string) Mutator {
 // RequestTransferHeaderKeys transfers one or more headers from the response to the request.
 func RequestTransferHeaderKeys(keys ...string) Mutator {
 	return func(trk *Track) {
-		if trk != nil {
-			for _, key := range keys {
+		if trk == nil {
+			return
+		}
+
+		for _, key := range keys {
+			// only transfer headers that actually exist
+			if trk.Response.Header.Values(key) != nil && trk.Response.Header.Get(key) != "" {
+				// this test must be inside the loop so we only add a blank header when we know
+				// we're going to populate it, otherwise retain the "nil" value untouched.
+				if trk.Request.Header == nil {
+					trk.Request.Header = http.Header{}
+				}
+
 				trk.Request.Header.Add(key, trk.Response.Header.Get(key))
 			}
 		}
@@ -200,8 +221,19 @@ func RequestTransferHeaderKeys(keys ...string) Mutator {
 // ResponseTransferHeaderKeys transfers one or more headers from the request to the response.
 func ResponseTransferHeaderKeys(keys ...string) Mutator {
 	return func(trk *Track) {
-		if trk != nil {
-			for _, key := range keys {
+		if trk == nil {
+			return
+		}
+
+		for _, key := range keys {
+			// only transfer headers that actually exist
+			if trk.Request.Header.Values(key) != nil && trk.Request.Header.Get(key) != "" {
+				// this test must be inside the loop so we only add a blank header when we know
+				// we're going to populate it, otherwise retain the "nil" value untouched.
+				if trk.Response.Header == nil {
+					trk.Response.Header = http.Header{}
+				}
+
 				trk.Response.Header.Add(key, trk.Request.Header.Get(key))
 			}
 		}
@@ -211,8 +243,19 @@ func ResponseTransferHeaderKeys(keys ...string) Mutator {
 // RequestTransferTrailerKeys transfers one or more trailers from the response to the request.
 func RequestTransferTrailerKeys(keys ...string) Mutator {
 	return func(trk *Track) {
-		if trk != nil {
-			for _, key := range keys {
+		if trk == nil {
+			return
+		}
+
+		for _, key := range keys {
+			// only transfer trailers that actually exist
+			if trk.Response.Trailer.Values(key) != nil && trk.Response.Trailer.Get(key) != "" {
+				// this test must be inside the loop so we only add a blank trailer when we know
+				// we're going to populate it, otherwise retain the "nil" value untouched.
+				if trk.Request.Trailer == nil {
+					trk.Request.Trailer = http.Header{}
+				}
+
 				trk.Request.Trailer.Add(key, trk.Response.Trailer.Get(key))
 			}
 		}
@@ -222,8 +265,19 @@ func RequestTransferTrailerKeys(keys ...string) Mutator {
 // ResponseTransferTrailerKeys transfers one or more trailers from the request to the response.
 func ResponseTransferTrailerKeys(keys ...string) Mutator {
 	return func(trk *Track) {
-		if trk != nil {
-			for _, key := range keys {
+		if trk == nil {
+			return
+		}
+
+		for _, key := range keys {
+			// only transfer trailers that actually exist
+			if trk.Request.Trailer.Values(key) != nil && trk.Request.Trailer.Get(key) != "" {
+				// this test must be inside the loop so we only add a blank trailer when we know
+				// we're going to populate it, otherwise retain the "nil" value untouched.
+				if trk.Response.Trailer == nil {
+					trk.Response.Trailer = http.Header{}
+				}
+
 				trk.Response.Trailer.Add(key, trk.Request.Trailer.Get(key))
 			}
 		}
@@ -244,7 +298,7 @@ func RequestChangeBody(fn func(b []byte) []byte) Mutator {
 // Supply a function that does input to output transformation.
 func ResponseChangeBody(fn func(b []byte) []byte) Mutator {
 	return func(trk *Track) {
-		if trk != nil {
+		if trk != nil && trk.Response != nil {
 			trk.Response.Body = fn(trk.Response.Body)
 		}
 	}
@@ -253,7 +307,7 @@ func ResponseChangeBody(fn func(b []byte) []byte) Mutator {
 // ResponseDeleteTLS removes TLS data from the response.
 func ResponseDeleteTLS() Mutator {
 	return func(trk *Track) {
-		if trk != nil {
+		if trk != nil && trk.Response != nil {
 			trk.Response.TLS = nil
 		}
 	}
