@@ -12,8 +12,8 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
-	"github.com/seborama/govcr/v6/cassette/track"
-	"github.com/seborama/govcr/v6/stats"
+	"github.com/seborama/govcr/v7/cassette/track"
+	"github.com/seborama/govcr/v7/stats"
 )
 
 type GoVCRWBTestSuite struct {
@@ -36,6 +36,7 @@ func (suite *GoVCRWBTestSuite) SetupTest() {
 		suite.testServer = httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Trailer", "trailer_1")
 			w.Header().Set("header_1", "header_1_value")
+			w.Header().Del("Date")
 			w.WriteHeader(http.StatusOK)
 			counter++
 			iQuery := r.URL.Query().Get("i")
@@ -75,7 +76,7 @@ func (suite *GoVCRWBTestSuite) TestRoundTrip_RequestMatcherDoesNotMutateState() 
 	suite.vcr.ClearRecordingMutators() // mutators by definition cannot change the live request / response, only the track
 	suite.vcr.ClearReplayingMutators() // mutators by definition cannot change the live request / response, only the track
 
-	suite.vcr.SetLiveOnlyMode(true) // ensure we record one track so we can have a request matcher execution later (no track on cassette = no request matching)
+	suite.vcr.SetLiveOnlyMode() // ensure we record one track so we can have a request matcher execution later (no track on cassette = no request matching)
 
 	requestMatcherCount := 0
 
@@ -136,7 +137,7 @@ func (suite *GoVCRWBTestSuite) TestRoundTrip_RequestMatcherDoesNotMutateState() 
 	suite.vcr.EjectCassette() // reset cassette state so to allow track replay (newly recorded tracks are marked at replayed)
 	err = suite.vcr.LoadCassette(suite.cassetteName)
 	suite.Require().NoError(err)
-	suite.vcr.SetLiveOnlyMode(false) // ensure we attempt request matching
+	suite.vcr.SetNormalMode() // ensure we attempt request matching
 
 	req, err = http.NewRequest(http.MethodGet, suite.testServer.URL, nil)
 	suite.Require().NoError(err)
@@ -167,8 +168,7 @@ func (suite *GoVCRWBTestSuite) TestRoundTrip_RequestMatcherDoesNotMutateState() 
 	suite.vcr.EjectCassette() // reset cassette state so to allow track replay (newly recorded tracks are marked at replayed)
 	err = suite.vcr.LoadCassette(suite.cassetteName)
 	suite.Require().NoError(err)
-	suite.vcr.SetLiveOnlyMode(false)
-	suite.vcr.SetOfflineMode(true)
+	suite.vcr.SetOfflineMode()
 
 	requestMatcherCount = 0
 	suite.vcr.SetRequestMatcher(NewBlankRequestMatcher(

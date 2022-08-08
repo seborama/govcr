@@ -3,8 +3,8 @@ package govcr
 import (
 	"net/http"
 
-	"github.com/seborama/govcr/v6/cassette/track"
-	"github.com/seborama/govcr/v6/stats"
+	"github.com/seborama/govcr/v7/cassette/track"
+	"github.com/seborama/govcr/v7/stats"
 )
 
 // ControlPanel holds the parts of a VCR that can be interacted with.
@@ -34,14 +34,19 @@ func (controlPanel *ControlPanel) SetReadOnlyMode(state bool) {
 	controlPanel.vcrTransport().SetReadOnlyMode(state)
 }
 
-// SetOfflineMode sets the VCR to offline mode (true) or to normal live/replay (false).
-func (controlPanel *ControlPanel) SetOfflineMode(state bool) {
-	controlPanel.vcrTransport().SetOfflineMode(state)
+// SetNormalMode sets the VCR to normal HTTP mode.
+func (controlPanel *ControlPanel) SetNormalMode() {
+	controlPanel.vcrTransport().SetNormalMode()
 }
 
-// SetLiveOnlyMode sets the VCR to live-only mode (true) or to normal live/replay (false).
-func (controlPanel *ControlPanel) SetLiveOnlyMode(state bool) {
-	controlPanel.vcrTransport().SetLiveOnlyMode(state)
+// SetOfflineMode sets the VCR to offline mode.
+func (controlPanel *ControlPanel) SetOfflineMode() {
+	controlPanel.vcrTransport().SetOfflineMode()
+}
+
+// SetLiveOnlyMode sets the VCR to live-only mode.
+func (controlPanel *ControlPanel) SetLiveOnlyMode() {
+	controlPanel.vcrTransport().SetLiveOnlyMode()
 }
 
 // AddRecordingMutators adds a set of recording Track Mutator's to the VCR.

@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/seborama/govcr/v6/cassette/track"
+	"github.com/seborama/govcr/v7/cassette/track"
 )
 
 func Test_Mutator_On(t *testing.T) {
@@ -55,15 +55,7 @@ func Test_Mutator_On(t *testing.T) {
 	require.Equal(t, 0, mutatorCallCounter)
 }
 
-func Test_Mutator_Or(t *testing.T) {
-	mutatorCallCounter := 0
-
-	unitMutator := track.Mutator(
-		func(tk *track.Track) {
-			mutatorCallCounter++
-		},
-	)
-
+func Test_Mutator_Any(t *testing.T) {
 	pTrue := track.Predicate(
 		func(trk *track.Track) bool {
 			return true
@@ -76,29 +68,91 @@ func Test_Mutator_Or(t *testing.T) {
 		},
 	)
 
-	trk := track.NewTrack(
-		&track.Request{},
-		&track.Response{
-			StatusCode: 172,
+	trk := track.NewTrack(nil, nil, nil)
+
+	result := track.Any(pFalse, pTrue)(nil)
+	require.True(t, result)
+
+	result = track.Any(pFalse, pTrue)(trk)
+	require.True(t, result)
+
+	result = track.Any(pFalse, pFalse)(trk)
+	require.False(t, result)
+
+	result = track.Any(pTrue, pTrue)(trk)
+	require.True(t, result)
+}
+
+func Test_Mutator_All(t *testing.T) {
+	pTrue := track.Predicate(
+		func(trk *track.Track) bool {
+			return true
 		},
-		nil,
 	)
 
-	mutatorCallCounter = 0
-	unitMutator.Or(pFalse, pTrue)(nil)
-	require.Equal(t, 0, mutatorCallCounter)
+	pFalse := track.Predicate(
+		func(trk *track.Track) bool {
+			return false
+		},
+	)
 
-	mutatorCallCounter = 0
-	unitMutator.Or(pFalse, pTrue)(trk)
-	require.Equal(t, 1, mutatorCallCounter)
+	trk := track.NewTrack(nil, nil, nil)
 
-	mutatorCallCounter = 0
-	unitMutator.Or(pFalse, pFalse)(trk)
-	require.Equal(t, 0, mutatorCallCounter)
+	result := track.All(pFalse, pTrue)(nil)
+	require.False(t, result)
 
-	mutatorCallCounter = 0
-	unitMutator.Or(pTrue, pTrue)(trk)
-	require.Equal(t, 1, mutatorCallCounter)
+	result = track.All(pFalse, pTrue)(trk)
+	require.False(t, result)
+
+	result = track.All(pFalse, pFalse)(trk)
+	require.False(t, result)
+
+	result = track.All(pTrue, pTrue)(trk)
+	require.True(t, result)
+}
+
+func Test_Mutator_Not(t *testing.T) {
+	pTrue := track.Predicate(
+		func(trk *track.Track) bool {
+			return true
+		},
+	)
+
+	pFalse := track.Predicate(
+		func(trk *track.Track) bool {
+			return false
+		},
+	)
+
+	result := track.Not(pFalse)(nil)
+	require.True(t, result)
+	result = track.Not(pTrue)(nil)
+	require.False(t, result)
+
+	trk := track.NewTrack(nil, nil, nil)
+
+	result = track.Not(pFalse)(trk)
+	require.True(t, result)
+	result = track.Not(pTrue)(trk)
+	require.False(t, result)
+
+	result = track.Not(track.Any(pFalse, pTrue))(trk)
+	require.False(t, result)
+	result = track.Not(track.Any(pTrue, pFalse))(trk)
+	require.False(t, result)
+	result = track.Not(track.Any(pFalse, pFalse))(trk)
+	require.True(t, result)
+	result = track.Not(track.Any(pTrue, pTrue))(trk)
+	require.False(t, result)
+
+	result = track.Not(track.All(pFalse, pTrue))(trk)
+	require.True(t, result)
+	result = track.Not(track.All(pTrue, pFalse))(trk)
+	require.True(t, result)
+	result = track.Not(track.All(pFalse, pFalse))(trk)
+	require.True(t, result)
+	result = track.Not(track.All(pTrue, pTrue))(trk)
+	require.False(t, result)
 }
 
 func Test_Mutator_HasErr(t *testing.T) {
@@ -357,7 +411,7 @@ func Test_Mutator_OnStatusCode(t *testing.T) {
 }
 
 func Test_Mutator_RequestAddHeaderValue(t *testing.T) {
-	unitMutator := track.RequestAddHeaderValue("key-1", "value-1")
+	unitMutator := track.TrackRequestAddHeaderValue("key-1", "value-1")
 
 	h := http.Header{}
 	h.Set("key-a", "value-b")
@@ -375,7 +429,7 @@ func Test_Mutator_RequestAddHeaderValue(t *testing.T) {
 }
 
 func Test_Mutator_RequestAddHeaderValue_NilHeader(t *testing.T) {
-	unitMutator := track.RequestAddHeaderValue("key-1", "value-1")
+	unitMutator := track.TrackRequestAddHeaderValue("key-1", "value-1")
 
 	trk := track.NewTrack(
 		&track.Request{},
@@ -390,7 +444,7 @@ func Test_Mutator_RequestAddHeaderValue_NilHeader(t *testing.T) {
 }
 
 func Test_Mutator_RequestDeleteHeaderKeys(t *testing.T) {
-	unitMutator := track.RequestDeleteHeaderKeys("other", "key-a")
+	unitMutator := track.TrackRequestDeleteHeaderKeys("other", "key-a")
 
 	h := http.Header{}
 	h.Set("key-a", "value-b")
@@ -408,7 +462,7 @@ func Test_Mutator_RequestDeleteHeaderKeys(t *testing.T) {
 }
 
 func Test_Mutator_RequestDeleteHeaderKeys_NilHeader(t *testing.T) {
-	unitMutator := track.RequestDeleteHeaderKeys("other", "key-a")
+	unitMutator := track.TrackRequestDeleteHeaderKeys("other", "key-a")
 
 	trk := track.NewTrack(
 		&track.Request{},
@@ -489,7 +543,7 @@ func Test_Mutator_ResponseDeleteHeaderKeys_NilHeader(t *testing.T) {
 }
 
 func Test_Mutator_RequestChangeBody(t *testing.T) {
-	unitMutator := track.RequestChangeBody(
+	unitMutator := track.TrackRequestChangeBody(
 		func(b []byte) []byte {
 			return []byte("changed")
 		},
@@ -592,249 +646,57 @@ func Test_Mutator_ResponseDeleteTLS(t *testing.T) {
 	assert.Nil(t, trk.Response)
 }
 
-func TestRequestTransferHeaderKeys_NilTrack(t *testing.T) {
-	var trk *track.Track
-	track.RequestTransferHeaderKeys("unit-key-1", "unit-value-1")(trk)
-	assert.Nil(t, trk)
-}
-
-func TestRequestTransferTrailerKeys_NilTrack(t *testing.T) {
-	var trk *track.Track
-	track.RequestTransferTrailerKeys("unit-key-1", "unit-value-1")(trk)
-	assert.Nil(t, trk)
-}
-
 func TestResponseTransferHeaderKeys_NilTrack(t *testing.T) {
 	var trk *track.Track
-	track.ResponseTransferHeaderKeys("unit-key-1", "unit-value-1")(trk)
+	track.ResponseTransferHTTPHeaderKeys("unit-key-1", "unit-key-2")(trk)
 	assert.Nil(t, trk)
 }
 
 func TestResponseTransferTrailerKeys_NilTrack(t *testing.T) {
 	var trk *track.Track
-	track.ResponseTransferTrailerKeys("unit-key-1", "unit-value-1")(trk)
+	track.ResponseTransferHTTPTrailerKeys("unit-key-1", "unit-key-2")(trk)
 	assert.Nil(t, trk)
 }
 
-func Test_Mutator_RequestTransferHeaderKeys(t *testing.T) {
+func Test_Mutator_ResponseTransferHTTPHeaderKeys(t *testing.T) {
 	tt := map[string]struct {
-		reqHeader      http.Header
+		respReqHeader  http.Header
 		respHeader     http.Header
-		wantReqHeader  http.Header
 		wantRespHeader http.Header
 	}{
-		"nil request and nil response headers": {
-			reqHeader:      nil,
+		"nil request header and nil response header": {
+			respReqHeader:  nil,
 			respHeader:     nil,
-			wantReqHeader:  nil,
 			wantRespHeader: nil,
 		},
-		"nil request and blank response header": {
-			reqHeader:      nil,
+		"nil request header and blank response header": {
+			respReqHeader:  nil,
 			respHeader:     http.Header{},
-			wantReqHeader:  nil,
 			wantRespHeader: http.Header{},
 		},
-		"blank request and nil response header": {
-			reqHeader:      http.Header{},
+		"blank request header and nil response header": {
+			respReqHeader:  http.Header{},
 			respHeader:     nil,
-			wantReqHeader:  http.Header{},
 			wantRespHeader: nil,
 		},
-		"blank request and blank response header": {
-			reqHeader:      http.Header{},
+		"blank request header and blank response header": {
+			respReqHeader:  http.Header{},
 			respHeader:     http.Header{},
-			wantReqHeader:  http.Header{},
 			wantRespHeader: http.Header{},
 		},
-		"nil request and eligible response header": {
-			reqHeader:      nil,
-			respHeader:     func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
-			wantReqHeader:  func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
-			wantRespHeader: func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
-		},
-		"blank request and eligible response header": {
-			reqHeader:      http.Header{},
-			respHeader:     func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
-			wantReqHeader:  func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
-			wantRespHeader: func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
-		},
-		"eligible response header with request containing other data": {
-			reqHeader:  func() http.Header { h := http.Header{}; h.Set("unit-key-a", "unit-value-a"); return h }(),
-			respHeader: func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
-			wantReqHeader: func() http.Header {
-				h := http.Header{}
-				h.Set("unit-key-a", "unit-value-a")
-				h.Add("unit-key-1", "unit-value-1")
-				return h
-			}(),
-			wantRespHeader: func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
-		},
-		"eligible response header with request already containing the transfer data": {
-			reqHeader:  func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
-			respHeader: func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
-			wantReqHeader: func() http.Header {
-				h := http.Header{}
-				h.Set("unit-key-1", "unit-value-1")
-				h.Add("unit-key-1", "unit-value-1")
-				return h
-			}(),
-			wantRespHeader: func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
-		},
-	}
-
-	for name, tc := range tt {
-		name := name
-		tc := tc
-
-		t.Run(name, func(t *testing.T) {
-			trk := track.NewTrack(
-				&track.Request{Header: tc.reqHeader},
-				&track.Response{Header: tc.respHeader},
-				nil,
-			)
-
-			track.RequestTransferHeaderKeys("unit-key-1", "unit-value-1")(trk)
-
-			assert.Equal(t, tc.wantReqHeader, trk.Request.Header)
-			assert.Equal(t, tc.wantRespHeader, trk.Response.Header)
-		})
-	}
-}
-
-func Test_Mutator_RequestTransferTrailerKeys(t *testing.T) {
-	tt := map[string]struct {
-		reqTrailer      http.Header
-		respTrailer     http.Header
-		wantReqTrailer  http.Header
-		wantRespTrailer http.Header
-	}{
-		"nil request and nil response trailers": {
-			reqTrailer:      nil,
-			respTrailer:     nil,
-			wantReqTrailer:  nil,
-			wantRespTrailer: nil,
-		},
-		"nil request and blank response trailer": {
-			reqTrailer:      nil,
-			respTrailer:     http.Header{},
-			wantReqTrailer:  nil,
-			wantRespTrailer: http.Header{},
-		},
-		"blank request and nil response trailer": {
-			reqTrailer:      http.Header{},
-			respTrailer:     nil,
-			wantReqTrailer:  http.Header{},
-			wantRespTrailer: nil,
-		},
-		"blank request and blank response trailer": {
-			reqTrailer:      http.Header{},
-			respTrailer:     http.Header{},
-			wantReqTrailer:  http.Header{},
-			wantRespTrailer: http.Header{},
-		},
-		"nil request and eligible response trailer": {
-			reqTrailer:      nil,
-			respTrailer:     func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
-			wantReqTrailer:  func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
-			wantRespTrailer: func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
-		},
-		"blank request and eligible response trailer": {
-			reqTrailer:      http.Header{},
-			respTrailer:     func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
-			wantReqTrailer:  func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
-			wantRespTrailer: func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
-		},
-		"eligible response trailer with request containing other data": {
-			reqTrailer:  func() http.Header { h := http.Header{}; h.Set("unit-key-a", "unit-value-a"); return h }(),
-			respTrailer: func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
-			wantReqTrailer: func() http.Header {
-				h := http.Header{}
-				h.Set("unit-key-a", "unit-value-a")
-				h.Add("unit-key-1", "unit-value-1")
-				return h
-			}(),
-			wantRespTrailer: func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
-		},
-		"eligible response trailer with request already containing the transfer data": {
-			reqTrailer:  func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
-			respTrailer: func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
-			wantReqTrailer: func() http.Header {
-				h := http.Header{}
-				h.Set("unit-key-1", "unit-value-1")
-				h.Add("unit-key-1", "unit-value-1")
-				return h
-			}(),
-			wantRespTrailer: func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
-		},
-	}
-
-	for name, tc := range tt {
-		name := name
-		tc := tc
-
-		t.Run(name, func(t *testing.T) {
-			trk := track.NewTrack(
-				&track.Request{Trailer: tc.reqTrailer},
-				&track.Response{Trailer: tc.respTrailer},
-				nil,
-			)
-
-			track.RequestTransferTrailerKeys("unit-key-1", "unit-value-1")(trk)
-
-			assert.Equal(t, tc.wantReqTrailer, trk.Request.Trailer)
-			assert.Equal(t, tc.wantRespTrailer, trk.Response.Trailer)
-		})
-	}
-}
-
-func Test_Mutator_ResponseTransferHeaderKeys(t *testing.T) {
-	tt := map[string]struct {
-		reqHeader      http.Header
-		respHeader     http.Header
-		wantReqHeader  http.Header
-		wantRespHeader http.Header
-	}{
-		"nil request and nil response headers": {
-			reqHeader:      nil,
+		"nil response header and eligible request header": {
+			respReqHeader:  func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
 			respHeader:     nil,
-			wantReqHeader:  nil,
-			wantRespHeader: nil,
-		},
-		"nil request and blank response header": {
-			reqHeader:      nil,
-			respHeader:     http.Header{},
-			wantReqHeader:  nil,
-			wantRespHeader: http.Header{},
-		},
-		"blank request and nil response header": {
-			reqHeader:      http.Header{},
-			respHeader:     nil,
-			wantReqHeader:  http.Header{},
-			wantRespHeader: nil,
-		},
-		"blank request and blank response header": {
-			reqHeader:      http.Header{},
-			respHeader:     http.Header{},
-			wantReqHeader:  http.Header{},
-			wantRespHeader: http.Header{},
-		},
-		"nil response and eligible request header": {
-			reqHeader:      func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
-			respHeader:     nil,
-			wantReqHeader:  func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
 			wantRespHeader: func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
 		},
-		"blank response and eligible request header": {
-			reqHeader:      func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
+		"blank response header and eligible request header": {
+			respReqHeader:  func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
 			respHeader:     http.Header{},
-			wantReqHeader:  func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
 			wantRespHeader: func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
 		},
-		"eligible request header with response containing other data": {
-			reqHeader:     func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
+		"eligible request header with response header containing other data": {
+			respReqHeader: func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
 			respHeader:    func() http.Header { h := http.Header{}; h.Set("unit-key-a", "unit-value-a"); return h }(),
-			wantReqHeader: func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
 			wantRespHeader: func() http.Header {
 				h := http.Header{}
 				h.Set("unit-key-a", "unit-value-a")
@@ -842,10 +704,9 @@ func Test_Mutator_ResponseTransferHeaderKeys(t *testing.T) {
 				return h
 			}(),
 		},
-		"eligible request header with response already containing the transfer data": {
-			reqHeader:     func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
+		"eligible request header with response header already containing the transfer data": {
+			respReqHeader: func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
 			respHeader:    func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
-			wantReqHeader: func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
 			wantRespHeader: func() http.Header {
 				h := http.Header{}
 				h.Set("unit-key-1", "unit-value-1")
@@ -861,66 +722,57 @@ func Test_Mutator_ResponseTransferHeaderKeys(t *testing.T) {
 
 		t.Run(name, func(t *testing.T) {
 			trk := track.NewTrack(
-				&track.Request{Header: tc.reqHeader},
-				&track.Response{Header: tc.respHeader},
+				nil,
+				&track.Response{Header: tc.respHeader, Request: &track.Request{Header: tc.respReqHeader}},
 				nil,
 			)
 
-			track.ResponseTransferHeaderKeys("unit-key-1", "unit-value-1")(trk)
+			track.ResponseTransferHTTPHeaderKeys("unit-key-1", "unit-key-2")(trk)
 
-			assert.Equal(t, tc.wantReqHeader, trk.Request.Header)
 			assert.Equal(t, tc.wantRespHeader, trk.Response.Header)
 		})
 	}
 }
 
-func Test_Mutator_ResponseTransferTrailerKeys(t *testing.T) {
+func Test_Mutator_ResponseTransferHTTPTrailerKeys(t *testing.T) {
 	tt := map[string]struct {
-		reqTrailer      http.Header
+		respReqTrailer  http.Header
 		respTrailer     http.Header
-		wantReqTrailer  http.Header
 		wantRespTrailer http.Header
 	}{
-		"nil request and nil response trailers": {
-			reqTrailer:      nil,
+		"nil request trailer and nil response trailer": {
+			respReqTrailer:  nil,
 			respTrailer:     nil,
-			wantReqTrailer:  nil,
 			wantRespTrailer: nil,
 		},
-		"nil request and blank response trailer": {
-			reqTrailer:      nil,
+		"nil request trailer and blank response trailer": {
+			respReqTrailer:  nil,
 			respTrailer:     http.Header{},
-			wantReqTrailer:  nil,
 			wantRespTrailer: http.Header{},
 		},
-		"blank request and nil response trailer": {
-			reqTrailer:      http.Header{},
+		"blank request trailer and nil response trailer": {
+			respReqTrailer:  http.Header{},
 			respTrailer:     nil,
-			wantReqTrailer:  http.Header{},
 			wantRespTrailer: nil,
 		},
-		"blank request and blank response trailer": {
-			reqTrailer:      http.Header{},
+		"blank request trailer and blank response trailer": {
+			respReqTrailer:  http.Header{},
 			respTrailer:     http.Header{},
-			wantReqTrailer:  http.Header{},
 			wantRespTrailer: http.Header{},
 		},
-		"nil response and eligible request trailer": {
-			reqTrailer:      func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
+		"nil response trailer and eligible request trailer": {
+			respReqTrailer:  func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
 			respTrailer:     nil,
-			wantReqTrailer:  func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
 			wantRespTrailer: func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
 		},
-		"blank response and eligible request trailer": {
-			reqTrailer:      func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
+		"blank response trailer and eligible request trailer": {
+			respReqTrailer:  func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
 			respTrailer:     http.Header{},
-			wantReqTrailer:  func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
 			wantRespTrailer: func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
 		},
-		"eligible request trailer with response containing other data": {
-			reqTrailer:     func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
+		"eligible request trailer with response trailer containing other data": {
+			respReqTrailer: func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
 			respTrailer:    func() http.Header { h := http.Header{}; h.Set("unit-key-a", "unit-value-a"); return h }(),
-			wantReqTrailer: func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
 			wantRespTrailer: func() http.Header {
 				h := http.Header{}
 				h.Set("unit-key-a", "unit-value-a")
@@ -928,10 +780,9 @@ func Test_Mutator_ResponseTransferTrailerKeys(t *testing.T) {
 				return h
 			}(),
 		},
-		"eligible request trailer with response already containing the transfer data": {
-			reqTrailer:     func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
+		"eligible request trailer with response trailer already containing the transfer data": {
+			respReqTrailer: func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
 			respTrailer:    func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
-			wantReqTrailer: func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
 			wantRespTrailer: func() http.Header {
 				h := http.Header{}
 				h.Set("unit-key-1", "unit-value-1")
@@ -947,14 +798,13 @@ func Test_Mutator_ResponseTransferTrailerKeys(t *testing.T) {
 
 		t.Run(name, func(t *testing.T) {
 			trk := track.NewTrack(
-				&track.Request{Trailer: tc.reqTrailer},
-				&track.Response{Trailer: tc.respTrailer},
+				nil,
+				&track.Response{Trailer: tc.respTrailer, Request: &track.Request{Trailer: tc.respReqTrailer}},
 				nil,
 			)
 
-			track.ResponseTransferTrailerKeys("unit-key-1", "unit-value-1")(trk)
+			track.ResponseTransferHTTPTrailerKeys("unit-key-1", "unit-key-2")(trk)
 
-			assert.Equal(t, tc.wantReqTrailer, trk.Request.Trailer)
 			assert.Equal(t, tc.wantRespTrailer, trk.Response.Trailer)
 		})
 	}

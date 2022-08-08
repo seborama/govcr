@@ -32,7 +32,7 @@ We use a "relaxed" request matcher because `example.com` injects an "`Age`" head
 ## Install
 
 ```bash
-go get github.com/seborama/govcr/v6@latest
+go get github.com/seborama/govcr/v7@latest
 ```
 
 For all available releases, please check the [releases](https://github.com/seborama/govcr/releases) tab on github.
@@ -40,7 +40,7 @@ For all available releases, please check the [releases](https://github.com/sebor
 And your source code would use this import:
 
 ```go
-import "github.com/seborama/govcr/v6"
+import "github.com/seborama/govcr/v7"
 ```
 
 For versions of **govcr** before v5 (which don't use go.mod), use a dependency manager to lock the version you wish to use (perhaps v4)!
@@ -62,7 +62,7 @@ go get gopkg.in/seborama/govcr.v4
 
 **ControlPanel**: the creation of a VCR instantiates a ControlPanel for interacting with the VCR and conceal its internals.
 
-## Documentation
+## Concepts
 
 **govcr** is a wrapper around the Go `http.Client`. It can record live HTTP traffic to files (called "**cassettes**") and later replay HTTP requests ("**tracks**") from them instead of live HTTP calls.
 
@@ -93,7 +93,7 @@ Settings are populated via `With*` options:
 - `WithCassette` loads the specified cassette.\
   Note that it is also possible to call `LoadCassette` from the vcr instance.
 - See `vcrsettings.go` for more options such as `WithRequestMatcher`, `WithTrackRecordingMutators`, `WithTrackReplayingMutators`, ...
-- TODO in v5: `WithLogging` enables logging to help understand what govcr is doing internally.
+- TODO: `WithLogging` enables logging to help understand what govcr is doing internally.
 
 ## Match a request to a cassette track
 
@@ -117,14 +117,20 @@ Nonetheless, **govcr** supports mutating tracks, either at **recording time** or
 
 In either case, this is achieved with track `Mutators`.
 
-A `Mutator` can be combined with one or more `On` conditions. All `On` conditions attached to a mutator must be true for the mutator to apply. The predicate 'Any' provides an alternative and will only require one of its conditions to be true. `Any` can be combined with an `On` conditional mutator to achieve a logical `Or` within the `On` condition.
+A `Mutator` can be combined with one or more `On` conditions. All `On` conditions attached to a mutator must be true for the mutator to apply - in other word, they are logically "and-ed".
+
+To help construct more complex yet readable predicates easily, **govcr** provides these pre-defined functions for use with `On`:
+- `Any` achieves a logical "**or**" of the provided predicates.
+- `All` achieves a logical "**and**" of the provided predicates.
+- `Not` achieves a logical "**not**" of the provided predicates.
 
 Example:
 
 ```go
 myMutator.
-    On(Any(...)).
-    On(...)
+    On(Any(...)). // proceeds if any of the "`...`" predicates is true
+    On(Not(Any(...)))  // proceeds if none of the "`...`" predicates is true (i.e. all predicates are false)
+    On(Not(All(...))).  // proceeds if not every of the "`...`" predicates is true (i.e. at least one predicate is false)
 ```
 
 A **track recording mutator** can change both the request and the response that will be persisted to the cassette.
@@ -132,6 +138,8 @@ A **track recording mutator** can change both the request and the response that 
 A **track replaying mutator** transforms the track after it was matched and retrieved from the cassette. It does not change the cassette file.
 
 While a track replaying mutator could change the request, it serves no purpose since the request has already been made and matched to a track by the time the replaying mutator is invoked. The reason for supplying the request in the replaying mutator is for information. In some situations, the request details are needed to transform the response.
+
+The **track replaying mutator** additionally receives an informational copy of the current HTTP request in the track's `Response` under the `Request` field i.e. `Track.Response.Request`. This is useful for tailoring track replays with current request information. See TestExample3 for illustration.
 
 Refer to the tests for examples (search for `WithTrackRecordingMutators` and `WithTrackReplayingMutators`).
 
@@ -224,11 +232,23 @@ vcr.AddReplayingMutators(track.ResponseDeleteTLS())
 
 **govcr** support operation modes:
 
-- Live only: never replay from the cassette.
-- Read only: normal behaviour except that recording to cassette is disabled.
-- Offline: playback from cassette only, return a transport error if no track matches.
+- **Normal HTTP mode**: replay from the cassette if a track matches otherwise place a live call.
+- **Live only**: never replay from the cassette.
+- **Offline**: playback from cassette only, return a transport error if no track matches.
+- **Read only**: normal behaviour except that recording to cassette is disabled.
 
-#### Live only
+#### Normal HTTP mode
+
+```go
+vcr := govcr.NewVCR(
+    govcr.WithCassette(exampleCassetteName2),
+    // Normal mode is default, no special option required :)
+)
+// or equally:
+vcr.SetNormalMode()
+```
+
+#### Live only HTTP mode
 
 ```go
 vcr := govcr.NewVCR(
@@ -236,10 +256,10 @@ vcr := govcr.NewVCR(
     govcr.WithLiveOnlyMode(),
 )
 // or equally:
-vcr.SetLiveOnlyMode(true) // `false` to disable option
+vcr.SetLiveOnlyMode()
 ```
 
-#### Read only
+#### Read only cassette mode
 
 ```go
 vcr := govcr.NewVCR(
@@ -250,7 +270,7 @@ vcr := govcr.NewVCR(
 vcr.SetReadOnlyMode(true) // `false` to disable option
 ```
 
-#### Offline
+#### Offline HTTP mode
 
 ```go
 vcr := govcr.NewVCR(
@@ -258,7 +278,7 @@ vcr := govcr.NewVCR(
     govcr.WithOfflineMode(),
 )
 // or equally:
-vcr.SetOfflineMode(true) // `false` to disable option
+vcr.SetOfflineMode()
 ```
 
 ### Recipe: VCR with a custom RequestFilter
@@ -279,22 +299,21 @@ vcr.SetRequestMatcher(NewBlankRequestMatcher(
             httpRequest.Header.Del("X-Custom-Timestamp")
             trackRequest.Header.Del("X-Custom-Timestamp")
 
-            return DefaultHeaderMatcher(httpRequest, trackRequest)
+            return govcr.DefaultHeaderMatcher(httpRequest, trackRequest)
         },
     ),
 ))
 ```
 
-### Recipe: VCR with a recoding Track Mutator
+### Recipe: VCR with a recording Track Mutator
 
 **TODO: THIS EXAMPLE FOR v4 NOT v5**
 
-This example shows how to handle situations where a transaction Id in the header needs to be present in the response.
+This example shows how to handle a situation where a request-specific transaction ID in the header needs to be present in the response.
 
 This could be as part of a contract validation between server and client.
 
-Note: This is useful when some of the data in the **request** Header / Body needs to be transformed
-      before it can be evaluated for comparison for playback.
+Note: This is useful when some of the data in the **request** Header / Body needs to be transformed before it can be evaluated for comparison for playback.
 
 ```go
 package main
@@ -306,7 +325,7 @@ import (
 
     "net/http"
 
-    "github.com/seborama/govcr/v6"
+    "github.com/seborama/govcr/v7"
 )
 
 const example5CassetteName = "MyCassette5"
@@ -357,6 +376,47 @@ func Example5() {
 ```
 
 ### Recipe: VCR with a replaying Track Mutator
+
+In this scenario, the API requires a "`X-Transaction-Id`" header to be present. Since the header changes per-request, as needed, replaying a track poses two concerns:
+- the request won't match the previously recorded track because the value in "`X-Transaction-Id`" has changed since the track was recorded
+- the response track contains the original values of "`X-Transaction-Id`" which is also a mis-match for the new request.
+
+One of different solutions to address both concerns consists in:
+- providing a custom request matcher that ignores "`X-Transaction-Id`"
+- using the help of a replaying track mutator to inject the correct value for "`X-Transaction-Id`" from the current HTTP request.
+
+How you specifically tackle this in practice really depends on how the API you are using behaves.
+
+```go
+// See TestExample3 for complete working example.
+func TestExample3(t *testing.T) {
+// Instantiate VCR.
+vcr := govcr.NewVCR(
+    govcr.WithCassette(exampleCassetteName3),
+    govcr.WithRequestMatcher(
+        govcr.NewBlankRequestMatcher(
+            govcr.WithRequestMatcherFunc(
+                func(httpRequest, trackRequest *track.Request) bool {
+                    // Remove the header from comparison.
+                    // Note: this removal is only scoped to the request matcher, it does not affect the original HTTP request
+                    httpRequest.Header.Del("X-Transaction-Id")
+                    trackRequest.Header.Del("X-Transaction-Id")
+
+                    return govcr.DefaultHeaderMatcher(httpRequest, trackRequest)
+                },
+            ),
+        ),
+    ),
+    govcr.WithTrackReplayingMutators(
+        // Note: although we deleted the headers in the request matcher, this was limited to the scope of
+        // the request matcher. The replaying mutator's scope is past request matching.
+        track.ResponseDeleteHeaderKeys("X-Transaction-Id"), // do not append to existing values
+        track.ResponseTransferHTTPHeaderKeys("X-Transaction-Id"),
+    ),
+)
+```
+
+### More
 
 **TODO: add example that includes the use of `.On*` predicates**
 

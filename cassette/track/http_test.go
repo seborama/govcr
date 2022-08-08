@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/seborama/govcr/v6/cassette/track"
+	"github.com/seborama/govcr/v7/cassette/track"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/seborama/govcr/v6"
+	"github.com/seborama/govcr/v7"
 )
 
 const exampleCassetteName2 = "temp-fixtures/TestExample2.cassette.json"
@@ -20,7 +20,7 @@ func (app myApp) Get(url string) {
 	app.httpClient.Get(url)
 }
 
-// TestExample2 is an example use of govcr.
+// TestExample2 is an example use of govcr with a custom HTTP client.
 func TestExample2(t *testing.T) {
 	// Create a custom http.Transport for our app.
 	tr := http.DefaultTransport.(*http.Transport)

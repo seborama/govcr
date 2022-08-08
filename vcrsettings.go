@@ -3,8 +3,8 @@ package govcr
 import (
 	"net/http"
 
-	"github.com/seborama/govcr/v6/cassette"
-	"github.com/seborama/govcr/v6/cassette/track"
+	"github.com/seborama/govcr/v7/cassette"
+	"github.com/seborama/govcr/v7/cassette/track"
 )
 
 // Setting defines an optional functional parameter as received by NewVCR().
@@ -60,7 +60,7 @@ func WithTrackReplayingMutators(trackReplayingMutators ...track.Mutator) Setting
 // Perhaps more useful when used in combination with 'readOnly' to by-pass govcr entirely.
 func WithLiveOnlyMode() Setting {
 	return func(vcrSettings *VCRSettings) {
-		vcrSettings.liveOnly = true
+		vcrSettings.httpMode = HTTPModeLiveOnly
 	}
 }
 
@@ -77,7 +77,7 @@ func WithReadOnlyMode() Setting {
 // govcr will return a transport error if no track was found.
 func WithOfflineMode() Setting {
 	return func(vcrSettings *VCRSettings) {
-		vcrSettings.offlineMode = true
+		vcrSettings.httpMode = HTTPModeOffline
 	}
 }
 
@@ -88,7 +88,6 @@ type VCRSettings struct {
 	requestMatcher         RequestMatcher
 	trackRecordingMutators track.Mutators
 	trackReplayingMutators track.Mutators
-	liveOnly               bool
+	httpMode               HTTPMode
 	readOnly               bool
-	offlineMode            bool
 }

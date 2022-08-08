@@ -6,9 +6,9 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/seborama/govcr/v6/cassette"
-	"github.com/seborama/govcr/v6/cassette/track"
-	"github.com/seborama/govcr/v6/stats"
+	"github.com/seborama/govcr/v7/cassette"
+	"github.com/seborama/govcr/v7/cassette/track"
+	"github.com/seborama/govcr/v7/stats"
 )
 
 // vcrTransport is the heart of VCR. It implements
@@ -41,7 +41,7 @@ func (t *vcrTransport) RoundTrip(httpRequest *http.Request) (*http.Response, err
 		}
 	}
 
-	if t.pcb.offlineMode {
+	if t.pcb.httpMode == HTTPModeOffline {
 		return nil, errors.New("no track matched on cassette and offline mode is active")
 	}
 
@@ -95,14 +95,19 @@ func (t *vcrTransport) SetReadOnlyMode(state bool) {
 	t.pcb.SetReadOnlyMode(state)
 }
 
-// SetOfflineMode sets the VCR to offline mode (true) or to normal live/replay (false).
-func (t *vcrTransport) SetOfflineMode(state bool) {
-	t.pcb.SetOfflineMode(state)
+// SetNormalMode sets the VCR to normal HTTP mode.
+func (t *vcrTransport) SetNormalMode() {
+	t.pcb.SetNormalMode()
 }
 
-// SetLiveOnlyMode sets the VCR to live-only mode (true) or to normal live/replay (false).
-func (t *vcrTransport) SetLiveOnlyMode(state bool) {
-	t.pcb.SetLiveOnlyMode(state)
+// SetOfflineMode sets the VCR to offline mode.
+func (t *vcrTransport) SetOfflineMode() {
+	t.pcb.SetOfflineMode()
+}
+
+// SetLiveOnlyMode sets the VCR to live-only mode.
+func (t *vcrTransport) SetLiveOnlyMode() {
+	t.pcb.SetLiveOnlyMode()
 }
 
 // AddRecordingMutators adds a set of recording Track Mutator's to the VCR.

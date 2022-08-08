@@ -14,9 +14,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
-	"github.com/seborama/govcr/v6/cassette/track"
-	"github.com/seborama/govcr/v6/compression"
-	"github.com/seborama/govcr/v6/stats"
+	"github.com/seborama/govcr/v7/cassette/track"
+	"github.com/seborama/govcr/v7/compression"
+	"github.com/seborama/govcr/v7/stats"
 )
 
 // Cassette contains a set of tracks.
@@ -113,6 +113,7 @@ func (k7 *Cassette) AddTrack(trk *track.Track) {
 }
 
 // IsLongPlay returns true if the cassette content is compressed.
+// This is simply based on the extension of the cassette filename.
 func (k7 *Cassette) IsLongPlay() bool {
 	return strings.HasSuffix(k7.name, ".gz")
 }
@@ -142,8 +143,7 @@ func (k7 *Cassette) save() error {
 }
 
 // GzipFilter compresses the cassette data in gzip format if the cassette
-// name ends with '.gz', otherwise data is left as is (i.e. de-compressed)
-// TODO: above comment is wrong: testing IsLongPlay!
+// name ends with '.gz', otherwise data is left as is (i.e. de-compressed).
 func (k7 *Cassette) GzipFilter(data bytes.Buffer) ([]byte, error) {
 	if k7.IsLongPlay() {
 		return compression.Compress(data.Bytes())
@@ -152,8 +152,7 @@ func (k7 *Cassette) GzipFilter(data bytes.Buffer) ([]byte, error) {
 }
 
 // GunzipFilter de-compresses the cassette data in gzip format if the cassette
-// name ends with '.gz', otherwise data is left as is (i.e. de-compressed)
-// TODO: above comment is wrong: testing IsLongPlay!
+// name ends with '.gz', otherwise data is left as is (i.e. de-compressed).
 func (k7 *Cassette) GunzipFilter(data []byte) ([]byte, error) {
 	if k7.IsLongPlay() {
 		return compression.Decompress(data)
