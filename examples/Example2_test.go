@@ -20,7 +20,7 @@ func (app myApp) Get(url string) {
 	app.httpClient.Get(url)
 }
 
-// TestExample2 is an example use of govcr.
+// TestExample2 is an example use of govcr with a custom HTTP client.
 func TestExample2(t *testing.T) {
 	// Create a custom http.Transport for our app.
 	tr := http.DefaultTransport.(*http.Transport)

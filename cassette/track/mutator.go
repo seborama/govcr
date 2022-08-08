@@ -52,7 +52,13 @@ func Not(predicate Predicate) Predicate {
 
 // Mutator is a function signature for a Track mutator.
 // A Mutator can be used to mutate a track at recording or replaying time.
-type Mutator func(*Track)
+//
+// When recording, Response.Request will be nil since the track already records the Request in
+// its own track.Request object.
+//
+// When replaying (and _only_ just when _replaying_), Response.Request will be populated with
+// the _current_ HTTP request.
+type Mutator func(trk *Track)
 
 // On accepts a mutator only when the predicate is true.
 // On will cowardly avoid the case when trk is nil.
@@ -166,10 +172,11 @@ func (tm Mutator) OnStatusCode(codes ...int) Mutator {
 	return tm.On(HasAnyStatusCode(codes...))
 }
 
-// RequestAddHeaderValue adds or overwrites a header key / value to the request.
-func RequestAddHeaderValue(key, value string) Mutator {
+// TrackRequestAddHeaderValue adds or overwrites a header key / value to the HTTP request.
+func TrackRequestAddHeaderValue(key, value string) Mutator {
 	return func(trk *Track) {
 		if trk != nil {
+			// TODO: add a debug log on trk.Response.Request != nil as it indicates replaying time rather than recording time.
 			if trk.Request.Header == nil {
 				trk.Request.Header = http.Header{}
 			}
@@ -178,10 +185,12 @@ func RequestAddHeaderValue(key, value string) Mutator {
 	}
 }
 
-// RequestDeleteHeaderKeys deletes one or more header keys from the request.
-func RequestDeleteHeaderKeys(keys ...string) Mutator {
+// TrackRequestDeleteHeaderKeys deletes one or more header keys from the track request.
+// This is useful with a recording track mutator.
+func TrackRequestDeleteHeaderKeys(keys ...string) Mutator {
 	return func(trk *Track) {
 		if trk != nil {
+			// TODO: add a debug log on trk.Response.Request != nil as it indicates replaying time rather than recording time.
 			for _, key := range keys {
 				trk.Request.Header.Del(key)
 			}
@@ -212,99 +221,81 @@ func ResponseDeleteHeaderKeys(keys ...string) Mutator {
 	}
 }
 
-// RequestTransferHeaderKeys transfers one or more headers from the response to the request.
-func RequestTransferHeaderKeys(keys ...string) Mutator {
+// ResponseTransferHTTPHeaderKeys transfers one or more headers from the "current" Response.Request to the track response.
+// This is _only_ useful with a replaying track mutator.
+func ResponseTransferHTTPHeaderKeys(keys ...string) Mutator {
 	return func(trk *Track) {
 		if trk == nil {
 			return
 		}
 
-		for _, key := range keys {
-			// only transfer headers that actually exist
-			if trk.Response.Header.Values(key) != nil && trk.Response.Header.Get(key) != "" {
-				// this test must be inside the loop so we only add a blank header when we know
-				// we're going to populate it, otherwise retain the "nil" value untouched.
-				if trk.Request.Header == nil {
-					trk.Request.Header = http.Header{}
-				}
-
-				trk.Request.Header.Add(key, trk.Response.Header.Get(key))
-			}
+		if trk.Response == nil {
+			// TODO: add debug logging that this mutator was likely called at recording time or that it was called
+			// on replaying a track that does not have a response (presumably a transport error occurred).
+			return
 		}
-	}
-}
 
-// ResponseTransferHeaderKeys transfers one or more headers from the request to the response.
-func ResponseTransferHeaderKeys(keys ...string) Mutator {
-	return func(trk *Track) {
-		if trk == nil {
+		if trk.Response.Request == nil {
+			// TODO: add debug logging that this mutator was likely called at recording time and it is not correct usage.
 			return
 		}
 
 		for _, key := range keys {
 			// only transfer headers that actually exist
-			if trk.Request.Header.Values(key) != nil && trk.Request.Header.Get(key) != "" {
+			if trk.Response.Request.Header.Values(key) != nil && trk.Response.Request.Header.Get(key) != "" {
 				// this test must be inside the loop so we only add a blank header when we know
 				// we're going to populate it, otherwise retain the "nil" value untouched.
 				if trk.Response.Header == nil {
 					trk.Response.Header = http.Header{}
 				}
 
-				trk.Response.Header.Add(key, trk.Request.Header.Get(key))
+				trk.Response.Header.Add(key, trk.Response.Request.Header.Get(key))
 			}
 		}
 	}
 }
 
-// RequestTransferTrailerKeys transfers one or more trailers from the response to the request.
-func RequestTransferTrailerKeys(keys ...string) Mutator {
+// ResponseTransferHTTPTrailerKeys transfers one or more trailers from the HTTP request to the track response.
+// This is _only_ useful with a replaying track mutator.
+func ResponseTransferHTTPTrailerKeys(keys ...string) Mutator {
 	return func(trk *Track) {
 		if trk == nil {
 			return
 		}
 
-		for _, key := range keys {
-			// only transfer trailers that actually exist
-			if trk.Response.Trailer.Values(key) != nil && trk.Response.Trailer.Get(key) != "" {
-				// this test must be inside the loop so we only add a blank trailer when we know
-				// we're going to populate it, otherwise retain the "nil" value untouched.
-				if trk.Request.Trailer == nil {
-					trk.Request.Trailer = http.Header{}
-				}
-
-				trk.Request.Trailer.Add(key, trk.Response.Trailer.Get(key))
-			}
+		if trk.Response == nil {
+			// TODO: add debug logging that this mutator was likely called at recording time or that it was called
+			// on replaying a track that does not have a response (presumably a transport error occurred).
+			return
 		}
-	}
-}
 
-// ResponseTransferTrailerKeys transfers one or more trailers from the request to the response.
-func ResponseTransferTrailerKeys(keys ...string) Mutator {
-	return func(trk *Track) {
-		if trk == nil {
+		if trk.Response.Request == nil {
+			// TODO: add debug logging that this mutator was likely called at recording time and it is not correct usage.
 			return
 		}
 
 		for _, key := range keys {
 			// only transfer trailers that actually exist
-			if trk.Request.Trailer.Values(key) != nil && trk.Request.Trailer.Get(key) != "" {
+			if trk.Response.Request.Trailer.Values(key) != nil && trk.Response.Request.Trailer.Get(key) != "" {
 				// this test must be inside the loop so we only add a blank trailer when we know
 				// we're going to populate it, otherwise retain the "nil" value untouched.
 				if trk.Response.Trailer == nil {
 					trk.Response.Trailer = http.Header{}
 				}
 
-				trk.Response.Trailer.Add(key, trk.Request.Trailer.Get(key))
+				trk.Response.Trailer.Add(key, trk.Response.Request.Trailer.Get(key))
 			}
 		}
 	}
 }
 
-// RequestChangeBody allows to change the body of the request.
+// TrackRequestChangeBody allows to change the body of the request.
 // Supply a function that does input to output transformation.
-func RequestChangeBody(fn func(b []byte) []byte) Mutator {
+// This is useful with a recording track mutator.
+func TrackRequestChangeBody(fn func(b []byte) []byte) Mutator {
 	return func(trk *Track) {
 		if trk != nil {
+			// TODO: add a debug log on trk.Response.Request != nil as it indicates replaying time rather than recording time.
 			trk.Request.Body = fn(trk.Request.Body)
 		}
 	}
@@ -338,6 +329,9 @@ func (tms Mutators) Add(mutators ...Mutator) Mutators {
 }
 
 // Mutate applies all mutators in this Mutators collection to the specified Track.
+// Reminder that trk.Response.Request is nil at recording time and only populated
+// at replaying time.
+// See Mutator and Track.Response.Request for further details.
 func (tms Mutators) Mutate(trk *Track) {
 	for _, tm := range tms {
 		tm(trk)

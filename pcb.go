@@ -52,7 +52,8 @@ func (pcb *PrintedCircuitBoard) seekTrack(k7 *cassette.Cassette, httpRequest *ht
 	numberOfTracksInCassette := k7.NumberOfTracks()
 	for trackNumber := int32(0); trackNumber < numberOfTracksInCassette; trackNumber++ {
 		if pcb.trackMatches(k7, trackNumber, request) {
-			return pcb.replayTrack(k7, trackNumber)
+			currentReq := track.ToRequest(httpRequest)
+			return pcb.replayTrack(k7, trackNumber, currentReq)
 		}
 	}
 
@@ -69,8 +70,21 @@ func (pcb *PrintedCircuitBoard) trackMatches(k7 *cassette.Cassette, trackNumber 
 	return !trk.IsReplayed() && pcb.requestMatcher.Match(httpRequestClone, trackReqClone)
 }
 
-func (pcb *PrintedCircuitBoard) replayTrack(k7 *cassette.Cassette, trackNumber int32) (*track.Track, error) {
-	return k7.ReplayTrack(trackNumber)
+func (pcb *PrintedCircuitBoard) replayTrack(k7 *cassette.Cassette, trackNumber int32, httpRequest *track.Request) (*track.Track, error) {
+	trk, err := k7.ReplayTrack(trackNumber)
+	if err != nil {
+		return nil, err
+	}
+
+	// protect the original objects against mutation by the matcher
+	httpRequestClone := httpRequest.Clone()
+
+	// inject current request into Response.Request
+	if trk.Response != nil {
+		trk.Response.Request = httpRequestClone
+	}
+
+	return trk, nil
 }
 
 func (pcb *PrintedCircuitBoard) mutateTrackRecording(t *track.Track) {

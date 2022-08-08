@@ -36,6 +36,7 @@ func (suite *GoVCRWBTestSuite) SetupTest() {
 		suite.testServer = httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Trailer", "trailer_1")
 			w.Header().Set("header_1", "header_1_value")
+			w.Header().Del("Date")
 			w.WriteHeader(http.StatusOK)
 			counter++
 			iQuery := r.URL.Query().Get("i")

@@ -12,7 +12,7 @@ import (
 
 const exampleCassetteName1 = "temp-fixtures/TestExample1.cassette.json"
 
-// TestExample1 is an example use of govcr.
+// TestExample1 is a simple example use of govcr.
 func TestExample1(t *testing.T) {
 	_ = os.Remove(exampleCassetteName1)
 

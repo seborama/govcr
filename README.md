@@ -62,7 +62,7 @@ go get gopkg.in/seborama/govcr.v4
 
 **ControlPanel**: the creation of a VCR instantiates a ControlPanel for interacting with the VCR and conceal its internals.
 
-## Documentation
+## Concepts
 
 **govcr** is a wrapper around the Go `http.Client`. It can record live HTTP traffic to files (called "**cassettes**") and later replay HTTP requests ("**tracks**") from them instead of live HTTP calls.
 
@@ -138,6 +138,8 @@ A **track recording mutator** can change both the request and the response that 
 A **track replaying mutator** transforms the track after it was matched and retrieved from the cassette. It does not change the cassette file.
 
 While a track replaying mutator could change the request, it serves no purpose since the request has already been made and matched to a track by the time the replaying mutator is invoked. The reason for supplying the request in the replaying mutator is for information. In some situations, the request details are needed to transform the response.
+
+The **track replaying mutator** additionally receives an informational copy of the current HTTP request in the track's `Response` under the `Request` field i.e. `Track.Response.Request`. This is useful for tailoring track replays with current request information. See TestExample3 for illustration.
 
 Refer to the tests for examples (search for `WithTrackRecordingMutators` and `WithTrackReplayingMutators`).
 
@@ -297,22 +299,21 @@ vcr.SetRequestMatcher(NewBlankRequestMatcher(
             httpRequest.Header.Del("X-Custom-Timestamp")
             trackRequest.Header.Del("X-Custom-Timestamp")
 
-            return DefaultHeaderMatcher(httpRequest, trackRequest)
+            return govcr.DefaultHeaderMatcher(httpRequest, trackRequest)
         },
     ),
 ))
 ```
 
-### Recipe: VCR with a recoding Track Mutator
+### Recipe: VCR with a recording Track Mutator
 
 **TODO: THIS EXAMPLE FOR v4 NOT v5**
 
-This example shows how to handle situations where a transaction Id in the header needs to be present in the response.
+This example shows how to handle a situation where a request-specific transaction ID in the header needs to be present in the response.
 
 This could be as part of a contract validation between server and client.
 
-Note: This is useful when some of the data in the **request** Header / Body needs to be transformed
-      before it can be evaluated for comparison for playback.
+Note: This is useful when some of the data in the **request** Header / Body needs to be transformed before it can be evaluated for comparison for playback.
 
 ```go
 package main
@@ -375,6 +376,47 @@ func Example5() {
 ```
 
 ### Recipe: VCR with a replaying Track Mutator
+
+In this scenario, the API requires a "`X-Transaction-Id`" header to be present. Since the header changes per-request, as needed, replaying a track poses two concerns:
+- the request won't match the previously recorded track because the value in "`X-Transaction-Id`" has changed since the track was recorded
+- the response track contains the original values of "`X-Transaction-Id`" which is also a mis-match for the new request.
+
+One of different solutions to address both concerns consists in:
+- providing a custom request matcher that ignores "`X-Transaction-Id`"
+- using the help of a replaying track mutator to inject the correct value for "`X-Transaction-Id`" from the current HTTP request.
+
+How you specifically tackle this in practice really depends on how the API you are using behaves.
+
+```go
+// See TestExample3 for complete working example.
+func TestExample3(t *testing.T) {
+// Instantiate VCR.
+vcr := govcr.NewVCR(
+    govcr.WithCassette(exampleCassetteName3),
+    govcr.WithRequestMatcher(
+        govcr.NewBlankRequestMatcher(
+            govcr.WithRequestMatcherFunc(
+                func(httpRequest, trackRequest *track.Request) bool {
+                    // Remove the header from comparison.
+                    // Note: this removal is only scoped to the request matcher, it does not affect the original HTTP request
+                    httpRequest.Header.Del("X-Transaction-Id")
+                    trackRequest.Header.Del("X-Transaction-Id")
+
+                    return govcr.DefaultHeaderMatcher(httpRequest, trackRequest)
+                },
+            ),
+        ),
+    ),
+    govcr.WithTrackReplayingMutators(
+        // Note: although we deleted the headers in the request matcher, this was limited to the scope of
+        // the request matcher. The replaying mutator's scope is past request matching.
+        track.ResponseDeleteHeaderKeys("X-Transaction-Id"), // do not append to existing values
+        track.ResponseTransferHTTPHeaderKeys("X-Transaction-Id"),
+    ),
+)
+```
+
+### More
 
 **TODO: add example that includes the use of `.On*` predicates**
 

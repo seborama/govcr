@@ -184,6 +184,13 @@ type Response struct {
 	TransferEncoding []string
 	Trailer          http.Header
 	TLS              *tls.ConnectionState
+
+	// Request is nil when recording a track to the cassette.
+	// At _replaying_ _time_ _only_ it will be populated with the "current" HTTP request.
+	// This is useful in scenarios where the request contains a dynamic piece of information
+	// such as e.g. a transaction ID, a customer number, etc.
+	// This is solely for informational purpose at replaying time. Mutating it achieves nothing.
+	Request *Request
 }
 
 // ToResponse transcodes an HTTP Response to a track Response.
