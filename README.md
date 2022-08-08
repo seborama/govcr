@@ -1,5 +1,15 @@
 # govcr
 
+<p align="center">
+  <a href="https://pkg.go.dev/github.com/seborama/govcr/v7">
+    <img src="https://img.shields.io/badge/godoc-reference-blue.svg" alt="govcr">
+  </a>
+
+  <a href="https://goreportcard.com/report/github.com/seborama/govcr/v7">
+    <img src="https://goreportcard.com/badge/github.com/seborama/govcr/v7" alt="govcr">
+  </a>
+</p>
+
 Records and replays HTTP / HTTPS interactions for offline unit / behavioural / integration tests thereby acting as an HTTP mock.
 
 This project was inspired by [php-vcr](https://github.com/php-vcr/php-vcr) which is a PHP port of [VCR](https://github.com/vcr/vcr) for ruby.
