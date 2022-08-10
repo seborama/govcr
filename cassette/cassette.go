@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -26,18 +25,35 @@ type Cassette struct {
 	name            string
 	trackSliceMutex sync.RWMutex
 	tracksLoaded    int32
+	crypter         Crypter
 }
 
-// Options defines a signature for Options that can be passed
+const encryptedCassetteHeader = "$ENC$"
+const nonceLengthBytes = 1 // reserve 1 byte to store nonce length (i.e. max nonce length of 255)
+
+type Crypter interface {
+	Encrypt(plaintext []byte) ([]byte, []byte, error)
+	Decrypt(ciphertext []byte, nonce []byte) ([]byte, error)
+}
+
+// Option defines a signature for options that can be passed
 // to create a new Cassette.
-type Options func(*Cassette)
+type Option func(*Cassette)
+
+func WithCassetteCrypter(crypter Crypter) Option {
+	return func(k7 *Cassette) {
+		k7.crypter = crypter
+	}
+}
 
 // NewCassette creates a ready to use new cassette.
-func NewCassette(name string, options ...Options) *Cassette {
+func NewCassette(name string, opts ...Option) *Cassette {
 	k7 := Cassette{name: name, trackSliceMutex: sync.RWMutex{}}
-	for _, option := range options {
+
+	for _, option := range opts {
 		option(&k7)
 	}
+
 	return &k7
 }
 
@@ -113,9 +129,12 @@ func (k7 *Cassette) AddTrack(trk *track.Track) {
 }
 
 // IsLongPlay returns true if the cassette content is compressed.
-// This is simply based on the extension of the cassette filename.
 func (k7 *Cassette) IsLongPlay() bool {
 	return strings.HasSuffix(k7.name, ".gz")
+}
+
+func (k7 *Cassette) isEncrypted() bool {
+	return k7.crypter != nil
 }
 
 // saveCassette writes a cassette to file.
@@ -128,22 +147,28 @@ func (k7 *Cassette) save() error {
 		return errors.WithStack(err)
 	}
 
+	// compress before encryption to get better results
 	gData, err := k7.GzipFilter(*bytes.NewBuffer(data))
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
+	eData, err := k7.EncryptionFilter(gData)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
 	path := filepath.Dir(k7.name)
-	if err := os.MkdirAll(path, 0o750); err != nil {
+	if err = os.MkdirAll(path, 0o750); err != nil {
 		return errors.Wrap(err, path)
 	}
 
-	err = ioutil.WriteFile(k7.name, gData, 0o640)
+	err = os.WriteFile(k7.name, eData, 0o640)
 	return errors.Wrap(err, k7.name)
 }
 
 // GzipFilter compresses the cassette data in gzip format if the cassette
-// name ends with '.gz', otherwise data is left as is (i.e. de-compressed).
+// is set for compression, otherwise data is left as is.
 func (k7 *Cassette) GzipFilter(data bytes.Buffer) ([]byte, error) {
 	if k7.IsLongPlay() {
 		return compression.Compress(data.Bytes())
@@ -151,13 +176,63 @@ func (k7 *Cassette) GzipFilter(data bytes.Buffer) ([]byte, error) {
 	return data.Bytes(), nil
 }
 
-// GunzipFilter de-compresses the cassette data in gzip format if the cassette
-// name ends with '.gz', otherwise data is left as is (i.e. de-compressed).
+// GunzipFilter de-compresses the cassette data from gzip format if the cassette
+// is set for compression, otherwise data is left as is.
 func (k7 *Cassette) GunzipFilter(data []byte) ([]byte, error) {
 	if k7.IsLongPlay() {
 		return compression.Decompress(data)
 	}
 	return data, nil
+}
+
+// EncryptionFilter encrypts the cassette data with a ssh-rsa key if the cassette
+// is set for encryption, otherwise data is left as is.
+func (k7 *Cassette) EncryptionFilter(data []byte) ([]byte, error) {
+	if !k7.isEncrypted() {
+		return data, nil
+	}
+
+	ciphertext, nonce, err := k7.crypter.Encrypt(data)
+	if err != nil {
+		return nil, err
+	}
+
+	nonceLen := len(nonce)
+	if nonceLen > 255 {
+		return nil, errors.New("nonce is too long, must be 255 max")
+	}
+
+	headerData := []byte(encryptedCassetteHeader)
+	headerData = append(headerData, byte(nonceLen))
+	headerData = append(headerData, nonce...)
+
+	eData := append(headerData, ciphertext...)
+
+	return eData, nil
+}
+
+// DecryptionFilter encrypts the cassette data with a ssh-rsa key if the cassette
+// name ends with '.gz', otherwise data is left as is.
+func (k7 *Cassette) DecryptionFilter(data []byte) ([]byte, error) {
+	if !k7.isEncrypted() {
+		return data, nil
+	}
+
+	// Header:
+	// - marker
+	// - nonce length (1 byte)
+	// - nonce
+	// - ciphertext
+
+	if !bytes.HasPrefix(data, []byte(encryptedCassetteHeader)) {
+		return nil, errors.New("encrypted cassette header marker not recognised")
+	}
+
+	nonceLen := int(data[len(encryptedCassetteHeader)])
+	nonce := data[len(encryptedCassetteHeader)+1 : len(encryptedCassetteHeader)+1+nonceLen]
+
+	headerSize := len(encryptedCassetteHeader) + 1 + len(nonce)
+	return k7.crypter.Decrypt(data[headerSize:], nonce)
 }
 
 // Track retrieves the requested track number.
@@ -174,6 +249,35 @@ func (k7 *Cassette) Name() string {
 	return k7.name
 }
 
+// readCassetteFile reads the cassette file, if present or
+// returns a blank cassette.
+func (k7 *Cassette) readCassetteFile(cassetteName string) error {
+	data, err := os.ReadFile(cassetteName) //nolint:gosec
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return errors.Wrap(err, "failed to read cassette data from file")
+	}
+
+	dData, err := k7.DecryptionFilter(data)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	gData, err := k7.GunzipFilter(dData)
+	if err != nil {
+		return err
+	}
+
+	// NOTE: Properties which are of type 'interface{} / any' are not handled very well
+	if err := json.Unmarshal(gData, k7); err != nil {
+		return errors.Wrap(err, "failed to interpret cassette data in file")
+	}
+
+	return nil
+}
+
 // AddTrackToCassette saves a new track using the specified details to a cassette.
 func AddTrackToCassette(cassette *Cassette, trk *track.Track) error {
 	// mark track as replayed since it's coming from a live Request!
@@ -187,10 +291,12 @@ func AddTrackToCassette(cassette *Cassette, trk *track.Track) error {
 }
 
 // LoadCassette loads a cassette from file and initialises its associated stats.
-// It panics when a cassette exists but cannot be loaded because that indicates corruption
-// (or a severe bug).
-func LoadCassette(cassetteName string) *Cassette {
-	k7, err := readCassetteFile(cassetteName)
+// It panics when a cassette exists but cannot be loaded because that indicates
+// corruption (or a severe bug).
+func LoadCassette(cassetteName string, opts ...Option) *Cassette {
+	k7 := NewCassette(cassetteName, opts...)
+
+	err := k7.readCassetteFile(cassetteName)
 	if err != nil {
 		panic(fmt.Sprintf("unable to load corrupted cassette '%s': %v", cassetteName, err))
 	}
@@ -199,29 +305,4 @@ func LoadCassette(cassetteName string) *Cassette {
 	atomic.StoreInt32(&k7.tracksLoaded, k7.NumberOfTracks())
 
 	return k7
-}
-
-// readCassetteFile reads the cassette file, if present or
-// returns a blank cassette.
-func readCassetteFile(cassetteName string) (*Cassette, error) {
-	k7 := NewCassette(cassetteName)
-
-	data, err := ioutil.ReadFile(cassetteName) //nolint:gosec
-	if os.IsNotExist(err) {
-		return k7, nil
-	} else if err != nil {
-		return nil, errors.Wrap(err, "failed to read cassette data from file")
-	}
-
-	cData, err := k7.GunzipFilter(data)
-	if err != nil {
-		return nil, err
-	}
-
-	// NOTE: Properties which are of type 'interface{} / any' are not handled very well
-	if err := json.Unmarshal(cData, k7); err != nil {
-		return nil, errors.Wrap(err, "failed to interpret cassette data in file")
-	}
-
-	return k7, nil
 }

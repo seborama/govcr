@@ -2,7 +2,7 @@ package govcr
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -308,7 +308,7 @@ func (suite *GoVCRWBTestSuite) makeHTTPCalls_WithSuccess() stats.Stats {
 		suite.Require().NoError(err)
 
 		// read body first because the server is passing Trailers in http.Response.
-		bodyBytes, err := ioutil.ReadAll(resp.Body)
+		bodyBytes, err := io.ReadAll(resp.Body)
 		suite.Require().NoError(err)
 		_ = resp.Body.Close()
 		suite.Assert().Equal(fmt.Sprintf("Hello, server responds '%d' to query '%d'", i, i), string(bodyBytes))
@@ -366,7 +366,7 @@ func (suite *GoVCRWBTestSuite) replayHTTPCalls_WithMutations_WithSuccess(trackRe
 		suite.Assert().Len(resp.Trailer, 1)
 		suite.Assert().EqualValues("trailer_1_value", resp.Trailer.Get("trailer_1"))
 
-		bodyBytes, err := ioutil.ReadAll(resp.Body)
+		bodyBytes, err := io.ReadAll(resp.Body)
 		suite.Require().NoError(err)
 		_ = resp.Body.Close()
 		suite.Require().Equal(fmt.Sprintf("Hello, server responds '%d' to query '%d'", i, i), string(bodyBytes))

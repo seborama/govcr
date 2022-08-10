@@ -2,6 +2,8 @@ package cassette_test
 
 import (
 	"bytes"
+	"encoding/base64"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,6 +11,7 @@ import (
 
 	"github.com/seborama/govcr/v7/cassette"
 	"github.com/seborama/govcr/v7/cassette/track"
+	"github.com/seborama/govcr/v7/encryption"
 )
 
 func Test_cassette_GzipFilter(t *testing.T) {
@@ -112,4 +115,46 @@ func Test_cassette_GunzipFilter(t *testing.T) {
 			assert.EqualValues(t, tt.want, got)
 		})
 	}
+}
+
+func Test_cassette_Encryption(t *testing.T) {
+	const cassetteName = "temp-fixtures/Test_cassette_Encryption"
+
+	_ = os.Remove(cassetteName)
+
+	keyB64 := base64.StdEncoding.EncodeToString([]byte("12345678901234567890123456789012"))
+	c, err := encryption.NewAESCGM(keyB64, nil)
+	require.NoError(t, err)
+
+	k7 := cassette.NewCassette(cassetteName, cassette.WithCassetteCrypter(c))
+
+	trk := &track.Track{}
+
+	err = cassette.AddTrackToCassette(k7, trk)
+	require.NoError(t, err)
+
+	var k8 *cassette.Cassette
+	require.NotPanics(t, func() {
+		k8 = cassette.LoadCassette(cassetteName, cassette.WithCassetteCrypter(c))
+	})
+
+	data, err := os.ReadFile(cassetteName) //nolint:gosec
+	require.NoError(t, err)
+
+	const encryptedCassetteHeader = "$ENC$"
+
+	require.True(t, bytes.HasPrefix(data, []byte(encryptedCassetteHeader)))
+
+	nonceLen := int(data[len(encryptedCassetteHeader)])
+	nonce := data[len(encryptedCassetteHeader)+1 : len(encryptedCassetteHeader)+1+nonceLen]
+
+	t.Logf("nonce: %x\n", nonce)
+
+	require.Equal(t, k7.NumberOfTracks(), k8.NumberOfTracks())
+
+	for i := range k8.Tracks {
+		k8.Tracks[i].SetReplayed(true) // so to match k7
+	}
+
+	require.Equal(t, k7.Tracks, k8.Tracks)
 }

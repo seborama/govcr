@@ -2,7 +2,7 @@ package govcr_test
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -82,7 +82,7 @@ func TestVCRControlPanel_LoadCassette_UnreadableCassette(t *testing.T) {
 
 func createUnreadableCassette(t *testing.T, name string) {
 	t.Helper()
-	err := ioutil.WriteFile(name, nil, 0111)
+	err := os.WriteFile(name, nil, 0111)
 	require.NoError(t, err)
 }
 
@@ -376,7 +376,7 @@ func (suite *GoVCRTestSuite) makeHTTPCalls_WithSuccess(serverCurrentCount int) s
 		suite.NotEmpty(resp.Header.Get("Date"))
 		suite.EqualValues(resp.Trailer, http.Header(nil))
 
-		bodyBytes, err := ioutil.ReadAll(resp.Body)
+		bodyBytes, err := io.ReadAll(resp.Body)
 		suite.Require().NoError(err)
 		_ = resp.Body.Close()
 		suite.Equal(fmt.Sprintf("Hello, server responds '%d' to query '%d'", serverCurrentCount+i, i), string(bodyBytes))

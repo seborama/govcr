@@ -3,7 +3,7 @@ package govcr_test
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
@@ -138,9 +138,9 @@ func validateResponseForTestPlaybackOrder(resp *http.Response, expectedBody inte
 		return errors.New("resp.Body: Expected non-nil, got nil")
 	}
 
-	bodyData, err := ioutil.ReadAll(resp.Body)
+	bodyData, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return errors.Errorf("err from ioutil.ReadAll(): Expected nil, got %s", err)
+		return errors.Errorf("err from io.ReadAll(): Expected nil, got %s", err)
 	}
 	_ = resp.Body.Close()
 

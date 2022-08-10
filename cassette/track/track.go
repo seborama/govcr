@@ -3,7 +3,7 @@ package track
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 
@@ -91,7 +91,7 @@ func (trk *Track) ToErr() error {
 // govcr only saves enough info of the http.Request to permit matching.
 // Not all fields of http.Request are populated.
 func (trk *Track) toHTTPRequest() *http.Request {
-	bodyReadCloser := ioutil.NopCloser(bytes.NewReader(trk.Response.Body))
+	bodyReadCloser := io.NopCloser(bytes.NewReader(trk.Response.Body))
 
 	httpRequest := http.Request{
 		Method:           trk.Request.Method,
@@ -124,7 +124,7 @@ func (trk Track) ToHTTPResponse() *http.Response {
 
 	httpResponse := http.Response{}
 
-	bodyReadCloser := ioutil.NopCloser(bytes.NewReader(trk.Response.Body))
+	bodyReadCloser := io.NopCloser(bytes.NewReader(trk.Response.Body))
 
 	httpResponse.Status = trk.Response.Status
 	httpResponse.StatusCode = trk.Response.StatusCode

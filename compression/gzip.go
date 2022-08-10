@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"io"
-	"io/ioutil"
 
 	"github.com/pkg/errors"
 )
@@ -33,7 +32,7 @@ func Decompress(data []byte) ([]byte, error) {
 		return nil, errors.WithStack(err)
 	}
 
-	data, err = ioutil.ReadAll(r)
+	data, err = io.ReadAll(r)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
