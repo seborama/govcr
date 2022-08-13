@@ -117,6 +117,7 @@ func (trk *Track) toHTTPRequest() *http.Request {
 }
 
 // ToHTTPResponse converts the track Response to an http.Response.
+// nolint: gocritic
 func (trk Track) ToHTTPResponse() *http.Response {
 	if trk.Response == nil {
 		return nil

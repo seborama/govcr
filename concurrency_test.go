@@ -46,7 +46,7 @@ func TestConcurrencySafety(t *testing.T) {
 	_ = os.Remove(cassetteName)
 	defer func() { _ = os.Remove(cassetteName) }()
 
-	vcr := createVCR(cassetteName, testServerClient, false)
+	vcr := createVCR(cassetteName, testServerClient)
 	client := vcr.HTTPClient()
 
 	t.Run("main - phase 1", func(t *testing.T) {
@@ -80,7 +80,7 @@ func TestConcurrencySafety(t *testing.T) {
 	vcr.EjectCassette()
 
 	// re-run request and expect play back from vcr
-	vcr = createVCR(cassetteName, testServerClient, false)
+	vcr = createVCR(cassetteName, testServerClient)
 	client = vcr.HTTPClient()
 
 	// run requests
@@ -114,7 +114,7 @@ func TestConcurrencySafety(t *testing.T) {
 	require.EqualValues(t, expectedStats, *vcr.Stats())
 }
 
-func createVCR(cassetteName string, client *http.Client, lp bool) *govcr.ControlPanel {
+func createVCR(cassetteName string, client *http.Client) *govcr.ControlPanel {
 	return govcr.NewVCR(
 		govcr.WithClient(client),
 		govcr.WithCassette(cassetteName))

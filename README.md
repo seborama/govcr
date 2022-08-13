@@ -37,7 +37,7 @@ On **subsequent executions** (unless you delete the cassette file), the HTTP cal
 
 Note:
 
-We use a "relaxed" request matcher because `example.com` injects an "`Age`" header that varies per-request. Without a mutator, govcr's default strict matcher would not match the track on the cassette and keep sending live requests (and record them to the cassette).
+We use a "relaxed" request matcher because `example.com` injects an "`Age`" header that varies per-request. Without a mutator, **govcr**'s default strict matcher would not match the track on the cassette and keep sending live requests (and record them to the cassette).
 
 ## Install
 
@@ -76,7 +76,7 @@ go get gopkg.in/seborama/govcr.v4
 
 **govcr** is a wrapper around the Go `http.Client`. It can record live HTTP traffic to files (called "**cassettes**") and later replay HTTP requests ("**tracks**") from them instead of live HTTP calls.
 
-The code documentation can be found on [godoc](http://pkg.go.dev/github.com/seborama/govcr).
+The code documentation can be found on [godoc](https://pkg.go.dev/github.com/seborama/govcr/v7).
 
 When using **govcr**'s `http.Client`, the request is matched against the **tracks** on the '**cassette**':
 
@@ -103,7 +103,7 @@ Settings are populated via `With*` options:
 - `WithCassette` loads the specified cassette.\
   Note that it is also possible to call `LoadCassette` from the vcr instance.
 - See `vcrsettings.go` for more options such as `WithRequestMatcher`, `WithTrackRecordingMutators`, `WithTrackReplayingMutators`, ...
-- TODO: `WithLogging` enables logging to help understand what govcr is doing internally.
+- TODO: `WithLogging` enables logging to help understand what **govcr** is doing internally.
 
 ## Match a request to a cassette track
 
@@ -317,73 +317,7 @@ vcr.SetRequestMatcher(NewBlankRequestMatcher(
 
 ### Recipe: VCR with a recording Track Mutator
 
-**TODO: THIS EXAMPLE FOR v4 NOT v5**
-
-This example shows how to handle a situation where a request-specific transaction ID in the header needs to be present in the response.
-
-This could be as part of a contract validation between server and client.
-
-Note: This is useful when some of the data in the **request** Header / Body needs to be transformed before it can be evaluated for comparison for playback.
-
-```go
-package main
-
-import (
-    "fmt"
-    "strings"
-    "time"
-
-    "net/http"
-
-    "github.com/seborama/govcr/v7"
-)
-
-const example5CassetteName = "MyCassette5"
-
-// Example5 is an example use of govcr.
-// Supposing a fictional application where the request contains a custom header
-// 'X-Transaction-Id' which must be matched in the response from the server.
-// When replaying, the request will have a different Transaction Id than that which was recorded.
-// Hence the protocol (of this fictional example) is broken.
-// To circumvent that, we inject the new request's X-Transaction-Id into the recorded response.
-// Without the ResponseFilters, the X-Transaction-Id in the header would not match that
-// of the recorded response and our fictional application would reject the response on validation!
-func Example5() {
-    vcr := govcr.NewVCR(example5CassetteName,
-        &govcr.VCRSettings{
-            RequestFilters: govcr.RequestFilters{
-                govcr.RequestDeleteHeaderKeys("X-Transaction-Id"),
-            },
-            ResponseFilters: govcr.ResponseFilters{
-                // overwrite X-Transaction-Id in the Response with that from the Request
-                govcr.ResponseTransferHeaderKeys("X-Transaction-Id"),
-            },
-            Logging: true,
-        })
-
-    // create a request with our custom header
-    req, err := http.NewRequest("POST", "http://example.com/foo5", nil)
-    if err != nil {
-        fmt.Println(err)
-    }
-    req.Header.Add("X-Transaction-Id", time.Now().String())
-
-    // run the request
-    resp, err := vcr.Client.Do(req)
-    if err != nil {
-        fmt.Println(err)
-    }
-
-    // verify outcome
-    if req.Header.Get("X-Transaction-Id") != resp.Header.Get("X-Transaction-Id") {
-        fmt.Println("Header transaction Id verification failed - this would be the live request!")
-    } else {
-        fmt.Println("Header transaction Id verification passed - this would be the replayed track!")
-    }
-
-    fmt.Printf("%+v\n", vcr.Stats())
-}
-```
+TODO
 
 ### Recipe: VCR with a replaying Track Mutator
 

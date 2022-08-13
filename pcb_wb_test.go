@@ -9,9 +9,10 @@ import (
 	"net/textproto"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/seborama/govcr/v7/cassette"
 	"github.com/seborama/govcr/v7/cassette/track"
-	"github.com/stretchr/testify/require"
 )
 
 func TestPrintedCircuitBoard_trackMatches(t *testing.T) {

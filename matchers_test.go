@@ -12,7 +12,7 @@ import (
 )
 
 func Test_DefaultHeaderMatcher(t *testing.T) {
-	tt := []struct {
+	tt := []*struct {
 		name         string
 		reqHeaders   http.Header
 		trackHeaders http.Header
@@ -73,7 +73,7 @@ func Test_DefaultHeaderMatcher(t *testing.T) {
 }
 
 func Test_DefaultMethodMatcher(t *testing.T) {
-	tt := []struct {
+	tt := []*struct {
 		name        string
 		reqMethod   string
 		trackMethod string
@@ -134,7 +134,7 @@ func Test_DefaultMethodMatcher(t *testing.T) {
 }
 
 func Test_DefaultURLMatcher(t *testing.T) {
-	tt := []struct {
+	tt := []*struct {
 		name     string
 		reqURL   *url.URL
 		trackURL *url.URL
@@ -211,6 +211,7 @@ func Test_DefaultURLMatcher(t *testing.T) {
 			want: false,
 		},
 	}
+
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			httpReq := track.Request{URL: tc.reqURL}
@@ -222,7 +223,7 @@ func Test_DefaultURLMatcher(t *testing.T) {
 }
 
 func Test_DefaultBodyMatcher(t *testing.T) {
-	tt := []struct {
+	tt := []*struct {
 		name      string
 		reqBody   []byte
 		trackBody []byte
@@ -283,7 +284,7 @@ func Test_DefaultBodyMatcher(t *testing.T) {
 }
 
 func Test_DefaultTrailerMatcher(t *testing.T) {
-	tt := []struct {
+	tt := []*struct {
 		name         string
 		reqHeaders   http.Header
 		trackHeaders http.Header

@@ -15,45 +15,45 @@ import (
 )
 
 func Test_cassette_GzipFilter(t *testing.T) {
-	tests := []struct {
+	tt := []*struct {
 		name         string
 		cassetteName string
-		tracks       []track.Track
+		tracks       []*track.Track
 		trackData    bytes.Buffer
 		want         []byte
-		wantErr      bool
 	}{
 		{
 			name:         "Should not compress data",
 			cassetteName: "cassette",
 			trackData:    *bytes.NewBufferString(`data`),
 			want:         []byte(`data`),
-			wantErr:      false,
 		},
 		{
 			name:         "Should compress data when cassette name is *.gz",
 			cassetteName: "cassette.gz",
 			trackData:    *bytes.NewBufferString(`data`),
 			want:         []byte{31, 139, 8, 0, 0, 0, 0, 0, 0, 255, 74, 73, 44, 73, 4, 4, 0, 0, 255, 255, 99, 243, 243, 173, 4, 0, 0, 0},
-			wantErr:      false,
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			k7 := cassette.NewCassette(tt.cassetteName)
-			for _, aTrack := range tt.tracks {
-				k7.AddTrack(&aTrack)
+
+	for _, tc := range tt {
+		tc := tc
+
+		t.Run(tc.name, func(t *testing.T) {
+			k7 := cassette.NewCassette(tc.cassetteName)
+			for _, aTrack := range tc.tracks {
+				k7.AddTrack(aTrack)
 			}
 
-			got, err := k7.GzipFilter(tt.trackData)
-			require.Equal(t, tt.wantErr, err != nil)
-			assert.EqualValues(t, tt.want, got)
+			got, err := k7.GzipFilter(tc.trackData)
+			require.NoError(t, err)
+			assert.EqualValues(t, tc.want, got)
 		})
 	}
 }
 
 func Test_cassette_IsLongPlay(t *testing.T) {
-	tests := []struct {
+	tt := []*struct {
 		name         string
 		cassetteName string
 		want         bool
@@ -69,21 +69,24 @@ func Test_cassette_IsLongPlay(t *testing.T) {
 			want:         false,
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			k7 := cassette.NewCassette(tt.cassetteName)
+
+	for _, tc := range tt {
+		tc := tc
+
+		t.Run(tc.name, func(t *testing.T) {
+			k7 := cassette.NewCassette(tc.cassetteName)
 
 			got := k7.IsLongPlay()
-			assert.EqualValues(t, tt.want, got)
+			assert.EqualValues(t, tc.want, got)
 		})
 	}
 }
 
 func Test_cassette_GunzipFilter(t *testing.T) {
-	tests := []struct {
+	tt := []*struct {
 		name         string
 		cassetteName string
-		tracks       []track.Track
+		tracks       []*track.Track
 		trackData    []byte
 		want         []byte
 		wantErr      bool
@@ -103,16 +106,19 @@ func Test_cassette_GunzipFilter(t *testing.T) {
 			wantErr:      false,
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			k7 := cassette.NewCassette(tt.cassetteName)
-			for _, aTrack := range tt.tracks {
-				k7.AddTrack(&aTrack)
+
+	for _, tc := range tt {
+		tc := tc
+
+		t.Run(tc.name, func(t *testing.T) {
+			k7 := cassette.NewCassette(tc.cassetteName)
+			for i := range tc.tracks {
+				k7.AddTrack(tc.tracks[i])
 			}
 
-			got, err := k7.GunzipFilter(tt.trackData)
-			require.Equal(t, tt.wantErr, err != nil)
-			assert.EqualValues(t, tt.want, got)
+			got, err := k7.GunzipFilter(tc.trackData)
+			require.Equal(t, tc.wantErr, err != nil)
+			assert.EqualValues(t, tc.want, got)
 		})
 	}
 }
@@ -138,7 +144,7 @@ func Test_cassette_Encryption(t *testing.T) {
 		k8 = cassette.LoadCassette(cassetteName, cassette.WithCassetteCrypter(c))
 	})
 
-	data, err := os.ReadFile(cassetteName) //nolint:gosec
+	data, err := os.ReadFile(cassetteName) // nolint:gosec
 	require.NoError(t, err)
 
 	const encryptedCassetteHeader = "$ENC$"

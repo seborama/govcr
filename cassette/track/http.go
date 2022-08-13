@@ -19,6 +19,7 @@ import (
 // with a RequestMatcher (albeit perfectly possible).
 // These fields also help when converting Response to http.Response to
 // populate http.Response.Request.
+// nolint: govet
 type Request struct {
 	Method           string
 	URL              *url.URL
@@ -171,6 +172,7 @@ func ToRequest(httpRequest *http.Request) *Request {
 }
 
 // Response is a track HTTP Response.
+// nolint: govet
 type Response struct {
 	Status     string
 	StatusCode int

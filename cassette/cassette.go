@@ -15,10 +15,12 @@ import (
 
 	"github.com/seborama/govcr/v7/cassette/track"
 	"github.com/seborama/govcr/v7/compression"
+	govcrerr "github.com/seborama/govcr/v7/errors"
 	"github.com/seborama/govcr/v7/stats"
 )
 
 // Cassette contains a set of tracks.
+// nolint: govet
 type Cassette struct {
 	Tracks []track.Track
 
@@ -29,17 +31,18 @@ type Cassette struct {
 }
 
 const encryptedCassetteHeader = "$ENC$"
-const nonceLengthBytes = 1 // reserve 1 byte to store nonce length (i.e. max nonce length of 255)
 
+// Crypter defines encryption behaviour.
 type Crypter interface {
 	Encrypt(plaintext []byte) ([]byte, []byte, error)
-	Decrypt(ciphertext []byte, nonce []byte) ([]byte, error)
+	Decrypt(ciphertext, nonce []byte) ([]byte, error)
 }
 
 // Option defines a signature for options that can be passed
 // to create a new Cassette.
 type Option func(*Cassette)
 
+// WithCassetteCrypter provides a crypter to encrypt/decrypt cassette content.
 func WithCassetteCrypter(crypter Crypter) Option {
 	return func(k7 *Cassette) {
 		k7.crypter = crypter
@@ -79,8 +82,8 @@ func (k7 *Cassette) tracksPlayed() int32 {
 	k7.trackSliceMutex.RLock()
 	defer k7.trackSliceMutex.RUnlock()
 
-	for _, t := range k7.Tracks {
-		if t.IsReplayed() {
+	for i := range k7.Tracks {
+		if k7.Tracks[i].IsReplayed() {
 			replayed++
 		}
 	}
@@ -98,9 +101,8 @@ func (k7 *Cassette) NumberOfTracks() int32 {
 
 // ReplayTrack returns the specified track number, as recorded on cassette.
 func (k7 *Cassette) ReplayTrack(trackNumber int32) (*track.Track, error) {
-	if trackNumber >= k7.NumberOfTracks() {
-		//nolint: goerr113
-		return nil, fmt.Errorf("invalid track number %d (only %d available) (track #0 stands for first track)", trackNumber, k7.NumberOfTracks())
+	if trackNumber < 0 || trackNumber >= k7.NumberOfTracks() {
+		return nil, govcrerr.NewErrGoVCR(fmt.Sprintf("invalid track number %d (only %d available) (track #0 stands for first track)", trackNumber, k7.NumberOfTracks()))
 	}
 
 	k7.trackSliceMutex.Lock()
@@ -163,7 +165,7 @@ func (k7 *Cassette) save() error {
 		return errors.Wrap(err, path)
 	}
 
-	err = os.WriteFile(k7.name, eData, 0o640)
+	err = os.WriteFile(k7.name, eData, 0o600)
 	return errors.Wrap(err, k7.name)
 }
 
@@ -252,7 +254,7 @@ func (k7 *Cassette) Name() string {
 // readCassetteFile reads the cassette file, if present or
 // returns a blank cassette.
 func (k7 *Cassette) readCassetteFile(cassetteName string) error {
-	data, err := os.ReadFile(cassetteName) //nolint:gosec
+	data, err := os.ReadFile(cassetteName) // nolint:gosec
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil

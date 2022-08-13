@@ -242,7 +242,7 @@ func ResponseTransferHTTPHeaderKeys(keys ...string) Mutator {
 
 		for _, key := range keys {
 			// only transfer headers that actually exist
-			if trk.Response.Request.Header.Values(key) != nil && trk.Response.Request.Header.Get(key) != "" {
+			if trk.Response.Request.Header.Values(key) != nil {
 				// this test must be inside the loop so we only add a blank header when we know
 				// we're going to populate it, otherwise retain the "nil" value untouched.
 				if trk.Response.Header == nil {
@@ -276,7 +276,7 @@ func ResponseTransferHTTPTrailerKeys(keys ...string) Mutator {
 
 		for _, key := range keys {
 			// only transfer trailers that actually exist
-			if trk.Response.Request.Trailer.Values(key) != nil && trk.Response.Request.Trailer.Get(key) != "" {
+			if trk.Response.Request.Trailer.Values(key) != nil {
 				// this test must be inside the loop so we only add a blank trailer when we know
 				// we're going to populate it, otherwise retain the "nil" value untouched.
 				if trk.Response.Trailer == nil {
