@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
-	"io/ioutil"
+	"io"
 	"log"
 	"mime/multipart"
 	"net/http"
@@ -19,6 +19,7 @@ import (
 // with a RequestMatcher (albeit perfectly possible).
 // These fields also help when converting Response to http.Response to
 // populate http.Response.Request.
+// nolint: govet
 type Request struct {
 	Method           string
 	URL              *url.URL
@@ -171,6 +172,7 @@ func ToRequest(httpRequest *http.Request) *Request {
 }
 
 // Response is a track HTTP Response.
+// nolint: govet
 type Response struct {
 	Status     string
 	StatusCode int
@@ -297,7 +299,7 @@ func cloneHTTPRequestBody(httpRequest *http.Request) []byte {
 	if httpRequest.Body != nil {
 		var err error
 
-		httpBodyClone, err = ioutil.ReadAll(httpRequest.Body)
+		httpBodyClone, err = io.ReadAll(httpRequest.Body)
 		if err != nil {
 			log.Println("cloneHTTPRequestBody - httpBodyClone:", err)
 		}
@@ -307,7 +309,7 @@ func cloneHTTPRequestBody(httpRequest *http.Request) []byte {
 			log.Println("cloneHTTPRequestBody - httpRequest.Body.Close:", err)
 		}
 
-		httpRequest.Body = ioutil.NopCloser(bytes.NewBuffer(httpBodyClone))
+		httpRequest.Body = io.NopCloser(bytes.NewBuffer(httpBodyClone))
 	}
 
 	return httpBodyClone
@@ -322,7 +324,7 @@ func cloneHTTPResponseBody(httpResponse *http.Response) []byte {
 	if httpResponse.Body != nil {
 		var err error
 
-		httpBodyClone, err = ioutil.ReadAll(httpResponse.Body)
+		httpBodyClone, err = io.ReadAll(httpResponse.Body)
 		if err != nil {
 			log.Println("cloneHTTPResponseBody - httpBodyClone:", err)
 		}
@@ -332,7 +334,7 @@ func cloneHTTPResponseBody(httpResponse *http.Response) []byte {
 			log.Println("cloneHTTPResponseBody - httpResponse.Body.Close:", err)
 		}
 
-		httpResponse.Body = ioutil.NopCloser(bytes.NewBuffer(httpBodyClone))
+		httpResponse.Body = io.NopCloser(bytes.NewBuffer(httpBodyClone))
 	}
 
 	return httpBodyClone
@@ -400,7 +402,7 @@ func CloneHTTPRequest(httpRequest *http.Request) *http.Request {
 	}
 
 	// deal with body first because Trailers are sent after Body.Read returns io.EOF and Body.Close() was called.
-	httpRequestClone.Body = ioutil.NopCloser(bytes.NewBuffer(cloneHTTPRequestBody(httpRequest)))
+	httpRequestClone.Body = io.NopCloser(bytes.NewBuffer(cloneHTTPRequestBody(httpRequest)))
 	httpRequestClone.Header = httpRequest.Header.Clone()
 	httpRequestClone.Trailer = httpRequest.Trailer.Clone()
 	httpRequestClone.TransferEncoding = cloneStringSlice(httpRequest.TransferEncoding)

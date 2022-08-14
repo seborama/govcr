@@ -1,12 +1,12 @@
 # govcr
 
 <p align="center">
-  <a href="https://pkg.go.dev/github.com/seborama/govcr/v7">
+  <a href="https://pkg.go.dev/github.com/seborama/govcr/v8">
     <img src="https://img.shields.io/badge/godoc-reference-blue.svg" alt="govcr">
   </a>
 
-  <a href="https://goreportcard.com/report/github.com/seborama/govcr/v7">
-    <img src="https://goreportcard.com/badge/github.com/seborama/govcr/v7" alt="govcr">
+  <a href="https://goreportcard.com/report/github.com/seborama/govcr/v8">
+    <img src="https://goreportcard.com/badge/github.com/seborama/govcr/v8" alt="govcr">
   </a>
 </p>
 
@@ -19,7 +19,7 @@ This project is an adaptation for Google's Go / Golang programming language.
 ## Simple VCR example
 
 ```go
-// See TestExample1 in tests for full working example
+// See TestExample1 in tests for fully working example.
 
 func TestExample1() {
     vcr := govcr.NewVCR(
@@ -37,12 +37,12 @@ On **subsequent executions** (unless you delete the cassette file), the HTTP cal
 
 Note:
 
-We use a "relaxed" request matcher because `example.com` injects an "`Age`" header that varies per-request. Without a mutator, govcr's default strict matcher would not match the track on the cassette and keep sending live requests (and record them to the cassette).
+We use a "relaxed" request matcher because `example.com` injects an "`Age`" header that varies per-request. Without a mutator, **govcr**'s default strict matcher would not match the track on the cassette and keep sending live requests (and record them to the cassette).
 
 ## Install
 
 ```bash
-go get github.com/seborama/govcr/v7@latest
+go get github.com/seborama/govcr/v8@latest
 ```
 
 For all available releases, please check the [releases](https://github.com/seborama/govcr/releases) tab on github.
@@ -50,7 +50,7 @@ For all available releases, please check the [releases](https://github.com/sebor
 And your source code would use this import:
 
 ```go
-import "github.com/seborama/govcr/v7"
+import "github.com/seborama/govcr/v8"
 ```
 
 For versions of **govcr** before v5 (which don't use go.mod), use a dependency manager to lock the version you wish to use (perhaps v4)!
@@ -76,7 +76,7 @@ go get gopkg.in/seborama/govcr.v4
 
 **govcr** is a wrapper around the Go `http.Client`. It can record live HTTP traffic to files (called "**cassettes**") and later replay HTTP requests ("**tracks**") from them instead of live HTTP calls.
 
-The code documentation can be found on [godoc](http://pkg.go.dev/github.com/seborama/govcr).
+The code documentation can be found on [godoc](https://pkg.go.dev/github.com/seborama/govcr/v8).
 
 When using **govcr**'s `http.Client`, the request is matched against the **tracks** on the '**cassette**':
 
@@ -103,7 +103,7 @@ Settings are populated via `With*` options:
 - `WithCassette` loads the specified cassette.\
   Note that it is also possible to call `LoadCassette` from the vcr instance.
 - See `vcrsettings.go` for more options such as `WithRequestMatcher`, `WithTrackRecordingMutators`, `WithTrackReplayingMutators`, ...
-- TODO: `WithLogging` enables logging to help understand what govcr is doing internally.
+- TODO: `WithLogging` enables logging to help understand what **govcr** is doing internally.
 
 ## Match a request to a cassette track
 
@@ -153,6 +153,20 @@ The **track replaying mutator** additionally receives an informational copy of t
 
 Refer to the tests for examples (search for `WithTrackRecordingMutators` and `WithTrackReplayingMutators`).
 
+## Cassette encryption
+
+Cassettes can be encrypted with the Go-supported AES-CGM cipher.
+
+You will need to provide a secret key of either 16 or 32 bytes to a "`Cypter`" that will take care of encrypting and decrypting the cassette contents transparently.
+
+The "nonce" is stored with the cassette, in its header. The default strategy to generate a nonce is a 32-byte random generator.
+
+It is possible to provide a custom nonce generator, albeit currently this is somewhat limited because the current nonce is not provided. This can make it difficult to implement a counter, for example.
+
+As a reminder, you should **never** use a nonce value more than once with the same private key as it would compromise the encryption.
+
+Currently, **govcr** does not provide a utility to decrypt cassettes files on the file system. It is easy to achieve by looking at the code. A CLI utility will be provided in the near future.
+
 ## Cookbook
 
 ### Run the examples
@@ -175,7 +189,7 @@ In such cases, you can pass the `http.Client` object of your application to VCR.
 VCR will wrap your `http.Client`. You should use `vcr.HTTPClient()` in your tests when making HTTP calls.
 
 ```go
-// See TestExample2 in tests for full working example
+// See TestExample2 in tests for fully working example.
 
 func TestExample2() {
     // Create a custom http.Transport for our app.
@@ -291,7 +305,60 @@ vcr := govcr.NewVCR(
 vcr.SetOfflineMode()
 ```
 
-### Recipe: VCR with a custom RequestFilter
+### Recipe: VCR with encrypted cassette
+
+At time of creating a new VCR with **govcr**:
+
+```go
+// See TestExample4 in tests for fully working example.
+
+vcr := govcr.NewVCR(
+    govcr.WithCassette(
+        exampleCassetteName4,
+        govcr.WithCassetteCrypto("test-fixtures/TestExample4.unsafe.key"),
+    ),
+)
+```
+
+Or, at time of loading a cassette from the `ControlPanel`:
+
+```go
+// See TestExample4 in tests for fully working example.
+err := vcr.LoadCassette(
+    exampleCassetteName4,
+    govcr.WithCassetteCrypto("test-fixtures/TestExample4.unsafe.key"),
+)
+```
+
+### Recipe: VCR with encrypted cassette - custom nonce generator
+
+This is nearly identical to the previous recipe "VCR with encrypted cassette", except we pass our custom nonce generator.
+
+Example (this can also be achieved in the same way with the `ControlPanel`):
+
+```go
+type myNonceGenerator struct{}
+
+func (ng myNonceGenerator) Generate() ([]byte, error) {
+	nonce := make([]byte, 12)
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+		return nil, err
+	}
+	return nonce, nil
+}
+
+vcr := govcr.NewVCR(
+    govcr.WithCassette(
+        exampleCassetteName4,
+        govcr.WithCassetteCryptoCustomNonce(
+            "test-fixtures/TestExample4.unsafe.key",
+            nonceGenerator,
+        ),
+    ),
+)
+```
+
+### Recipe: VCR with a custom RequestMatcher
 
 This example shows how to handle situations where a header in the request needs to be ignored, in this case header `X-Custom-Timestamp` (or the **track** would not match and hence would not be replayed).
 
@@ -317,73 +384,7 @@ vcr.SetRequestMatcher(NewBlankRequestMatcher(
 
 ### Recipe: VCR with a recording Track Mutator
 
-**TODO: THIS EXAMPLE FOR v4 NOT v5**
-
-This example shows how to handle a situation where a request-specific transaction ID in the header needs to be present in the response.
-
-This could be as part of a contract validation between server and client.
-
-Note: This is useful when some of the data in the **request** Header / Body needs to be transformed before it can be evaluated for comparison for playback.
-
-```go
-package main
-
-import (
-    "fmt"
-    "strings"
-    "time"
-
-    "net/http"
-
-    "github.com/seborama/govcr/v7"
-)
-
-const example5CassetteName = "MyCassette5"
-
-// Example5 is an example use of govcr.
-// Supposing a fictional application where the request contains a custom header
-// 'X-Transaction-Id' which must be matched in the response from the server.
-// When replaying, the request will have a different Transaction Id than that which was recorded.
-// Hence the protocol (of this fictional example) is broken.
-// To circumvent that, we inject the new request's X-Transaction-Id into the recorded response.
-// Without the ResponseFilters, the X-Transaction-Id in the header would not match that
-// of the recorded response and our fictional application would reject the response on validation!
-func Example5() {
-    vcr := govcr.NewVCR(example5CassetteName,
-        &govcr.VCRSettings{
-            RequestFilters: govcr.RequestFilters{
-                govcr.RequestDeleteHeaderKeys("X-Transaction-Id"),
-            },
-            ResponseFilters: govcr.ResponseFilters{
-                // overwrite X-Transaction-Id in the Response with that from the Request
-                govcr.ResponseTransferHeaderKeys("X-Transaction-Id"),
-            },
-            Logging: true,
-        })
-
-    // create a request with our custom header
-    req, err := http.NewRequest("POST", "http://example.com/foo5", nil)
-    if err != nil {
-        fmt.Println(err)
-    }
-    req.Header.Add("X-Transaction-Id", time.Now().String())
-
-    // run the request
-    resp, err := vcr.Client.Do(req)
-    if err != nil {
-        fmt.Println(err)
-    }
-
-    // verify outcome
-    if req.Header.Get("X-Transaction-Id") != resp.Header.Get("X-Transaction-Id") {
-        fmt.Println("Header transaction Id verification failed - this would be the live request!")
-    } else {
-        fmt.Println("Header transaction Id verification passed - this would be the replayed track!")
-    }
-
-    fmt.Printf("%+v\n", vcr.Stats())
-}
-```
+TODO
 
 ### Recipe: VCR with a replaying Track Mutator
 
@@ -398,7 +399,8 @@ One of different solutions to address both concerns consists in:
 How you specifically tackle this in practice really depends on how the API you are using behaves.
 
 ```go
-// See TestExample3 for complete working example.
+// See TestExample3 in tests for fully working example.
+
 func TestExample3(t *testing.T) {
 // Instantiate VCR.
 vcr := govcr.NewVCR(

@@ -19,5 +19,5 @@ func NewErrTransportFailure(errType, errMsg string) *ErrTransportFailure {
 }
 
 func (e ErrTransportFailure) Error() string {
-	return fmt.Sprintf(e.errType + ": " + e.errMsg)
+	return fmt.Sprint(e.errType + ": " + e.errMsg)
 }

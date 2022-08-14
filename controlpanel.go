@@ -3,8 +3,8 @@ package govcr
 import (
 	"net/http"
 
-	"github.com/seborama/govcr/v7/cassette/track"
-	"github.com/seborama/govcr/v7/stats"
+	"github.com/seborama/govcr/v8/cassette/track"
+	"github.com/seborama/govcr/v8/stats"
 )
 
 // ControlPanel holds the parts of a VCR that can be interacted with.
@@ -19,9 +19,12 @@ func (controlPanel *ControlPanel) Stats() *stats.Stats {
 }
 
 // LoadCassette into the VCR.
+// Cassette options may be provided (e.g. cryptography).
 // Note: cassette.LoadCassette panics if the cassette exists but fails to load.
-func (controlPanel *ControlPanel) LoadCassette(cassetteName string) error {
-	return controlPanel.vcrTransport().loadCassette(cassetteName)
+func (controlPanel *ControlPanel) LoadCassette(cassetteName string, opts ...CassetteOption) error {
+	k7Opts := ToCassetteOptions(opts...)
+
+	return controlPanel.vcrTransport().loadCassette(cassetteName, k7Opts...)
 }
 
 // SetRequestMatcher sets a new RequestMatcher to the VCR.

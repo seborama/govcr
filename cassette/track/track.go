@@ -3,13 +3,13 @@ package track
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 
 	"github.com/pkg/errors"
 
-	trkerr "github.com/seborama/govcr/v7/cassette/track/errors"
+	trkerr "github.com/seborama/govcr/v8/cassette/track/errors"
 )
 
 // Track is a recording (HTTP Request + Response) in a cassette.
@@ -91,7 +91,7 @@ func (trk *Track) ToErr() error {
 // govcr only saves enough info of the http.Request to permit matching.
 // Not all fields of http.Request are populated.
 func (trk *Track) toHTTPRequest() *http.Request {
-	bodyReadCloser := ioutil.NopCloser(bytes.NewReader(trk.Response.Body))
+	bodyReadCloser := io.NopCloser(bytes.NewReader(trk.Response.Body))
 
 	httpRequest := http.Request{
 		Method:           trk.Request.Method,
@@ -117,6 +117,7 @@ func (trk *Track) toHTTPRequest() *http.Request {
 }
 
 // ToHTTPResponse converts the track Response to an http.Response.
+// nolint: gocritic
 func (trk Track) ToHTTPResponse() *http.Response {
 	if trk.Response == nil {
 		return nil
@@ -124,7 +125,7 @@ func (trk Track) ToHTTPResponse() *http.Response {
 
 	httpResponse := http.Response{}
 
-	bodyReadCloser := ioutil.NopCloser(bytes.NewReader(trk.Response.Body))
+	bodyReadCloser := io.NopCloser(bytes.NewReader(trk.Response.Body))
 
 	httpResponse.Status = trk.Response.Status
 	httpResponse.StatusCode = trk.Response.StatusCode

@@ -3,7 +3,7 @@ package govcr_test
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
@@ -15,8 +15,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 
-	"github.com/seborama/govcr/v7"
-	"github.com/seborama/govcr/v7/stats"
+	"github.com/seborama/govcr/v8"
+	"github.com/seborama/govcr/v8/stats"
 )
 
 func TestConcurrencySafety(t *testing.T) {
@@ -46,7 +46,7 @@ func TestConcurrencySafety(t *testing.T) {
 	_ = os.Remove(cassetteName)
 	defer func() { _ = os.Remove(cassetteName) }()
 
-	vcr := createVCR(cassetteName, testServerClient, false)
+	vcr := createVCR(cassetteName, testServerClient)
 	client := vcr.HTTPClient()
 
 	t.Run("main - phase 1", func(t *testing.T) {
@@ -80,7 +80,7 @@ func TestConcurrencySafety(t *testing.T) {
 	vcr.EjectCassette()
 
 	// re-run request and expect play back from vcr
-	vcr = createVCR(cassetteName, testServerClient, false)
+	vcr = createVCR(cassetteName, testServerClient)
 	client = vcr.HTTPClient()
 
 	// run requests
@@ -114,7 +114,7 @@ func TestConcurrencySafety(t *testing.T) {
 	require.EqualValues(t, expectedStats, *vcr.Stats())
 }
 
-func createVCR(cassetteName string, client *http.Client, lp bool) *govcr.ControlPanel {
+func createVCR(cassetteName string, client *http.Client) *govcr.ControlPanel {
 	return govcr.NewVCR(
 		govcr.WithClient(client),
 		govcr.WithCassette(cassetteName))
@@ -138,9 +138,9 @@ func validateResponseForTestPlaybackOrder(resp *http.Response, expectedBody inte
 		return errors.New("resp.Body: Expected non-nil, got nil")
 	}
 
-	bodyData, err := ioutil.ReadAll(resp.Body)
+	bodyData, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return errors.Errorf("err from ioutil.ReadAll(): Expected nil, got %s", err)
+		return errors.Errorf("err from io.ReadAll(): Expected nil, got %s", err)
 	}
 	_ = resp.Body.Close()
 

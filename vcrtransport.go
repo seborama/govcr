@@ -1,14 +1,13 @@
 package govcr
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/pkg/errors"
 
-	"github.com/seborama/govcr/v7/cassette"
-	"github.com/seborama/govcr/v7/cassette/track"
-	"github.com/seborama/govcr/v7/stats"
+	"github.com/seborama/govcr/v8/cassette"
+	"github.com/seborama/govcr/v8/cassette/track"
+	"github.com/seborama/govcr/v8/stats"
 )
 
 // vcrTransport is the heart of VCR. It implements
@@ -22,23 +21,23 @@ type vcrTransport struct {
 }
 
 // RoundTrip is an implementation of http.RoundTripper.
-// Note: by convention resp should be nil if an error occurs with HTTP
+// Note: by convention resp should be nil if an error occurs with HTTP.
 func (t *vcrTransport) RoundTrip(httpRequest *http.Request) (*http.Response, error) {
 	httpRequestClone := track.CloneHTTPRequest(httpRequest)
 
 	// search for a matching track on cassette if liveOnly mode is not selected
-	trk, seekErr := t.pcb.seekTrack(t.cassette, httpRequestClone)
-	if seekErr != nil {
-		log.Printf("error retrieving track from cassette, continuing with live request (will not record): %v", seekErr)
-	} else {
-		if trk != nil {
-			t.pcb.mutateTrackReplaying(trk)
+	trk, err := t.pcb.SeekTrack(t.cassette, httpRequestClone)
+	if err != nil {
+		return nil, errors.Wrap(err, "govcr failed to read matching track from cassette")
+	}
 
-			httpResponse := trk.ToHTTPResponse()
-			httpError := trk.ToErr()
+	if trk != nil {
+		t.pcb.mutateTrackReplaying(trk)
 
-			return httpResponse, httpError //nolint: wrapcheck
-		}
+		httpResponse := trk.ToHTTPResponse()
+		httpError := trk.ToErr()
+
+		return httpResponse, httpError //nolint: wrapcheck
 	}
 
 	if t.pcb.httpMode == HTTPModeOffline {
@@ -46,23 +45,19 @@ func (t *vcrTransport) RoundTrip(httpRequest *http.Request) (*http.Response, err
 	}
 
 	httpResponse, reqErr := t.transport.RoundTrip(httpRequest)
-	if seekErr == nil && !t.pcb.readOnly {
-		// record track if:
-		// - previously seek cassette was successful (otherwise we might dupe a track or corrupt the cassette further)
-		// - readOnly mode is not selected
+	if !t.pcb.readOnly {
 		trkResponse := track.ToResponse(httpResponse)
 		trkRequest := track.ToRequest(httpRequestClone)
 		newTrack := track.NewTrack(trkRequest, trkResponse, reqErr)
 
 		t.pcb.mutateTrackRecording(newTrack)
 
-		if err := cassette.AddTrackToCassette(t.cassette, newTrack); err != nil {
-			// TODO: this should probably be a panic as it's abnormal
-			log.Printf("RoundTrip failed to AddTrackToCassette: %v", err)
+		if err = cassette.AddTrackToCassette(t.cassette, newTrack); err != nil {
+			return nil, errors.Wrap(err, "govcr failed to add track to cassette")
 		}
 	}
 
-	return httpResponse, reqErr //nolint: wrapcheck
+	return httpResponse, errors.WithStack(reqErr)
 }
 
 // NumberOfTracks returns the number of tracks contained in the cassette.
@@ -70,12 +65,12 @@ func (t *vcrTransport) NumberOfTracks() int32 {
 	return t.cassette.NumberOfTracks()
 }
 
-func (t *vcrTransport) loadCassette(cassetteName string) error {
+func (t *vcrTransport) loadCassette(cassetteName string, opts ...cassette.Option) error {
 	if t.cassette != nil {
 		return errors.Errorf("failed to load cassette '%s': another cassette ('%s') is already loaded", cassetteName, t.cassette.Name())
 	}
 
-	k7 := cassette.LoadCassette(cassetteName)
+	k7 := cassette.LoadCassette(cassetteName, opts...)
 	t.cassette = k7
 
 	return nil

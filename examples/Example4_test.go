@@ -10,14 +10,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const exampleCassetteName1 = "temp-fixtures/TestExample1.cassette.json"
+const exampleCassetteName4 = "temp-fixtures/TestExample4.cassette.json"
 
-// TestExample1 is a simple example use of govcr.
-func TestExample1(t *testing.T) {
-	_ = os.Remove(exampleCassetteName1)
+// TestExample4 is a simple example use of govcr with cassette encryption.
+// Do _NOT_ ever use the test key from this example, it is clearly not private!
+func TestExample4(t *testing.T) {
+	_ = os.Remove(exampleCassetteName4)
 
 	vcr := govcr.NewVCR(
-		govcr.WithCassette(exampleCassetteName1),
+		govcr.WithCassette(
+			exampleCassetteName4,
+			govcr.WithCassetteCrypto("test-fixtures/TestExample4.unsafe.key"),
+		),
 		govcr.WithRequestMatcher(govcr.NewMethodURLRequestMatcher()), // use a "relaxed" request matcher
 	)
 
@@ -37,7 +41,10 @@ func TestExample1(t *testing.T) {
 	// The second request will be transparently replayed from the cassette by govcr
 	// No live HTTP request is placed to the live server
 	vcr.EjectCassette()
-	err := vcr.LoadCassette(exampleCassetteName1)
+	err := vcr.LoadCassette(
+		exampleCassetteName4,
+		govcr.WithCassetteCrypto("test-fixtures/TestExample4.unsafe.key"),
+	)
 	require.NoError(t, err)
 
 	vcr.HTTPClient().Get("http://example.com/foo")

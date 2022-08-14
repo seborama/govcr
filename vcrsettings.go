@@ -2,9 +2,11 @@ package govcr
 
 import (
 	"net/http"
+	"os"
 
-	"github.com/seborama/govcr/v7/cassette"
-	"github.com/seborama/govcr/v7/cassette/track"
+	"github.com/seborama/govcr/v8/cassette"
+	"github.com/seborama/govcr/v8/cassette/track"
+	"github.com/seborama/govcr/v8/encryption"
 )
 
 // Setting defines an optional functional parameter as received by NewVCR().
@@ -18,11 +20,75 @@ func WithClient(httpClient *http.Client) Setting {
 	}
 }
 
+// CassetteConfig contains various configurable elements of a cassette.
+type CassetteConfig struct {
+	Crypter cassette.Crypter
+}
+
+// CassetteOption allows to modify a cassette config.
+type CassetteOption func(cfg *CassetteConfig)
+
+// WithCassetteCrypto creates a cassette cryptographer with the specified key file.
+func WithCassetteCrypto(keyFile string) CassetteOption {
+	return func(cfg *CassetteConfig) {
+		key, err := os.ReadFile(keyFile)
+		if err != nil {
+			panic(err)
+		}
+
+		crypter, err := encryption.NewAESCGM(key, nil)
+		if err != nil {
+			panic(err)
+		}
+
+		cfg.Crypter = crypter
+	}
+}
+
+// WithCassetteCryptoCustomNonce creates a cassette cryptographer with the specified key file and
+// customer nonce generator.
+func WithCassetteCryptoCustomNonce(keyFile string, nonceGenerator encryption.NonceGenerator) CassetteOption {
+	return func(cfg *CassetteConfig) {
+		key, err := os.ReadFile(keyFile)
+		if err != nil {
+			panic(err)
+		}
+
+		crypter, err := encryption.NewAESCGM(key, nonceGenerator)
+		if err != nil {
+			panic(err)
+		}
+
+		cfg.Crypter = crypter
+	}
+}
+
+// ToCassetteOptions takes a list of CassetteOption and returns a slice of
+// cassette.Option's, ready to pass to cassette initialisation.
+func ToCassetteOptions(opts ...CassetteOption) []cassette.Option {
+	cfg := &CassetteConfig{}
+
+	for _, opt := range opts {
+		opt(cfg)
+	}
+
+	var k7Opts []cassette.Option
+
+	if cfg.Crypter != nil {
+		k7Opts = append(k7Opts, cassette.WithCassetteCrypter(cfg.Crypter))
+	}
+
+	return k7Opts
+}
+
 // WithCassette is an optional functional parameter to provide a VCR with
 // a cassette to load.
-func WithCassette(cassetteName string) Setting {
+// Cassette options may be provided (e.g. cryptography).
+func WithCassette(cassetteName string, opts ...CassetteOption) Setting {
 	return func(vcrSettings *VCRSettings) {
-		k7 := cassette.LoadCassette(cassetteName)
+		k7Opts := ToCassetteOptions(opts...)
+
+		k7 := cassette.LoadCassette(cassetteName, k7Opts...)
 		vcrSettings.cassette = k7
 	}
 }
