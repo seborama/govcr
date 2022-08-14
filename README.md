@@ -1,12 +1,12 @@
 # govcr
 
 <p align="center">
-  <a href="https://pkg.go.dev/github.com/seborama/govcr/v7">
+  <a href="https://pkg.go.dev/github.com/seborama/govcr/v8">
     <img src="https://img.shields.io/badge/godoc-reference-blue.svg" alt="govcr">
   </a>
 
-  <a href="https://goreportcard.com/report/github.com/seborama/govcr/v7">
-    <img src="https://goreportcard.com/badge/github.com/seborama/govcr/v7" alt="govcr">
+  <a href="https://goreportcard.com/report/github.com/seborama/govcr/v8">
+    <img src="https://goreportcard.com/badge/github.com/seborama/govcr/v8" alt="govcr">
   </a>
 </p>
 
@@ -42,7 +42,7 @@ We use a "relaxed" request matcher because `example.com` injects an "`Age`" head
 ## Install
 
 ```bash
-go get github.com/seborama/govcr/v7@latest
+go get github.com/seborama/govcr/v8@latest
 ```
 
 For all available releases, please check the [releases](https://github.com/seborama/govcr/releases) tab on github.
@@ -50,7 +50,7 @@ For all available releases, please check the [releases](https://github.com/sebor
 And your source code would use this import:
 
 ```go
-import "github.com/seborama/govcr/v7"
+import "github.com/seborama/govcr/v8"
 ```
 
 For versions of **govcr** before v5 (which don't use go.mod), use a dependency manager to lock the version you wish to use (perhaps v4)!
@@ -76,7 +76,7 @@ go get gopkg.in/seborama/govcr.v4
 
 **govcr** is a wrapper around the Go `http.Client`. It can record live HTTP traffic to files (called "**cassettes**") and later replay HTTP requests ("**tracks**") from them instead of live HTTP calls.
 
-The code documentation can be found on [godoc](https://pkg.go.dev/github.com/seborama/govcr/v7).
+The code documentation can be found on [godoc](https://pkg.go.dev/github.com/seborama/govcr/v8).
 
 When using **govcr**'s `http.Client`, the request is matched against the **tracks** on the '**cassette**':
 

@@ -11,8 +11,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/seborama/govcr/v7/cassette"
-	"github.com/seborama/govcr/v7/cassette/track"
+	"github.com/seborama/govcr/v8/cassette"
+	"github.com/seborama/govcr/v8/cassette/track"
 )
 
 func TestPrintedCircuitBoard_trackMatches(t *testing.T) {

@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/seborama/govcr/v7/cassette"
-	"github.com/seborama/govcr/v7/cassette/track"
-	"github.com/seborama/govcr/v7/encryption"
+	"github.com/seborama/govcr/v8/cassette"
+	"github.com/seborama/govcr/v8/cassette/track"
+	"github.com/seborama/govcr/v8/encryption"
 )
 
 // Setting defines an optional functional parameter as received by NewVCR().

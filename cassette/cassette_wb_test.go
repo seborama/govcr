@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/seborama/govcr/v7/stats"
+	"github.com/seborama/govcr/v8/stats"
 )
 
 func Test_cassette_NumberOfTracks_PanicsWhenNoCassette(t *testing.T) {

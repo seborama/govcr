@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/seborama/govcr/v7"
+	"github.com/seborama/govcr/v8"
 )
 
 const exampleCassetteName2 = "temp-fixtures/TestExample2.cassette.json"

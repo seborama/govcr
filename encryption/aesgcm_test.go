@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/seborama/govcr/v7/encryption"
+	"github.com/seborama/govcr/v8/encryption"
 )
 
 func TestCryptor(t *testing.T) {

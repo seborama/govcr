@@ -4,7 +4,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 
-	cryptoerr "github.com/seborama/govcr/v7/encryption/errors"
+	cryptoerr "github.com/seborama/govcr/v8/encryption/errors"
 )
 
 // NewAESCGM creates a new Cryptor initialised with an AES-CGM cipher from the
