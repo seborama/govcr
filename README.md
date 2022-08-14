@@ -1,6 +1,10 @@
 # govcr
 
 <p align="center">
+  <a href="https://github.com/seborama/govcr/actions/workflows/ci.yml/badge.svg?branch=master">
+    <img src="https://github.com/seborama/govcr/actions/workflows/ci.yml/badge.svg?branch=master" alt="govcr">
+  </a>
+
   <a href="https://pkg.go.dev/github.com/seborama/govcr/v8">
     <img src="https://img.shields.io/badge/godoc-reference-blue.svg" alt="govcr">
   </a>
