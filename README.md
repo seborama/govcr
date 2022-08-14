@@ -169,7 +169,9 @@ It is possible to provide a custom nonce generator, albeit currently this is som
 
 As a reminder, you should **never** use a nonce value more than once with the same private key as it would compromise the encryption.
 
-Currently, **govcr** does not provide a utility to decrypt cassettes files on the file system. It is easy to achieve by looking at the code. A CLI utility will be provided in the near future.
+**govcr** provides a CLI utility to decrypt cassettes files on the file system.
+
+The command is located in the `cmd/` folder - further info to follow soon.
 
 ## Cookbook
 

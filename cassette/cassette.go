@@ -227,21 +227,7 @@ func (k7 *Cassette) DecryptionFilter(data []byte) ([]byte, error) {
 		return data, nil
 	}
 
-	if !hasEncryptionMarker {
-		return nil, errors.New("encrypted cassette header marker not recognised")
-	}
-
-	// Header:
-	// - marker
-	// - nonce length (1 byte)
-	// - nonce
-	// - ciphertext
-
-	nonceLen := int(data[len(encryptedCassetteHeader)])
-	nonce := data[len(encryptedCassetteHeader)+1 : len(encryptedCassetteHeader)+1+nonceLen]
-
-	headerSize := len(encryptedCassetteHeader) + 1 + len(nonce)
-	return k7.crypter.Decrypt(data[headerSize:], nonce)
+	return Decrypt(data, k7.crypter)
 }
 
 // Track retrieves the requested track number.
@@ -285,6 +271,29 @@ func (k7 *Cassette) readCassetteFile(cassetteName string) error {
 	}
 
 	return nil
+}
+
+// Decrypt is a utility function that decrypts the cassette raw data
+// with the use of the supplied crypter.
+func Decrypt(data []byte, crypter Crypter) ([]byte, error) {
+	hasEncryptionMarker := bytes.HasPrefix(data, []byte(encryptedCassetteHeader))
+
+	if !hasEncryptionMarker {
+		return nil, errors.New("encrypted cassette header marker not recognised")
+	}
+
+	// Header:
+	// - marker
+	// - nonce length (1 byte)
+	// - nonce
+	// - ciphertext
+
+	nonceLen := int(data[len(encryptedCassetteHeader)])
+	nonce := data[len(encryptedCassetteHeader)+1 : len(encryptedCassetteHeader)+1+nonceLen]
+
+	headerSize := len(encryptedCassetteHeader) + 1 + len(nonce)
+
+	return crypter.Decrypt(data[headerSize:], nonce)
 }
 
 // AddTrackToCassette saves a new track using the specified details to a cassette.
