@@ -1,7 +1,6 @@
 package encryption_test
 
 import (
-	"encoding/base64"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -11,9 +10,9 @@ import (
 )
 
 func TestCryptor(t *testing.T) {
-	keyB64 := base64.StdEncoding.EncodeToString([]byte("this is a test key______________"))
+	key := []byte("this is a test key______________")
 
-	aescgm, err := encryption.NewAESCGM(keyB64, encryption.DefaultNonceGenerator{})
+	aescgm, err := encryption.NewAESCGM(key, encryption.DefaultNonceGenerator{})
 	require.NoError(t, err)
 
 	inputData := []byte("My little secret!")

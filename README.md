@@ -19,7 +19,7 @@ This project is an adaptation for Google's Go / Golang programming language.
 ## Simple VCR example
 
 ```go
-// See TestExample1 in tests for full working example
+// See TestExample1 in tests for fully working example.
 
 func TestExample1() {
     vcr := govcr.NewVCR(
@@ -153,6 +153,20 @@ The **track replaying mutator** additionally receives an informational copy of t
 
 Refer to the tests for examples (search for `WithTrackRecordingMutators` and `WithTrackReplayingMutators`).
 
+## Cassette encryption
+
+Cassettes can be encrypted with the Go-supported AES-CGM cipher.
+
+You will need to provide a secret key of either 16 or 32 bytes to a "`Cypter`" that will take care of encrypting and decrypting the cassette contents transparently.
+
+The "nonce" is stored with the cassette, in its header. The default strategy to generate a nonce is a 32-byte random generator.
+
+It is possible to provide a custom nonce generator, albeit currently this is somewhat limited because the current nonce is not provided. This can make it difficult to implement a counter, for example.
+
+As a reminder, you should **never** use a nonce value more than once with the same private key as it would compromise the encryption.
+
+Currently, **govcr** does not provide a utility to decrypt cassettes files on the file system. It is easy to achieve by looking at the code. A CLI utility will be provided in the near future.
+
 ## Cookbook
 
 ### Run the examples
@@ -175,7 +189,7 @@ In such cases, you can pass the `http.Client` object of your application to VCR.
 VCR will wrap your `http.Client`. You should use `vcr.HTTPClient()` in your tests when making HTTP calls.
 
 ```go
-// See TestExample2 in tests for full working example
+// See TestExample2 in tests for fully working example.
 
 func TestExample2() {
     // Create a custom http.Transport for our app.
@@ -291,7 +305,60 @@ vcr := govcr.NewVCR(
 vcr.SetOfflineMode()
 ```
 
-### Recipe: VCR with a custom RequestFilter
+### Recipe: VCR with encrypted cassette
+
+At time of creating a new VCR with **govcr**:
+
+```go
+// See TestExample4 in tests for fully working example.
+
+vcr := govcr.NewVCR(
+    govcr.WithCassette(
+        exampleCassetteName4,
+        govcr.WithCassetteCrypto("test-fixtures/TestExample4.unsafe.key"),
+    ),
+)
+```
+
+Or, at time of loading a cassette from the `ControlPanel`:
+
+```go
+// See TestExample4 in tests for fully working example.
+err := vcr.LoadCassette(
+    exampleCassetteName4,
+    govcr.WithCassetteCrypto("test-fixtures/TestExample4.unsafe.key"),
+)
+```
+
+### Recipe: VCR with encrypted cassette - custom nonce generator
+
+This is nearly identical to the previous recipe "VCR with encrypted cassette", except we pass our custom nonce generator.
+
+Example (this can also be achieved in the same way with the `ControlPanel`):
+
+```go
+type myNonceGenerator struct{}
+
+func (ng myNonceGenerator) Generate() ([]byte, error) {
+	nonce := make([]byte, 12)
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+		return nil, err
+	}
+	return nonce, nil
+}
+
+vcr := govcr.NewVCR(
+    govcr.WithCassette(
+        exampleCassetteName4,
+        govcr.WithCassetteCryptoCustomNonce(
+            "test-fixtures/TestExample4.unsafe.key",
+            nonceGenerator,
+        ),
+    ),
+)
+```
+
+### Recipe: VCR with a custom RequestMatcher
 
 This example shows how to handle situations where a header in the request needs to be ignored, in this case header `X-Custom-Timestamp` (or the **track** would not match and hence would not be replayed).
 
@@ -332,7 +399,8 @@ One of different solutions to address both concerns consists in:
 How you specifically tackle this in practice really depends on how the API you are using behaves.
 
 ```go
-// See TestExample3 for complete working example.
+// See TestExample3 in tests for fully working example.
+
 func TestExample3(t *testing.T) {
 // Instantiate VCR.
 vcr := govcr.NewVCR(

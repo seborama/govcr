@@ -3,7 +3,6 @@ package encryption
 import (
 	"crypto/aes"
 	"crypto/cipher"
-	"encoding/base64"
 
 	cryptoerr "github.com/seborama/govcr/v7/encryption/errors"
 )
@@ -18,12 +17,7 @@ import (
 // package like bcrypt or scrypt.
 // TODO: as nonceGenerator is not required, make it optional with a functional opt.
 // TODO: add a nonceGenerator validator i.e. call it 1000 times, ensures no dupes.
-func NewAESCGM(keyB64 string, nonceGenerator NonceGenerator) (*Crypter, error) {
-	key, err := base64.StdEncoding.DecodeString(keyB64)
-	if err != nil {
-		return nil, err
-	}
-
+func NewAESCGM(key []byte, nonceGenerator NonceGenerator) (*Crypter, error) {
 	if len(key) != 16 && len(key) != 32 {
 		return nil, cryptoerr.NewErrCrypto("key size is not 16 or 32 bytes")
 	}

@@ -15,6 +15,7 @@ import (
 
 	"github.com/seborama/govcr/v7/cassette/track"
 	"github.com/seborama/govcr/v7/compression"
+	cryptoerr "github.com/seborama/govcr/v7/encryption/errors"
 	govcrerr "github.com/seborama/govcr/v7/errors"
 	"github.com/seborama/govcr/v7/stats"
 )
@@ -187,8 +188,8 @@ func (k7 *Cassette) GunzipFilter(data []byte) ([]byte, error) {
 	return data, nil
 }
 
-// EncryptionFilter encrypts the cassette data with a ssh-rsa key if the cassette
-// is set for encryption, otherwise data is left as is.
+// EncryptionFilter encrypts the cassette data if a cryptographer Crypter
+// was supplied, otherwise data is left as is.
 func (k7 *Cassette) EncryptionFilter(data []byte) ([]byte, error) {
 	if !k7.isEncrypted() {
 		return data, nil
@@ -213,11 +214,21 @@ func (k7 *Cassette) EncryptionFilter(data []byte) ([]byte, error) {
 	return eData, nil
 }
 
-// DecryptionFilter encrypts the cassette data with a ssh-rsa key if the cassette
-// name ends with '.gz', otherwise data is left as is.
+// DecryptionFilter decrypts the cassette data if a cryptographer Crypter
+// was supplied and the encryption marker is found, otherwise data is left as is.
 func (k7 *Cassette) DecryptionFilter(data []byte) ([]byte, error) {
+	hasEncryptionMarker := bytes.HasPrefix(data, []byte(encryptedCassetteHeader))
+
 	if !k7.isEncrypted() {
+		if hasEncryptionMarker {
+			return nil, cryptoerr.NewErrCrypto("cassette has encryption marker but no cryptographer was supplied")
+		}
+
 		return data, nil
+	}
+
+	if !hasEncryptionMarker {
+		return nil, errors.New("encrypted cassette header marker not recognised")
 	}
 
 	// Header:
@@ -225,10 +236,6 @@ func (k7 *Cassette) DecryptionFilter(data []byte) ([]byte, error) {
 	// - nonce length (1 byte)
 	// - nonce
 	// - ciphertext
-
-	if !bytes.HasPrefix(data, []byte(encryptedCassetteHeader)) {
-		return nil, errors.New("encrypted cassette header marker not recognised")
-	}
 
 	nonceLen := int(data[len(encryptedCassetteHeader)])
 	nonce := data[len(encryptedCassetteHeader)+1 : len(encryptedCassetteHeader)+1+nonceLen]

@@ -19,9 +19,12 @@ func (controlPanel *ControlPanel) Stats() *stats.Stats {
 }
 
 // LoadCassette into the VCR.
+// Cassette options may be provided (e.g. cryptography).
 // Note: cassette.LoadCassette panics if the cassette exists but fails to load.
-func (controlPanel *ControlPanel) LoadCassette(cassetteName string) error {
-	return controlPanel.vcrTransport().loadCassette(cassetteName)
+func (controlPanel *ControlPanel) LoadCassette(cassetteName string, opts ...CassetteOption) error {
+	k7Opts := ToCassetteOptions(opts...)
+
+	return controlPanel.vcrTransport().loadCassette(cassetteName, k7Opts...)
 }
 
 // SetRequestMatcher sets a new RequestMatcher to the VCR.

@@ -2,7 +2,6 @@ package cassette_test
 
 import (
 	"bytes"
-	"encoding/base64"
 	"os"
 	"testing"
 
@@ -128,8 +127,8 @@ func Test_cassette_Encryption(t *testing.T) {
 
 	_ = os.Remove(cassetteName)
 
-	keyB64 := base64.StdEncoding.EncodeToString([]byte("12345678901234567890123456789012"))
-	c, err := encryption.NewAESCGM(keyB64, nil)
+	key := []byte("12345678901234567890123456789012")
+	c, err := encryption.NewAESCGM(key, nil)
 	require.NoError(t, err)
 
 	k7 := cassette.NewCassette(cassetteName, cassette.WithCassetteCrypter(c))

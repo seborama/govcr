@@ -65,12 +65,12 @@ func (t *vcrTransport) NumberOfTracks() int32 {
 	return t.cassette.NumberOfTracks()
 }
 
-func (t *vcrTransport) loadCassette(cassetteName string) error {
+func (t *vcrTransport) loadCassette(cassetteName string, opts ...cassette.Option) error {
 	if t.cassette != nil {
 		return errors.Errorf("failed to load cassette '%s': another cassette ('%s') is already loaded", cassetteName, t.cassette.Name())
 	}
 
-	k7 := cassette.LoadCassette(cassetteName)
+	k7 := cassette.LoadCassette(cassetteName, opts...)
 	t.cassette = k7
 
 	return nil
