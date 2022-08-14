@@ -171,7 +171,19 @@ As a reminder, you should **never** use a nonce value more than once with the sa
 
 **govcr** provides a CLI utility to decrypt cassettes files on the file system.
 
-The command is located in the `cmd/` folder - further info to follow soon.
+The command is located in the `cmd/govcr` folder, to install it:
+
+```bash
+go install github.com/seborama/govcr/v8/cmd/govcr@latest
+```
+
+Example usage:
+
+```bash
+govcr decrypt my.cassette.json my.key
+```
+
+`decrypt` will cowardly refuse to write to a file to avoid errors or lingering decrypted files. It will write to the standard output.
 
 ## Cookbook
 
