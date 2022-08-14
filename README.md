@@ -180,7 +180,7 @@ go install github.com/seborama/govcr/v8/cmd/govcr@latest
 Example usage:
 
 ```bash
-govcr decrypt my.cassette.json my.key
+govcr decrypt -cassette-file my.cassette.json -key-file my.key
 ```
 
 `decrypt` will cowardly refuse to write to a file to avoid errors or lingering decrypted files. It will write to the standard output.
