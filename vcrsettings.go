@@ -1,6 +1,7 @@
 package govcr
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 
@@ -33,12 +34,12 @@ func WithCassetteCrypto(keyFile string) CassetteOption {
 	return func(cfg *CassetteConfig) {
 		key, err := os.ReadFile(keyFile)
 		if err != nil {
-			panic(err)
+			panic(fmt.Sprintf("%+v", err))
 		}
 
 		crypter, err := encryption.NewAESCGM(key, nil)
 		if err != nil {
-			panic(err)
+			panic(fmt.Sprintf("%+v", err))
 		}
 
 		cfg.Crypter = crypter
@@ -51,12 +52,12 @@ func WithCassetteCryptoCustomNonce(keyFile string, nonceGenerator encryption.Non
 	return func(cfg *CassetteConfig) {
 		key, err := os.ReadFile(keyFile)
 		if err != nil {
-			panic(err)
+			panic(fmt.Sprintf("%+v", err))
 		}
 
 		crypter, err := encryption.NewAESCGM(key, nonceGenerator)
 		if err != nil {
-			panic(err)
+			panic(fmt.Sprintf("%+v", err))
 		}
 
 		cfg.Crypter = crypter
