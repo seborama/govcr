@@ -127,6 +127,7 @@ func Test_cassette_Encryption(t *testing.T) {
 
 	_ = os.Remove(cassetteName)
 
+	// STEP 1: create encrypted cassette.
 	key := []byte("12345678901234567890123456789012")
 	c, err := encryption.NewAESCGM(key, nil)
 	require.NoError(t, err)
@@ -138,11 +139,13 @@ func Test_cassette_Encryption(t *testing.T) {
 	err = cassette.AddTrackToCassette(k7, trk)
 	require.NoError(t, err)
 
+	// STEP 2: ensure cassette loads.
 	var k8 *cassette.Cassette
 	require.NotPanics(t, func() {
 		k8 = cassette.LoadCassette(cassetteName, cassette.WithCassetteCrypter(c))
 	})
 
+	// STEP 3: perform high and low-level validation checks on cassette file.
 	data, err := os.ReadFile(cassetteName) // nolint:gosec
 	require.NoError(t, err)
 
@@ -157,8 +160,63 @@ func Test_cassette_Encryption(t *testing.T) {
 
 	require.Equal(t, k7.NumberOfTracks(), k8.NumberOfTracks())
 
-	for i := range k8.Tracks {
-		k8.Tracks[i].SetReplayed(true) // so to match k7
+	for i := range k7.Tracks {
+		k7.Tracks[i].SetReplayed(false) // so to match k8
+	}
+
+	require.Equal(t, k7.Tracks, k8.Tracks)
+}
+
+func Test_cassette_CanEncryptPlainCassette(t *testing.T) {
+	const cassetteName = "temp-fixtures/Test_cassette_CanEncryptPlainCassette"
+
+	_ = os.Remove(cassetteName)
+
+	// STEP 1a: create a non-encrypted cassette.
+	// This is not required for cassette encryption, this is for the purpose of confirming
+	// that a non-encrypted cassette will convert to an encrypted cassette seamlessly.
+	k7 := cassette.NewCassette(cassetteName)
+
+	trk := &track.Track{UUID: "trk-1"}
+
+	err := cassette.AddTrackToCassette(k7, trk)
+	require.NoError(t, err)
+
+	// STEP 1b: add track to cassette, this time encrypt the cassette.
+	key := []byte("12345678901234567890123456789012")
+	c, err := encryption.NewAESCGM(key, nil)
+	require.NoError(t, err)
+
+	k7 = cassette.LoadCassette(cassetteName, cassette.WithCassetteCrypter(c))
+
+	trk = &track.Track{UUID: "trk-2"}
+
+	err = cassette.AddTrackToCassette(k7, trk)
+	require.NoError(t, err)
+
+	// STEP 2: ensure cassette loads.
+	var k8 *cassette.Cassette
+	require.NotPanics(t, func() {
+		k8 = cassette.LoadCassette(cassetteName, cassette.WithCassetteCrypter(c))
+	})
+
+	// STEP 3: perform high and low-level validation checks on cassette file.
+	data, err := os.ReadFile(cassetteName) // nolint:gosec
+	require.NoError(t, err)
+
+	const encryptedCassetteHeader = "$ENC$"
+
+	require.True(t, bytes.HasPrefix(data, []byte(encryptedCassetteHeader)))
+
+	nonceLen := int(data[len(encryptedCassetteHeader)])
+	nonce := data[len(encryptedCassetteHeader)+1 : len(encryptedCassetteHeader)+1+nonceLen]
+
+	t.Logf("nonce: %x\n", nonce)
+
+	require.Equal(t, k7.NumberOfTracks(), k8.NumberOfTracks())
+
+	for i := range k7.Tracks {
+		k7.Tracks[i].SetReplayed(false) // so to match k8
 	}
 
 	require.Equal(t, k7.Tracks, k8.Tracks)

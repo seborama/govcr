@@ -41,9 +41,8 @@ func TestVCRControlPanel_LoadCassette_WhenOneIsAlreadyLoaded(t *testing.T) {
 
 func TestVCRControlPanel_LoadCassette_InvalidCassette(t *testing.T) {
 	unit := govcr.NewVCR()
-	assert.PanicsWithValue(
+	assert.Panics(
 		t,
-		"unable to load corrupted cassette 'test-fixtures/bad.cassette.json': failed to interpret cassette data in file: invalid character 'T' looking for beginning of value",
 		func() {
 			_ = unit.LoadCassette("test-fixtures/bad.cassette.json")
 		})
@@ -70,9 +69,8 @@ func TestVCRControlPanel_LoadCassette_UnreadableCassette(t *testing.T) {
 	createUnreadableCassette(t, cassetteName)
 
 	unit := govcr.NewVCR()
-	assert.PanicsWithValue(
+	assert.Panics(
 		t,
-		"unable to load corrupted cassette '"+cassetteName+"': failed to read cassette data from file: open "+cassetteName+": permission denied",
 		func() {
 			_ = unit.LoadCassette(cassetteName)
 		})

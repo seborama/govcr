@@ -136,7 +136,7 @@ func (k7 *Cassette) IsLongPlay() bool {
 	return strings.HasSuffix(k7.name, ".gz")
 }
 
-func (k7 *Cassette) isEncrypted() bool {
+func (k7 *Cassette) wantEncrypted() bool {
 	return k7.crypter != nil
 }
 
@@ -191,7 +191,7 @@ func (k7 *Cassette) GunzipFilter(data []byte) ([]byte, error) {
 // EncryptionFilter encrypts the cassette data if a cryptographer Crypter
 // was supplied, otherwise data is left as is.
 func (k7 *Cassette) EncryptionFilter(data []byte) ([]byte, error) {
-	if !k7.isEncrypted() {
+	if !k7.wantEncrypted() {
 		return data, nil
 	}
 
@@ -219,11 +219,16 @@ func (k7 *Cassette) EncryptionFilter(data []byte) ([]byte, error) {
 func (k7 *Cassette) DecryptionFilter(data []byte) ([]byte, error) {
 	hasEncryptionMarker := bytes.HasPrefix(data, []byte(encryptedCassetteHeader))
 
-	if !k7.isEncrypted() {
+	if !k7.wantEncrypted() {
 		if hasEncryptionMarker {
 			return nil, cryptoerr.NewErrCrypto("cassette has encryption marker but no cryptographer was supplied")
 		}
 
+		return data, nil
+	}
+
+	if !hasEncryptionMarker {
+		// We're going off the chance that the cassette file is not encrypted yet but that from next save it should be.
 		return data, nil
 	}
 
@@ -262,11 +267,11 @@ func (k7 *Cassette) readCassetteFile(cassetteName string) error {
 
 	gData, err := k7.GunzipFilter(dData)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	// NOTE: Properties which are of type 'interface{} / any' are not handled very well
-	if err := json.Unmarshal(gData, k7); err != nil {
+	if err = json.Unmarshal(gData, k7); err != nil {
 		return errors.Wrap(err, "failed to interpret cassette data in file")
 	}
 
@@ -316,7 +321,7 @@ func LoadCassette(cassetteName string, opts ...Option) *Cassette {
 
 	err := k7.readCassetteFile(cassetteName)
 	if err != nil {
-		panic(fmt.Sprintf("unable to load corrupted cassette '%s': %v", cassetteName, err))
+		panic(fmt.Sprintf("unable to load corrupted cassette '%s': %+v", cassetteName, err))
 	}
 
 	// initial stats
