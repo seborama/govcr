@@ -164,7 +164,7 @@ Cassettes can be encrypted with the Go-supported AES-CGM cipher.
 
 You will need to provide a secret key of either 16 or 32 bytes to a "`Crypter`" that will take care of encrypting and decrypting the cassette contents transparently.
 
-The "nonce" is stored with the cassette, in its header. The default strategy to generate a nonce is a 32-byte random generator.
+The "nonce" is stored with the cassette, in its header. The default strategy to generate a nonce is a 12-byte random generator.
 
 It is possible to provide a custom nonce generator, albeit currently this is somewhat limited because the current nonce is not provided. This can make it difficult to implement a counter, for example.
 
