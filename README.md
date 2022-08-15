@@ -131,14 +131,15 @@ Nonetheless, **govcr** supports mutating tracks, either at **recording time** or
 
 In either case, this is achieved with track `Mutators`.
 
-A `Mutator` can be combined with one or more `On` conditions. All `On` conditions attached to a mutator must be true for the mutator to apply - in other word, they are logically "and-ed".
+A `Mutator` can be combined with one or more `On` conditions. All `On` conditions attached to a mutator must be true for the mutator to apply - in other words,
+they are logically "and-ed".
 
 To help construct more complex yet readable predicates easily, **govcr** provides these pre-defined functions for use with `On`:
 - `Any` achieves a logical "**or**" of the provided predicates.
 - `All` achieves a logical "**and**" of the provided predicates.
 - `Not` achieves a logical "**not**" of the provided predicates.
 
-Example:
+Examples:
 
 ```go
 myMutator.
