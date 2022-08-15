@@ -162,7 +162,7 @@ Refer to the tests for examples (search for `WithTrackRecordingMutators` and `Wi
 
 Cassettes can be encrypted with the Go-supported AES-CGM cipher.
 
-You will need to provide a secret key of either 16 or 32 bytes to a "`Cypter`" that will take care of encrypting and decrypting the cassette contents transparently.
+You will need to provide a secret key of either 16 or 32 bytes to a "`Crypter`" that will take care of encrypting and decrypting the cassette contents transparently.
 
 The "nonce" is stored with the cassette, in its header. The default strategy to generate a nonce is a 32-byte random generator.
 
@@ -170,7 +170,7 @@ It is possible to provide a custom nonce generator, albeit currently this is som
 
 As a reminder, you should **never** use a nonce value more than once with the same private key as it would compromise the encryption.
 
-**govcr** provides a CLI utility to decrypt cassettes files on the file system.
+**govcr** provides a CLI utility to decrypt existing cassette files.
 
 The command is located in the `cmd/govcr` folder, to install it:
 
