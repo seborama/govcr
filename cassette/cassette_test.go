@@ -129,7 +129,7 @@ func Test_cassette_Encryption(t *testing.T) {
 
 	// STEP 1: create encrypted cassette.
 	key := []byte("12345678901234567890123456789012")
-	c, err := encryption.NewAESCGM(key, nil)
+	c, err := encryption.NewAESGCMWithRandomNonceGenerator(key)
 	require.NoError(t, err)
 
 	k7 := cassette.NewCassette(cassetteName, cassette.WithCassetteCrypter(c))
@@ -149,7 +149,7 @@ func Test_cassette_Encryption(t *testing.T) {
 	data, err := os.ReadFile(cassetteName) // nolint:gosec
 	require.NoError(t, err)
 
-	const encryptedCassetteHeader = "$ENC$"
+	const encryptedCassetteHeader = "$ENC$" // AES-GCM encryption marker
 
 	require.True(t, bytes.HasPrefix(data, []byte(encryptedCassetteHeader)))
 
@@ -184,7 +184,7 @@ func Test_cassette_CanEncryptPlainCassette(t *testing.T) {
 
 	// STEP 1b: add track to cassette, this time encrypt the cassette.
 	key := []byte("12345678901234567890123456789012")
-	c, err := encryption.NewAESCGM(key, nil)
+	c, err := encryption.NewAESGCMWithRandomNonceGenerator(key)
 	require.NoError(t, err)
 
 	k7 = cassette.LoadCassette(cassetteName, cassette.WithCassetteCrypter(c))

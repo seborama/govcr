@@ -69,7 +69,7 @@ func decryptCassette(cassetteFile, keyFile string) (string, error) {
 		return "", errors.Wrap(err, "key file")
 	}
 
-	crypter, err := encryption.NewAESCGM(key, nil)
+	crypter, err := encryption.NewAESGCMWithRandomNonceGenerator(key)
 	if err != nil {
 		return "", errors.Wrap(err, "cryptographer")
 	}

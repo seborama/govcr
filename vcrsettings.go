@@ -37,7 +37,7 @@ func WithCassetteCrypto(keyFile string) CassetteOption {
 			panic(fmt.Sprintf("%+v", err))
 		}
 
-		crypter, err := encryption.NewAESCGM(key, nil)
+		crypter, err := encryption.NewAESGCMWithRandomNonceGenerator(key)
 		if err != nil {
 			panic(fmt.Sprintf("%+v", err))
 		}
@@ -55,7 +55,7 @@ func WithCassetteCryptoCustomNonce(keyFile string, nonceGenerator encryption.Non
 			panic(fmt.Sprintf("%+v", err))
 		}
 
-		crypter, err := encryption.NewAESCGM(key, nonceGenerator)
+		crypter, err := encryption.NewAESGCM(key, nonceGenerator)
 		if err != nil {
 			panic(fmt.Sprintf("%+v", err))
 		}
