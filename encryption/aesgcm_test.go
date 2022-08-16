@@ -12,15 +12,15 @@ import (
 func TestCryptor(t *testing.T) {
 	key := []byte("this is a test key______________")
 
-	aescgm, err := encryption.NewAESCGM(key, encryption.DefaultNonceGenerator{})
+	aesgcm, err := encryption.NewAESGCMWithRandomNonceGenerator(key)
 	require.NoError(t, err)
 
 	inputData := []byte("My little secret!")
 
-	ciphertext, nonce, err := aescgm.Encrypt(inputData)
+	ciphertext, nonce, err := aesgcm.Encrypt(inputData)
 	require.NoError(t, err)
 
-	plaintext, err := aescgm.Decrypt(ciphertext, nonce)
+	plaintext, err := aesgcm.Decrypt(ciphertext, nonce)
 	require.NoError(t, err)
 	assert.Equal(t, inputData, plaintext)
 }

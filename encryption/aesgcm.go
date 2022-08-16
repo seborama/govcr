@@ -7,7 +7,13 @@ import (
 	cryptoerr "github.com/seborama/govcr/v8/encryption/errors"
 )
 
-// NewAESCGM creates a new Cryptor initialised with an AES-CGM cipher from the
+// NewAESGCMWithRandomNonceGenerator creates a new Cryptor initialised with an
+// AES-GCM cipher from the supplied key and the default nonce generator.
+func NewAESGCMWithRandomNonceGenerator(key []byte) (*Crypter, error) {
+	return NewAESGCM(key, &RandomNonceGenerator{})
+}
+
+// NewAESGCM creates a new Cryptor initialised with an AES-GCM cipher from the
 // supplied key.
 // The key is sensitive, never share it openly.
 //
@@ -15,9 +21,8 @@ import (
 //
 // If you want to convert a passphrase to a key, use a suitable
 // package like bcrypt or scrypt.
-// TODO: as nonceGenerator is not required, make it optional with a functional opt.
 // TODO: add a nonceGenerator validator i.e. call it 1000 times, ensures no dupes.
-func NewAESCGM(key []byte, nonceGenerator NonceGenerator) (*Crypter, error) {
+func NewAESGCM(key []byte, nonceGenerator NonceGenerator) (*Crypter, error) {
 	if len(key) != 16 && len(key) != 32 {
 		return nil, cryptoerr.NewErrCrypto("key size is not 16 or 32 bytes")
 	}
@@ -33,7 +38,7 @@ func NewAESCGM(key []byte, nonceGenerator NonceGenerator) (*Crypter, error) {
 	}
 
 	if nonceGenerator == nil {
-		nonceGenerator = &DefaultNonceGenerator{}
+		nonceGenerator = &RandomNonceGenerator{}
 	}
 
 	return &Crypter{
