@@ -164,17 +164,23 @@ Refer to the tests for examples (search for `WithTrackRecordingMutators` and `Wi
 
 ## Cassette encryption
 
-Cassettes can be encrypted with the Go-supported AES-GCM cipher.
+Cassettes can be encrypted with two Go-supported ciphers:
+- AES-GCM (12-byte nonce, 16 or 32-byte key)
+- ChaCha20Poly1305 (24-byte nonce, 32-byte key)
 
-You will need to provide a secret key of either 16 or 32 bytes to a "`Crypter`" that will take care of encrypting and decrypting the cassette contents transparently.
+You will need to provide a secret key to a "`Crypter`" that will take care of encrypting to file and decrypting from file the cassette contents transparently.
 
-The "nonce" is stored with the cassette, in its header. The default strategy to generate a nonce is a 12-byte random generator. This is only safe if the same key is reused at most 2³² times (which for a **govcr** cassette feels somewhat infinite).
+The cryptographic "nonce" is stored with the cassette, in its header. The default strategy to generate a n-byte random nonce.
 
-It is possible to provide a custom nonce generator, albeit currently this is somewhat limited because the current nonce is not provided. This can make it difficult to implement a counter, for example.
+It is possible to provide a custom nonce generator.
 
-As a reminder, you should **never** use a nonce value more than once with the same private key as it would compromise the encryption.
+Cassettes are expected to be of somewhat reasonable size (at the very most a few MiB). They are fully loaded in memory. Under these circumstances, chunking is not needed and not supported.
 
-**govcr** provides a CLI utility to decrypt existing cassette files.
+As a reminder, you should **never** use a nonce value more than once with the same private key. It would compromise the encryption.
+
+### Decryption
+
+**govcr** provides a CLI utility to decrypt existing cassette files, should we want to.
 
 The command is located in the `cmd/govcr` folder, to install it:
 
@@ -405,10 +411,6 @@ vcr.SetRequestMatcher(NewBlankRequestMatcher(
 ))
 ```
 
-### Recipe: VCR with a recording Track Mutator
-
-TODO
-
 ### Recipe: VCR with a replaying Track Mutator
 
 In this scenario, the API requires a "`X-Transaction-Id`" header to be present. Since the header changes per-request, as needed, replaying a track poses two concerns:
@@ -450,6 +452,14 @@ vcr := govcr.NewVCR(
     ),
 )
 ```
+
+### Recipe: VCR with a recording Track Mutator
+
+Recording and replaying track mutators are the same. The only difference is when the mutator is invoked.
+
+To set recording mutators, use `govcr.WithTrackRecordingMutators` when creating a new `VCR`, or use the `SetRecordingMutators` or `AddRecordingMutators` methods of the `ControlPanel` that is returned by `NewVCR`.
+
+See the "VCR with a replaying Track Mutator" recipe for the general approach on creating a track mutator. You can also take a look at the "Remove Response TLS" recipe.
 
 ### More
 

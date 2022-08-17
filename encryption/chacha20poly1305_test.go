@@ -9,18 +9,18 @@ import (
 	"github.com/seborama/govcr/v8/encryption"
 )
 
-func TestCryptor_AESGCM(t *testing.T) {
+func TestCryptor_ChaCha20Poly1305(t *testing.T) {
 	key := []byte("this is a test key______________")
 
-	aesgcm, err := encryption.NewAESGCMWithRandomNonceGenerator(key)
+	cc20px, err := encryption.NewChaCha20Poly1305WithRandomNonceGenerator(key)
 	require.NoError(t, err)
 
 	inputData := []byte("My little secret!")
 
-	ciphertext, nonce, err := aesgcm.Encrypt(inputData)
+	ciphertext, nonce, err := cc20px.Encrypt(inputData)
 	require.NoError(t, err)
 
-	plaintext, err := aesgcm.Decrypt(ciphertext, nonce)
+	plaintext, err := cc20px.Decrypt(ciphertext, nonce)
 	require.NoError(t, err)
 	assert.Equal(t, inputData, plaintext)
 }

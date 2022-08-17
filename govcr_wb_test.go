@@ -36,7 +36,6 @@ func (suite *GoVCRWBTestSuite) SetupTest() {
 		suite.testServer = httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Trailer", "trailer_1")
 			w.Header().Set("header_1", "header_1_value")
-			w.Header().Del("Date")
 			w.WriteHeader(http.StatusOK)
 			counter++
 			iQuery := r.URL.Query().Get("i")
@@ -58,6 +57,7 @@ func (suite *GoVCRWBTestSuite) SetupTest() {
 			trk.Request.URL.RawQuery = q.Encode()
 
 			trk.Response.Header.Add("TrackRecordingMutatorHeader", "headers have been mutated")
+			trk.Response.Header.Del("Date")
 		})
 
 	suite.vcr = NewVCR(
@@ -325,7 +325,6 @@ func (suite *GoVCRWBTestSuite) makeHTTPCalls_WithSuccess() stats.Stats {
 		suite.Assert().EqualValues(-1, resp.ContentLength)
 		suite.Assert().EqualValues("text/plain; charset=utf-8", resp.Header.Get("Content-Type"))
 		suite.Assert().EqualValues("header_1_value", resp.Header.Get("header_1"))
-		suite.Assert().NotEmpty(resp.Header.Get("Date"))
 		suite.Require().EqualValues("", resp.Header.Get("TrackRecordingMutatorHeader")) // the header is injected, not present in the live traffic
 
 		suite.Assert().Len(resp.Trailer, 1)
@@ -365,7 +364,6 @@ func (suite *GoVCRWBTestSuite) replayHTTPCalls_WithMutations_WithSuccess(trackRe
 		suite.Assert().EqualValues(-1, resp.ContentLength)
 		suite.Assert().EqualValues("text/plain; charset=utf-8", resp.Header.Get("Content-Type"))
 		suite.Assert().EqualValues("header_1_value", resp.Header.Get("header_1"))
-		suite.Assert().NotEmpty(resp.Header.Get("Date"))
 		suite.Require().EqualValues(trackRecordingMutatorHeaderValue, resp.Header.Get("TrackRecordingMutatorHeader"))
 
 		suite.Assert().Len(resp.Trailer, 1)

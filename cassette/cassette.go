@@ -31,12 +31,16 @@ type Cassette struct {
 	crypter         Crypter
 }
 
-const encryptedCassetteHeader = "$ENC$"
+const (
+	encryptedCassetteHeaderMarkerV1 = "$ENC$" // legacy aesgcm V1 signature
+	encryptedCassetteHeaderMarkerV2 = "$ENC:V2$"
+)
 
 // Crypter defines encryption behaviour.
 type Crypter interface {
 	Encrypt(plaintext []byte) ([]byte, []byte, error)
 	Decrypt(ciphertext, nonce []byte) ([]byte, error)
+	Kind() string
 }
 
 // Option defines a signature for options that can be passed
@@ -200,16 +204,23 @@ func (k7 *Cassette) EncryptionFilter(data []byte) ([]byte, error) {
 		return nil, err
 	}
 
+	kindLen := len(k7.crypter.Kind())
+	if kindLen > 255 {
+		return nil, errors.New("cipher kind is too long, must be 255 max")
+	}
+
 	nonceLen := len(nonce)
 	if nonceLen > 255 {
 		return nil, errors.New("nonce is too long, must be 255 max")
 	}
 
-	headerData := []byte(encryptedCassetteHeader)
-	headerData = append(headerData, byte(nonceLen))
-	headerData = append(headerData, nonce...)
+	header := []byte(encryptedCassetteHeaderMarkerV2)
+	header = append(header, byte(kindLen))
+	header = append(header, []byte(k7.crypter.Kind())...)
+	header = append(header, byte(nonceLen))
+	header = append(header, nonce...)
 
-	eData := append(headerData, ciphertext...)
+	eData := append(header, ciphertext...)
 
 	return eData, nil
 }
@@ -217,18 +228,17 @@ func (k7 *Cassette) EncryptionFilter(data []byte) ([]byte, error) {
 // DecryptionFilter decrypts the cassette data if a cryptographer Crypter
 // was supplied and the encryption marker is found, otherwise data is left as is.
 func (k7 *Cassette) DecryptionFilter(data []byte) ([]byte, error) {
-	hasEncryptionMarker := bytes.HasPrefix(data, []byte(encryptedCassetteHeader))
-
 	if !k7.wantEncrypted() {
-		if hasEncryptionMarker {
-			return nil, cryptoerr.NewErrCrypto("cassette has encryption marker but no cryptographer was supplied")
+		if getEncryptionMarker(data) != "" {
+			return nil, cryptoerr.NewErrCrypto("cassette has encryption marker prefix but no cryptographer was supplied")
 		}
 
 		return data, nil
 	}
 
-	if !hasEncryptionMarker {
-		// We're going off the chance that the cassette file is not encrypted yet but that from next save it should be.
+	if getEncryptionMarker(data) == "" {
+		// We're going on the off chance that the cassette file is not encrypted yet
+		// but that from next save it needs to be.
 		return data, nil
 	}
 
@@ -278,27 +288,79 @@ func (k7 *Cassette) readCassetteFile(cassetteName string) error {
 	return nil
 }
 
-// Decrypt is a utility function that decrypts the cassette raw data
-// with the use of the supplied crypter.
-func Decrypt(data []byte, crypter Crypter) ([]byte, error) {
-	hasEncryptionMarker := bytes.HasPrefix(data, []byte(encryptedCassetteHeader))
-
-	if !hasEncryptionMarker {
-		return nil, errors.New("encrypted cassette header marker not recognised")
+func getEncryptionMarker(data []byte) string {
+	if len(data) < 3 || data[0] != '$' {
+		return ""
 	}
 
-	// Header:
-	// - marker
-	// - nonce length (1 byte)
-	// - nonce
-	// - ciphertext
+	marker := ""
+	for i, b := range data[1:] {
+		if i > 255 {
+			break
+		}
 
-	nonceLen := int(data[len(encryptedCassetteHeader)])
-	nonce := data[len(encryptedCassetteHeader)+1 : len(encryptedCassetteHeader)+1+nonceLen]
+		if b == '$' {
+			marker = string(data[:i+2])
+			break
+		}
+	}
 
-	headerSize := len(encryptedCassetteHeader) + 1 + len(nonce)
+	return marker
+}
 
-	return crypter.Decrypt(data[headerSize:], nonce)
+// Decrypt is a utility function that decrypts the cassette raw data
+// with the use of the supplied crypter.
+// TODO: move this method to the encryption package??
+func Decrypt(data []byte, crypter Crypter) ([]byte, error) {
+	encMarker := getEncryptionMarker(data)
+	markerLen := len(encMarker)
+
+	var nonce []byte
+
+	pos := markerLen
+
+	switch encMarker {
+	case encryptedCassetteHeaderMarkerV1:
+		// Header V1 (aes gcm only, will automatically convert to V2 on save):
+		// - marker ($ENC$)
+		// - nonce length (1 byte)
+		// - nonce
+		nonceLen := int(data[pos])
+		pos++
+
+		nonce = data[pos : pos+nonceLen]
+		pos += nonceLen
+
+	case encryptedCassetteHeaderMarkerV2:
+		// Header V2:
+		// - marker
+		// - cipher name length (1 byte)
+		// - cipher name
+		// - nonce length (1 byte)
+		// - nonce
+		cipherKindLen := int(data[pos])
+		pos++
+
+		cipherKind := data[pos : pos+cipherKindLen]
+		pos += cipherKindLen
+		if string(cipherKind) != crypter.Kind() {
+			return nil, errors.Errorf("cassette crypter is '%s' but cassette data indicates '%s'", crypter.Kind(), string(cipherKind))
+		}
+
+		nonceLen := int(data[pos])
+		pos++
+
+		nonce = data[pos : pos+nonceLen]
+		pos += nonceLen
+
+	case "":
+		return nil, errors.New("missing encrypted cassette header marker")
+
+	default:
+		return nil, errors.Errorf("encrypted cassette header marker not recognised: '%s'", encMarker)
+	}
+
+	return crypter.Decrypt(data[pos:], nonce)
 }
 
 // AddTrackToCassette saves a new track using the specified details to a cassette.
