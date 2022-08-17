@@ -164,7 +164,7 @@ Refer to the tests for examples (search for `WithTrackRecordingMutators` and `Wi
 
 ## Cassette encryption
 
-Your cassettes are likely to contain sensitive information in practice. You can choose to not persist it to the cassette with a recording track mutator. However, in some situation, this information is needed. Enters cassette encryption.
+Your cassettes are likely to contain sensitive information in practice. You can choose to not persist it to the cassette with a recording track mutator. However, in some situations, this information is needed. Enters cassette encryption.
 
 Cassettes can be encrypted with two Go-supported ciphers:
 - AES-GCM (12-byte nonce, 16 or 32-byte key)
