@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/seborama/govcr/v8/cassette/track"
+	"github.com/seborama/govcr/v9/cassette/track"
 )
 
 func TestControlPanel_SetRecordingMutators(t *testing.T) {
