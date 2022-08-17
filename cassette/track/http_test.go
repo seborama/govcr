@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/seborama/govcr/v8/cassette/track"
+	"github.com/seborama/govcr/v9/cassette/track"
 )
 
 func TestRequest_Clone(t *testing.T) {

@@ -4,8 +4,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/seborama/govcr/v8"
-	"github.com/seborama/govcr/v8/stats"
+	"github.com/seborama/govcr/v9"
+	"github.com/seborama/govcr/v9/encryption"
+	"github.com/seborama/govcr/v9/stats"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -20,7 +21,9 @@ func TestExample4(t *testing.T) {
 	vcr := govcr.NewVCR(
 		govcr.WithCassette(
 			exampleCassetteName4,
-			govcr.WithCassetteCrypto("test-fixtures/TestExample4.unsafe.key"),
+			govcr.WithCassetteCrypto(
+				encryption.NewChaCha20Poly1305WithRandomNonceGenerator,
+				"test-fixtures/TestExample4.unsafe.key"),
 		),
 		govcr.WithRequestMatcher(govcr.NewMethodURLRequestMatcher()), // use a "relaxed" request matcher
 	)
@@ -43,7 +46,7 @@ func TestExample4(t *testing.T) {
 	vcr.EjectCassette()
 	err := vcr.LoadCassette(
 		exampleCassetteName4,
-		govcr.WithCassetteCrypto("test-fixtures/TestExample4.unsafe.key"),
+		govcr.WithCassetteCrypto(encryption.NewChaCha20Poly1305WithRandomNonceGenerator, "test-fixtures/TestExample4.unsafe.key"),
 	)
 	require.NoError(t, err)
 

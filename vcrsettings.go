@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/seborama/govcr/v8/cassette"
-	"github.com/seborama/govcr/v8/cassette/track"
-	"github.com/seborama/govcr/v8/encryption"
+	"github.com/seborama/govcr/v9/cassette"
+	"github.com/seborama/govcr/v9/cassette/track"
+	"github.com/seborama/govcr/v9/encryption"
 )
 
 // Setting defines an optional functional parameter as received by NewVCR().
@@ -29,15 +29,21 @@ type CassetteConfig struct {
 // CassetteOption allows to modify a cassette config.
 type CassetteOption func(cfg *CassetteConfig)
 
-// WithCassetteCrypto creates a cassette cryptographer with the specified key file.
-func WithCassetteCrypto(keyFile string) CassetteOption {
+// CrypterProvider is the signature of a cipher provider function with default nonce generator.
+// Examples are encryption.NewAESGCMWithRandomNonceGenerator and
+// encryption.NewChaCha20Poly1305WithRandomNonceGenerator.
+type CrypterProvider func(key []byte) (*encryption.Crypter, error)
+
+// WithCassetteCrypto creates a cassette cryptographer with the specified cipher function
+// and key file.
+func WithCassetteCrypto(crypter CrypterProvider, keyFile string) CassetteOption {
 	return func(cfg *CassetteConfig) {
 		key, err := os.ReadFile(keyFile)
 		if err != nil {
 			panic(fmt.Sprintf("%+v", err))
 		}
 
-		crypter, err := encryption.NewAESGCMWithRandomNonceGenerator(key)
+		crypter, err := crypter(key)
 		if err != nil {
 			panic(fmt.Sprintf("%+v", err))
 		}
@@ -46,16 +52,20 @@ func WithCassetteCrypto(keyFile string) CassetteOption {
 	}
 }
 
+// CrypterNonceProvider is the signature of a cipher provider function with custom nonce generator.
+// Examples are encryption.NewAESGCM and encryption.NewChaCha20Poly1305.
+type CrypterNonceProvider func(key []byte, nonceGenerator encryption.NonceGenerator) (*encryption.Crypter, error)
+
 // WithCassetteCryptoCustomNonce creates a cassette cryptographer with the specified key file and
 // customer nonce generator.
-func WithCassetteCryptoCustomNonce(keyFile string, nonceGenerator encryption.NonceGenerator) CassetteOption {
+func WithCassetteCryptoCustomNonce(crypterNonce CrypterNonceProvider, keyFile string, nonceGenerator encryption.NonceGenerator) CassetteOption {
 	return func(cfg *CassetteConfig) {
 		key, err := os.ReadFile(keyFile)
 		if err != nil {
 			panic(fmt.Sprintf("%+v", err))
 		}
 
-		crypter, err := encryption.NewAESGCM(key, nonceGenerator)
+		crypter, err := crypterNonce(key, nonceGenerator)
 		if err != nil {
 			panic(fmt.Sprintf("%+v", err))
 		}

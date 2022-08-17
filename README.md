@@ -9,12 +9,12 @@
     <img src="https://github.com/seborama/govcr/actions/workflows/codeql-analysis.yml/badge.svg?branch=master" alt="govcr">
   </a>
 
-  <a href="https://pkg.go.dev/github.com/seborama/govcr/v8">
+  <a href="https://pkg.go.dev/github.com/seborama/govcr/v9">
     <img src="https://img.shields.io/badge/godoc-reference-blue.svg" alt="govcr">
   </a>
 
-  <a href="https://goreportcard.com/report/github.com/seborama/govcr/v8">
-    <img src="https://goreportcard.com/badge/github.com/seborama/govcr/v8" alt="govcr">
+  <a href="https://goreportcard.com/report/github.com/seborama/govcr/v9">
+    <img src="https://goreportcard.com/badge/github.com/seborama/govcr/v9" alt="govcr">
   </a>
 </p>
 
@@ -50,7 +50,7 @@ We use a "relaxed" request matcher because `example.com` injects an "`Age`" head
 ## Install
 
 ```bash
-go get github.com/seborama/govcr/v8@latest
+go get github.com/seborama/govcr/v9@latest
 ```
 
 For all available releases, please check the [releases](https://github.com/seborama/govcr/releases) tab on github.
@@ -58,7 +58,7 @@ For all available releases, please check the [releases](https://github.com/sebor
 And your source code would use this import:
 
 ```go
-import "github.com/seborama/govcr/v8"
+import "github.com/seborama/govcr/v9"
 ```
 
 For versions of **govcr** before v5 (which don't use go.mod), use a dependency manager to lock the version you wish to use (perhaps v4)!
@@ -84,7 +84,7 @@ go get gopkg.in/seborama/govcr.v4
 
 **govcr** is a wrapper around the Go `http.Client`. It can record live HTTP traffic to files (called "**cassettes**") and later replay HTTP requests ("**tracks**") from them instead of live HTTP calls.
 
-The code documentation can be found on [godoc](https://pkg.go.dev/github.com/seborama/govcr/v8).
+The code documentation can be found on [godoc](https://pkg.go.dev/github.com/seborama/govcr/v9).
 
 When using **govcr**'s `http.Client`, the request is matched against the **tracks** on the '**cassette**':
 
@@ -185,7 +185,7 @@ As a reminder, you should **never** use a nonce value more than once with the sa
 The command is located in the `cmd/govcr` folder, to install it:
 
 ```bash
-go install github.com/seborama/govcr/v8/cmd/govcr@latest
+go install github.com/seborama/govcr/v9/cmd/govcr@latest
 ```
 
 Example usage:
@@ -344,7 +344,9 @@ At time of creating a new VCR with **govcr**:
 vcr := govcr.NewVCR(
     govcr.WithCassette(
         exampleCassetteName4,
-        govcr.WithCassetteCrypto("test-fixtures/TestExample4.unsafe.key"),
+        govcr.WithCassetteCrypto(
+            encryption.NewChaCha20Poly1305WithRandomNonceGenerator,
+            "test-fixtures/TestExample4.unsafe.key"),
     ),
 )
 ```
@@ -355,7 +357,9 @@ Or, at time of loading a cassette from the `ControlPanel`:
 // See TestExample4 in tests for fully working example.
 err := vcr.LoadCassette(
     exampleCassetteName4,
-    govcr.WithCassetteCrypto("test-fixtures/TestExample4.unsafe.key"),
+    govcr.WithCassetteCrypto(
+        encryption.NewChaCha20Poly1305WithRandomNonceGenerator,
+        "test-fixtures/TestExample4.unsafe.key"),
 )
 ```
 
@@ -380,9 +384,9 @@ vcr := govcr.NewVCR(
     govcr.WithCassette(
         exampleCassetteName4,
         govcr.WithCassetteCryptoCustomNonce(
+            encryption.NewChaCha20Poly1305,
             "test-fixtures/TestExample4.unsafe.key",
-            nonceGenerator,
-        ),
+            nonceGenerator),
     ),
 )
 ```

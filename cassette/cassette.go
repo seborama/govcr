@@ -13,11 +13,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
-	"github.com/seborama/govcr/v8/cassette/track"
-	"github.com/seborama/govcr/v8/compression"
-	cryptoerr "github.com/seborama/govcr/v8/encryption/errors"
-	govcrerr "github.com/seborama/govcr/v8/errors"
-	"github.com/seborama/govcr/v8/stats"
+	"github.com/seborama/govcr/v9/cassette/track"
+	"github.com/seborama/govcr/v9/compression"
+	cryptoerr "github.com/seborama/govcr/v9/encryption/errors"
+	govcrerr "github.com/seborama/govcr/v9/errors"
+	"github.com/seborama/govcr/v9/stats"
 )
 
 // Cassette contains a set of tracks.
@@ -296,6 +296,7 @@ func getEncryptionMarker(data []byte) string {
 	marker := ""
 	for i, b := range data[1:] {
 		if i > 255 {
+			// give up: we should have already met with the closing `$` a long time ago
 			break
 		}
 
