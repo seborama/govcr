@@ -29,9 +29,5 @@ func NewChaCha20Poly1305(key []byte, nonceGenerator NonceGenerator) (*Crypter, e
 		nonceGenerator = NewRandomNonceGenerator(cc20px.NonceSize())
 	}
 
-	return &Crypter{
-			aead:           cc20px,
-			nonceGenerator: nonceGenerator,
-		},
-		nil
+	return NewCrypter(cc20px, "chacha20poly1305", nonceGenerator), nil
 }

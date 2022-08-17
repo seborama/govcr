@@ -149,7 +149,7 @@ func Test_cassette_Encryption(t *testing.T) {
 	data, err := os.ReadFile(cassetteName) // nolint:gosec
 	require.NoError(t, err)
 
-	const encryptedCassetteHeader = "$ENC$" // AES-GCM encryption marker
+	const encryptedCassetteHeader = "$ENC:V2$"
 
 	require.True(t, bytes.HasPrefix(data, []byte(encryptedCassetteHeader)))
 
@@ -204,7 +204,7 @@ func Test_cassette_CanEncryptPlainCassette(t *testing.T) {
 	data, err := os.ReadFile(cassetteName) // nolint:gosec
 	require.NoError(t, err)
 
-	const encryptedCassetteHeader = "$ENC$"
+	const encryptedCassetteHeader = "$ENC:V2$"
 
 	require.True(t, bytes.HasPrefix(data, []byte(encryptedCassetteHeader)))
 
