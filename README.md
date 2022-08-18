@@ -24,6 +24,37 @@ This project was inspired by [php-vcr](https://github.com/php-vcr/php-vcr) which
 
 This project is an adaptation for Google's Go / Golang programming language.
 
+
+## Table of content
+
+- [Simple VCR example](#simple-vcr-example)
+- [Install](#install)
+- [Glossary of Terms](#glossary-of-terms)
+- [Concepts](#concepts)
+  - [VCRSettings](#vcrsettings)
+- [Match a request to a cassette track](#match-a-request-to-a-cassette-track)
+- [Track mutators](#track-mutators)
+- [Cassette encryption](#cassette-encryption)
+- [Cookbook](#cookbook)
+  - [Run the examples](#run-the-examples)
+  - [Recipe: VCR with custom `http.Client`](#recipe-vcr-with-custom-httpclient)
+  - [Recipe: Remove Response TLS](#recipe-remove-response-tls)
+  - [Recipe: Change the playback mode of the VCR](#recipe-change-the-playback-mode-of-the-vcr)
+  - [Recipe: VCR with encrypted cassette](#recipe-vcr-with-encrypted-cassette)
+  - [Recipe: VCR with encrypted cassette - custom nonce generator](#recipe-vcr-with-encrypted-cassette---custom-nonce-generator)
+  - [Recipe: Cassette decryption](#recipe-cassette-decryption)
+  - [Recipe: Changing cassette encryption](#recipe-changing-cassette-encryption)
+  - [Recipe: VCR with a custom RequestMatcher](#recipe-vcr-with-a-custom-requestmatcher)
+  - [Recipe: VCR with a replaying Track Mutator](#recipe-vcr-with-a-replaying-track-mutator)
+  - [Recipe: VCR with a recording Track Mutator](#recipe-vcr-with-a-recording-track-mutator)
+  - [More](#more)
+- [Stats](#stats)
+- [Run the tests](#run-the-tests)
+- [Bugs](#bugs)
+- [Improvements](#improvements)
+- [Limitations](#limitations)
+- [Contribute](#contribute)
+
 ## Simple VCR example
 
 ```go
@@ -47,6 +78,8 @@ Note:
 
 We use a "relaxed" request matcher because `example.com` injects an "`Age`" header that varies per-request. Without a mutator, **govcr**'s default strict matcher would not match the track on the cassette and keep sending live requests (and record them to the cassette).
 
+[(toc)](#table-of-content)
+
 ## Install
 
 ```bash
@@ -68,6 +101,8 @@ For versions of **govcr** before v5 (which don't use go.mod), use a dependency m
 go get gopkg.in/seborama/govcr.v4
 ```
 
+[(toc)](#table-of-content)
+
 ## Glossary of Terms
 
 **VCR**: Video Cassette Recorder. In this context, a VCR refers to the engine and data that this project provides. A VCR is both an HTTP recorder and player. When you use a VCR, HTTP requests are replayed from previous recordings (**tracks** saved in **cassette** files on the filesystem). When no previous recording exists for the request, it is performed live on the HTTP server, after what it is saved to a **track** on the **cassette**.
@@ -79,6 +114,8 @@ go get gopkg.in/seborama/govcr.v4
 **tracks**: a record of an HTTP request. It contains the request data, the response data, if available, or the error that occurred.
 
 **ControlPanel**: the creation of a VCR instantiates a ControlPanel for interacting with the VCR and conceal its internals.
+
+[(toc)](#table-of-content)
 
 ## Concepts
 
@@ -101,6 +138,8 @@ A typical usage:
 
 During live recording, the same request can be repeated and recorded many times. Playback occurs in the order the requests were saved on the cassette. See the tests for an example (`TestConcurrencySafety`).
 
+[(toc)](#table-of-content)
+
 ### VCRSettings
 
 This structure contains parameters for configuring your **govcr** recorder.
@@ -112,6 +151,8 @@ Settings are populated via `With*` options:
   Note that it is also possible to call `LoadCassette` from the vcr instance.
 - See `vcrsettings.go` for more options such as `WithRequestMatcher`, `WithTrackRecordingMutators`, `WithTrackReplayingMutators`, ...
 - TODO: `WithLogging` enables logging to help understand what **govcr** is doing internally.
+
+[(toc)](#table-of-content)
 
 ## Match a request to a cassette track
 
@@ -126,6 +167,8 @@ This may be the case when the request contains a timestamp or a dynamically chan
 You can create your own matcher on any part of the request and in any manner (like ignoring or modifying some headers, etc).
 
 The input parameters received by a `RequestMatcherFunc` are scoped to the `RequestMatcher`. It is safe to modify them as needed. This affects the other `RequestMatcherFunc`'s in the `RequestMatcher`. But it does **not** permeate to the original incoming HTTP request or the tracks read from or written to the cassette.
+
+[(toc)](#table-of-content)
 
 ## Track mutators
 
@@ -162,6 +205,8 @@ The **track replaying mutator** additionally receives an informational copy of t
 
 Refer to the tests for examples (search for `WithTrackRecordingMutators` and `WithTrackReplayingMutators`).
 
+[(toc)](#table-of-content)
+
 ## Cassette encryption
 
 Your cassettes are likely to contain sensitive information in practice. You can choose to not persist it to the cassette with a recording track mutator. However, in some situations, this information is needed. Enters cassette encryption.
@@ -180,23 +225,9 @@ Cassettes are expected to be of somewhat reasonable size (at the very most a few
 
 As a reminder, you should **never** use a nonce value more than once with the same private key. It would compromise the encryption.
 
-### Decryption
+Please refer to the [Cookbook](#cookbook) for decryption and changes to encryption (such as cipher & key rotation).
 
-**govcr** provides a CLI utility to decrypt existing cassette files, should we want to.
-
-The command is located in the `cmd/govcr` folder, to install it:
-
-```bash
-go install github.com/seborama/govcr/v9/cmd/govcr@latest
-```
-
-Example usage:
-
-```bash
-govcr decrypt -cassette-file my.cassette.json -key-file my.key
-```
-
-`decrypt` will cowardly refuse to write to a file to avoid errors or lingering decrypted files. It will write to the standard output.
+[(toc)](#table-of-content)
 
 ## Cookbook
 
@@ -210,6 +241,8 @@ The **first time** they run, they perform a live HTTP call (`Executing request t
 
 However, on **second execution** (and subsequent executions as long as the **cassette** is not deleted)
 **govcr** retrieves the previously recorded request and plays it back without live HTTP call (`Found a matching track`). You can disconnect from the internet and still playback HTTP requests endlessly!
+
+[(toc)](#table-of-content)
 
 ### Recipe: VCR with custom `http.Client`
 
@@ -253,6 +286,8 @@ func TestExample2() {
 }
 ```
 
+[(toc)](#table-of-content)
+
 ### Recipe: Remove Response TLS
 
 Use the provided mutator `track.ResponseDeleteTLS`.
@@ -282,6 +317,8 @@ vcr := govcr.NewVCR(
 vcr.AddReplayingMutators(track.ResponseDeleteTLS())
 //     ^^^^^^^^^
 ```
+
+[(toc)](#table-of-content)
 
 ### Recipe: Change the playback mode of the VCR
 
@@ -336,6 +373,8 @@ vcr := govcr.NewVCR(
 vcr.SetOfflineMode()
 ```
 
+[(toc)](#table-of-content)
+
 ### Recipe: VCR with encrypted cassette
 
 At time of creating a new VCR with **govcr**:
@@ -365,6 +404,8 @@ err := vcr.LoadCassette(
 )
 ```
 
+[(toc)](#table-of-content)
+
 ### Recipe: VCR with encrypted cassette - custom nonce generator
 
 This is nearly identical to the previous recipe "VCR with encrypted cassette", except we pass our custom nonce generator.
@@ -393,6 +434,34 @@ vcr := govcr.NewVCR(
 )
 ```
 
+[(toc)](#table-of-content)
+
+### Recipe: Cassette decryption
+
+**govcr** provides a CLI utility to decrypt existing cassette files, should we want to.
+
+The command is located in the `cmd/govcr` folder, to install it:
+
+```bash
+go install github.com/seborama/govcr/v9/cmd/govcr@latest
+```
+
+Example usage:
+
+```bash
+govcr decrypt -cassette-file my.cassette.json -key-file my.key
+```
+
+`decrypt` will cowardly refuse to write to a file to avoid errors or lingering decrypted files. It will write to the standard output.
+
+[(toc)](#table-of-content)
+
+### Recipe: Changing cassette encryption
+
+TODO
+
+[(toc)](#table-of-content)
+
 ### Recipe: VCR with a custom RequestMatcher
 
 This example shows how to handle situations where a header in the request needs to be ignored, in this case header `X-Custom-Timestamp` (or the **track** would not match and hence would not be replayed).
@@ -416,6 +485,8 @@ vcr.SetRequestMatcher(NewBlankRequestMatcher(
     ),
 ))
 ```
+
+[(toc)](#table-of-content)
 
 ### Recipe: VCR with a replaying Track Mutator
 
@@ -459,6 +530,8 @@ vcr := govcr.NewVCR(
 )
 ```
 
+[(toc)](#table-of-content)
+
 ### Recipe: VCR with a recording Track Mutator
 
 Recording and replaying track mutators are the same. The only difference is when the mutator is invoked.
@@ -467,9 +540,13 @@ To set recording mutators, use `govcr.WithTrackRecordingMutators` when creating 
 
 See the "VCR with a replaying Track Mutator" recipe for the general approach on creating a track mutator. You can also take a look at the "Remove Response TLS" recipe.
 
+[(toc)](#table-of-content)
+
 ### More
 
 **TODO: add example that includes the use of `.On*` predicates**
+
+[(toc)](#table-of-content)
 
 ## Stats
 
@@ -477,21 +554,29 @@ VCR provides some statistics.
 
 To access the stats, call `vcr.Stats()` where vcr is the `ControlPanel` instance obtained from `NewVCR(...)`.
 
+[(toc)](#table-of-content)
+
 ## Run the tests
 
 ```bash
 make test
 ```
 
+[(toc)](#table-of-content)
+
 ## Bugs
 
 - The recording of TLS data for PublicKey's is not reliable owing to a limitation in Go's json package and a non-deterministic and opaque use of a blank interface in Go's certificate structures. Some improvements are possible with `gob`.
+
+[(toc)](#table-of-content)
 
 ## Improvements
 
 - When unmarshaling the cassette fails, rather than fail altogether, it may be preferable to revert to live HTTP call.
 
 - The code has a number of TODO's which should either be taken action upon or removed!
+
+[(toc)](#table-of-content)
 
 ## Limitations
 
@@ -503,9 +588,13 @@ This can cause `json.Unmarshal` to fail (example: when the original type was `bi
 
 Currently, this is dealt with by removing known untyped fields from the tracks. This is the case for PublicKey in certificate chains of the TLS data structure.
 
+[(toc)](#table-of-content)
+
 ### Support for multiple values in HTTP headers
 
 Repeat HTTP headers may not be properly handled. A long standing TODO in the code exists but so far no one has complained :-)
+
+[(toc)](#table-of-content)
 
 ### HTTP transport errors
 
@@ -521,8 +610,12 @@ In practice, the implications for you depend on how much you care about the erro
 
 Mitigation: Support for common errors (network down) has been implemented. Support for more error types can be implemented, if there is appetite for it.
 
+[(toc)](#table-of-content)
+
 ## Contribute
 
 You are welcome to submit a PR to contribute.
 
 Please try and follow a TDD workflow: tests must be present and as much as is practical to you, avoid toxic DDT (development driven testing).
+
+[(toc)](#table-of-content)
