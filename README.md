@@ -1,5 +1,19 @@
 # govcr
 
+---
+
+**Community Support Appeal**
+
+Please show your love by giving a star to this project.
+
+It takes a lot of personal time and effort to maintain and expand features.
+
+If you are using **govcr**, show me it is worth my continuous effort by giving it a star.
+
+You'll be my star 😊
+
+---
+
 <p align="center">
   <a href="https://github.com/seborama/govcr/actions/workflows/ci.yml/badge.svg?branch=master">
     <img src="https://github.com/seborama/govcr/actions/workflows/ci.yml/badge.svg?branch=master" alt="govcr">
@@ -18,7 +32,7 @@
   </a>
 </p>
 
-Records and replays HTTP / HTTPS interactions for offline unit / behavioural / integration tests thereby acting as an HTTP mock.
+Records and replays HTTP / HTTPS interactions for offline unit / behavioural / integration tests thereby acting as an HTTP mock. You can also use **goovcr** for API simulation.
 
 This project was inspired by [php-vcr](https://github.com/php-vcr/php-vcr) which is a PHP port of [VCR](https://github.com/vcr/vcr) for ruby.
 
