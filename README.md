@@ -1,19 +1,20 @@
 # govcr
 
+⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️\
+⭐️\
+⭐️ 📣 **Community Support Appeal** 📣\
+⭐️\
+⭐️ Please show your love by **giving a star to this project**.\
+⭐️\
+⭐️ It takes a lot of **personal time and effort** to maintain and expand features.\
+⭐️\
+⭐️ If you are using **govcr**, show me it is **worth my continuous effort** by giving it a star.\
+⭐️\
+⭐️ 🙏 **You'll be my star 😊** 🙏\
+⭐️\
 ⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️
-
-**Community Support Appeal**
-
-Please show your love by giving a star to this project.
-
-It takes a lot of personal time and effort to maintain and expand features.
-
-If you are using **govcr**, show me it is worth my continuous effort by giving it a star.
-
-You'll be my star 😊
-
-⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️
-
+<br/>
+<br/>
 <p align="center">
   <a href="https://github.com/seborama/govcr/actions/workflows/ci.yml/badge.svg?branch=master">
     <img src="https://github.com/seborama/govcr/actions/workflows/ci.yml/badge.svg?branch=master" alt="govcr">
@@ -37,7 +38,6 @@ Records and replays HTTP / HTTPS interactions for offline unit / behavioural / i
 This project was inspired by [php-vcr](https://github.com/php-vcr/php-vcr) which is a PHP port of [VCR](https://github.com/vcr/vcr) for ruby.
 
 This project is an adaptation for Google's Go / Golang programming language.
-
 
 ## Table of content
 
@@ -68,6 +68,7 @@ This project is an adaptation for Google's Go / Golang programming language.
 - [Improvements](#improvements)
 - [Limitations](#limitations)
 - [Contribute](#contribute)
+- [Community Support Appeal](#community-support-appeal)
 
 ## Simple VCR example
 
@@ -633,3 +634,21 @@ You are welcome to submit a PR to contribute.
 Please try and follow a TDD workflow: tests must be present and as much as is practical to you, avoid toxic DDT (development driven testing).
 
 [(toc)](#table-of-content)
+
+## Community Support Appeal
+
+⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️\
+⭐️\
+⭐️ 📣 **Community Support Appeal** 📣\
+⭐️\
+⭐️ Please show your love by **giving a star to this project**.\
+⭐️\
+⭐️ It takes a lot of **personal time and effort** to maintain and expand features.\
+⭐️\
+⭐️ If you are using **govcr**, show me it is **worth my continuous effort** by giving it a star.\
+⭐️\
+⭐️ 🙏 **You'll be my star 😊** 🙏\
+⭐️\
+⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️
+
+[(top)](#govcr)
