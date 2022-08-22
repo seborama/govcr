@@ -15,12 +15,12 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 
-	"github.com/seborama/govcr/v9"
-	"github.com/seborama/govcr/v9/stats"
+	"github.com/seborama/govcr/v10"
+	"github.com/seborama/govcr/v10/stats"
 )
 
 func TestConcurrencySafety(t *testing.T) {
-	const cassetteName = "temp-fixtures/TestConcurrencySafety"
+	const cassetteName = "temp-fixtures/TestConcurrencySafety.cassette"
 	threadMax := int8(50)
 
 	// create a test server
@@ -39,6 +39,7 @@ func TestConcurrencySafety(t *testing.T) {
 			t.Fatalf("err from w.Write(): Expected nil, got %s", err)
 		}
 	}))
+	defer ts.Close()
 
 	testServerClient := ts.Client()
 	testServerClient.Timeout = 5 * time.Second
@@ -77,7 +78,6 @@ func TestConcurrencySafety(t *testing.T) {
 		TracksPlayed:   0,
 	}
 	require.EqualValues(t, expectedStats, *vcr.Stats())
-	vcr.EjectCassette()
 
 	// re-run request and expect play back from vcr
 	vcr = createVCR(cassetteName, testServerClient)
@@ -116,8 +116,8 @@ func TestConcurrencySafety(t *testing.T) {
 
 func createVCR(cassetteName string, client *http.Client) *govcr.ControlPanel {
 	return govcr.NewVCR(
-		govcr.WithClient(client),
-		govcr.WithCassette(cassetteName))
+		govcr.NewCassetteMaker(cassetteName),
+		govcr.WithClient(client))
 }
 
 func generateBinaryBody(sequence int8) []byte {

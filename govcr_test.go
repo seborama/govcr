@@ -14,65 +14,56 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/seborama/govcr/v9"
-	"github.com/seborama/govcr/v9/stats"
+	"github.com/seborama/govcr/v10"
+	"github.com/seborama/govcr/v10/stats"
 )
 
 func TestNewVCR(t *testing.T) {
-	unit := govcr.NewVCR()
+	const cassetteName = "temp-fixtures/my.cassette.json"
+
+	_ = os.Remove(cassetteName)
+	defer func() { _ = os.Remove(cassetteName) }()
+
+	unit := govcr.NewVCR(govcr.NewCassetteMaker(cassetteName))
 	assert.NotNil(t, unit.HTTPClient())
 }
 
-func TestVCRControlPanel_LoadCassette_NewCassette(t *testing.T) {
-	unit := govcr.NewVCR()
-	err := unit.LoadCassette("temp-fixtures/my.cassette.json")
-	assert.NoError(t, err)
-}
-
-func TestVCRControlPanel_LoadCassette_WhenOneIsAlreadyLoaded(t *testing.T) {
-	unit := govcr.NewVCR()
-	err := unit.LoadCassette("temp-fixtures/my.cassette.json")
-	assert.NoError(t, err)
-
-	err = unit.LoadCassette("temp-fixtures/my-other.cassette.json")
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "already loaded")
-}
-
-func TestVCRControlPanel_LoadCassette_InvalidCassette(t *testing.T) {
-	unit := govcr.NewVCR()
+func TestVCRControlPanel_NewVCR_InvalidCassette(t *testing.T) {
 	assert.Panics(
 		t,
 		func() {
-			_ = unit.LoadCassette("test-fixtures/bad.cassette.json")
+			_ = govcr.NewVCR(
+				govcr.NewCassetteMaker("test-fixtures/bad.cassette.json"),
+			)
 		})
 }
 
-func TestVCRControlPanel_LoadCassette_ValidSimpleLongPlayCassette(t *testing.T) {
-	unit := govcr.NewVCR()
-	err := unit.LoadCassette("test-fixtures/good_zipped_one_track.cassette.json.gz")
-	assert.NoError(t, err)
+func TestVCRControlPanel_NewVCR_ValidSimpleLongPlayCassette(t *testing.T) {
+	unit := govcr.NewVCR(
+		govcr.NewCassetteMaker("test-fixtures/good_zipped_one_track.cassette.json.gz"),
+	)
 	assert.EqualValues(t, 1, unit.NumberOfTracks())
 }
 
-func TestVCRControlPanel_LoadCassette_ValidSimpleShortPlayCassette(t *testing.T) {
-	unit := govcr.NewVCR()
-	err := unit.LoadCassette("test-fixtures/good_one_track.cassette.json")
-	assert.NoError(t, err)
+func TestVCRControlPanel_NewVCR_ValidSimpleShortPlayCassette(t *testing.T) {
+	unit := govcr.NewVCR(
+		govcr.NewCassetteMaker("test-fixtures/good_one_track.cassette.json"),
+	)
 	assert.EqualValues(t, 1, unit.NumberOfTracks())
 }
 
-func TestVCRControlPanel_LoadCassette_UnreadableCassette(t *testing.T) {
+func TestVCRControlPanel_NewVCR_UnreadableCassette(t *testing.T) {
 	const cassetteName = "test-fixtures/unreadable.cassette.json"
 
 	removeUnreadableCassette(t, cassetteName)
 	createUnreadableCassette(t, cassetteName)
 
-	unit := govcr.NewVCR()
 	assert.Panics(
 		t,
 		func() {
-			_ = unit.LoadCassette(cassetteName)
+			_ = govcr.NewVCR(
+				govcr.NewCassetteMaker(cassetteName),
+			)
 		})
 
 	removeUnreadableCassette(t, cassetteName)
@@ -97,7 +88,7 @@ func removeUnreadableCassette(t *testing.T, name string) {
 }
 
 func TestVCRControlPanel_HTTPClient(t *testing.T) {
-	vcr := govcr.NewVCR()
+	vcr := govcr.NewVCR(govcr.NewCassetteMaker("./temp-fixtures/TestVCRControlPanel_HTTPClient.cassette"))
 	unit := vcr.HTTPClient()
 	assert.IsType(t, (*http.Client)(nil), unit)
 }
@@ -105,9 +96,7 @@ func TestVCRControlPanel_HTTPClient(t *testing.T) {
 type GoVCRTestSuite struct {
 	suite.Suite
 
-	vcr          *govcr.ControlPanel
-	testServer   *httptest.Server
-	cassetteName string
+	testServer *httptest.Server
 }
 
 func TestGoVCRTestSuite(t *testing.T) {
@@ -126,113 +115,122 @@ func (ts *GoVCRTestSuite) SetupTest() {
 			_, _ = fmt.Fprintf(w, "Hello, server responds '%d' to query '%s'", counter, iQuery)
 		}))
 	}()
-
-	testServerClient := ts.testServer.Client()
-	testServerClient.Timeout = 3 * time.Second
-	ts.vcr = govcr.NewVCR(govcr.WithClient(testServerClient))
-	ts.cassetteName = "temp-fixtures/TestGoVCRTestSuite.cassette.json"
-	_ = os.Remove(ts.cassetteName)
 }
 
 func (ts *GoVCRTestSuite) TearDownTest() {
-	_ = os.Remove(ts.cassetteName)
+	ts.testServer.Close()
+}
+
+type action int
+
+const (
+	actionKeep = iota
+	actionDelete
+)
+
+func (ts *GoVCRTestSuite) loadCassette(cassetteName string, a action) *govcr.ControlPanel {
+	if a == actionDelete {
+		_ = os.Remove(cassetteName)
+	}
+
+	testServerClient := ts.testServer.Client()
+	testServerClient.Timeout = 3 * time.Second
+
+	return govcr.NewVCR(
+		govcr.NewCassetteMaker(cassetteName),
+		govcr.WithClient(testServerClient),
+	)
 }
 
 func (ts *GoVCRTestSuite) TestVCR_ReadOnlyMode() {
-	ts.vcr.SetReadOnlyMode(true)
+	const k7Name = "temp-fixtures/TestGoVCRTestSuite.TestVCR_ReadOnlyMode.cassette.json"
 
-	err := ts.vcr.LoadCassette(ts.cassetteName)
-	ts.Require().NoError(err)
+	vcr := ts.loadCassette(k7Name, actionDelete)
+	vcr.SetReadOnlyMode(true)
 
-	resp, err := ts.vcr.HTTPClient().Get(ts.testServer.URL)
+	resp, err := vcr.HTTPClient().Get(ts.testServer.URL)
 	ts.Require().NoError(err)
 	ts.Require().NotNil(resp)
 	defer func() { _ = resp.Body.Close() }()
 
-	actualStats := *ts.vcr.Stats()
-	ts.vcr.EjectCassette()
-
-	expectedStats := stats.Stats{
+	expectedStats := &stats.Stats{
 		TotalTracks:    0,
 		TracksLoaded:   0,
 		TracksRecorded: 0,
 		TracksPlayed:   0,
 	}
-	ts.EqualValues(expectedStats, actualStats)
+	ts.EqualValues(expectedStats, vcr.Stats())
 }
 
 func (ts *GoVCRTestSuite) TestVCR_LiveOnlyMode() {
-	ts.vcr.SetLiveOnlyMode()
-	ts.vcr.SetRequestMatcher(govcr.NewBlankRequestMatcher()) // ensure always matching
+	const k7Name = "temp-fixtures/TestGoVCRTestSuite.TestVCR_LiveOnlyMode.cassette.json"
 
 	// 1st execution of set of calls
-	err := ts.vcr.LoadCassette(ts.cassetteName)
-	ts.Require().NoError(err)
+	vcr := ts.loadCassette(k7Name, actionDelete)
+	vcr.SetLiveOnlyMode()
+	vcr.SetRequestMatcher(govcr.NewBlankRequestMatcher()) // ensure always matching
 
-	actualStats := ts.makeHTTPCalls_WithSuccess(0)
-	expectedStats := stats.Stats{
+	ts.makeHTTPCalls_WithSuccess(vcr.HTTPClient(), 0)
+	expectedStats := &stats.Stats{
 		TotalTracks:    2,
 		TracksLoaded:   0,
 		TracksRecorded: 2,
 		TracksPlayed:   0,
 	}
-	ts.EqualValues(expectedStats, actualStats)
-	ts.Require().FileExists(ts.cassetteName)
-	ts.vcr.EjectCassette()
+	ts.EqualValues(expectedStats, vcr.Stats())
+	ts.Require().FileExists(k7Name)
 
 	// 2nd execution of set of calls
-	err = ts.vcr.LoadCassette(ts.cassetteName)
-	ts.Require().NoError(err)
+	vcr = ts.loadCassette(k7Name, actionKeep)
+	vcr.SetLiveOnlyMode()
+	vcr.SetRequestMatcher(govcr.NewBlankRequestMatcher()) // ensure always matching
 
-	actualStats = ts.makeHTTPCalls_WithSuccess(2) // as we're making live requests, the sever keeps on increasing the counter
-	expectedStats = stats.Stats{
+	ts.makeHTTPCalls_WithSuccess(vcr.HTTPClient(), 2) // as we're making live requests, the sever keeps on increasing the counter
+	expectedStats = &stats.Stats{
 		TotalTracks:    4,
 		TracksLoaded:   2,
 		TracksRecorded: 2,
 		TracksPlayed:   0,
 	}
-	ts.EqualValues(expectedStats, actualStats)
+	ts.EqualValues(expectedStats, vcr.Stats())
 }
 
 func (ts *GoVCRTestSuite) TestVCR_OfflineMode() {
-	ts.vcr.SetRequestMatcher(govcr.NewBlankRequestMatcher()) // ensure always matching
+	const k7Name = "temp-fixtures/TestGoVCRTestSuite.TestVCR_OfflineMode.cassette.json"
 
 	// 1st execution of set of calls - populate cassette
-	ts.vcr.SetNormalMode() // get data in the cassette
-	err := ts.vcr.LoadCassette(ts.cassetteName)
-	ts.Require().NoError(err)
+	vcr := ts.loadCassette(k7Name, actionDelete)
+	vcr.SetRequestMatcher(govcr.NewBlankRequestMatcher()) // ensure always matching
+	vcr.SetNormalMode()                                   // get data in the cassette
 
-	actualStats := ts.makeHTTPCalls_WithSuccess(0)
-	expectedStats := stats.Stats{
+	ts.makeHTTPCalls_WithSuccess(vcr.HTTPClient(), 0)
+	expectedStats := &stats.Stats{
 		TotalTracks:    2,
 		TracksLoaded:   0,
 		TracksRecorded: 2,
 		TracksPlayed:   0,
 	}
-	ts.EqualValues(expectedStats, actualStats)
-	ts.Require().FileExists(ts.cassetteName)
-	ts.vcr.EjectCassette()
+	ts.EqualValues(expectedStats, vcr.Stats())
+	ts.Require().FileExists(k7Name)
 
 	// 2nd execution of set of calls -- offline only
-	ts.vcr.SetOfflineMode()
+	vcr = ts.loadCassette(k7Name, actionKeep)
+	vcr.SetOfflineMode()
 
-	err = ts.vcr.LoadCassette(ts.cassetteName)
-	ts.Require().NoError(err)
-
-	actualStats = ts.makeHTTPCalls_WithSuccess(0)
-	expectedStats = stats.Stats{
+	ts.makeHTTPCalls_WithSuccess(vcr.HTTPClient(), 0)
+	expectedStats = &stats.Stats{
 		TotalTracks:    2,
 		TracksLoaded:   2,
 		TracksRecorded: 0,
 		TracksPlayed:   2,
 	}
-	ts.EqualValues(expectedStats, actualStats)
+	ts.EqualValues(expectedStats, vcr.Stats())
 
 	// 3rd execution of set of calls -- still offline only
-	// we've run out of tracks and we're in offline mode so we expect a transport error
+	// we've run out of tracks on the cassette and we're in offline mode so we expect a transport error
 	req, err := http.NewRequest(http.MethodGet, ts.testServer.URL, nil)
 	ts.Require().NoError(err)
-	resp, err := ts.vcr.HTTPClient().Do(req) //nolint: bodyclose
+	resp, err := vcr.HTTPClient().Do(req) //nolint: bodyclose
 	ts.Require().Error(err)
 	ts.Assert().Contains(err.Error(), "no track matched on cassette and offline mode is active")
 	ts.Assert().Nil(resp)
@@ -267,125 +265,111 @@ func (ts *GoVCRTestSuite) TestRoundTrip_ReplaysError() {
 		},
 	}
 
+	const k7Name = "temp-fixtures/TestGoVCRTestSuite.TestRoundTrip_ReplaysError.cassette.json"
+
 	for idx, tc := range tt {
 		ts.T().Run(tc.name, func(t *testing.T) {
-			cassetteName := ts.cassetteName + fmt.Sprintf("test_case_%d", idx)
-			_ = os.Remove(cassetteName)
-			defer func() { _ = os.Remove(cassetteName) }()
+			cassetteName := k7Name + fmt.Sprintf(".test_case_%d", idx)
 
 			// execute HTTP call and record on cassette
-			err := ts.vcr.LoadCassette(cassetteName)
-			ts.Require().NoError(err)
+			vcr := ts.loadCassette(cassetteName, actionDelete)
 
-			resp, err := ts.vcr.HTTPClient().Get(tc.reqURL) //nolint: bodyclose
+			resp, err := vcr.HTTPClient().Get(tc.reqURL) //nolint: bodyclose
 			ts.Require().Error(err)
 			ts.EqualError(err, tc.wantErr)
 			ts.Require().Nil(resp)
 
-			actualStats := *ts.vcr.Stats()
-			ts.vcr.EjectCassette()
-
-			expectedStats := stats.Stats{
+			expectedStats := &stats.Stats{
 				TotalTracks:    1,
 				TracksLoaded:   0,
 				TracksRecorded: 1,
 				TracksPlayed:   0,
 			}
-			ts.EqualValues(expectedStats, actualStats)
+			ts.EqualValues(expectedStats, vcr.Stats())
 
 			// replay from cassette
 			ts.Require().FileExists(cassetteName)
-			err = ts.vcr.LoadCassette(cassetteName)
-			ts.Require().NoError(err)
-			ts.EqualValues(1, ts.vcr.NumberOfTracks())
+			vcr = ts.loadCassette(cassetteName, actionKeep)
+			ts.EqualValues(1, vcr.NumberOfTracks())
 
-			resp, err = ts.vcr.HTTPClient().Get(tc.reqURL) //nolint: bodyclose
+			resp, err = vcr.HTTPClient().Get(tc.reqURL) //nolint: bodyclose
 			ts.Require().Error(err)
 			ts.EqualError(err, tc.wantVCRErr)
 			ts.Require().Nil(resp)
 
-			actualStats = *ts.vcr.Stats()
-			ts.vcr.EjectCassette()
-
-			expectedStats = stats.Stats{
+			expectedStats = &stats.Stats{
 				TotalTracks:    1,
 				TracksLoaded:   1,
 				TracksRecorded: 0,
 				TracksPlayed:   1,
 			}
-			ts.EqualValues(expectedStats, actualStats)
+			ts.EqualValues(expectedStats, vcr.Stats())
 		})
 	}
 }
 
-func (suite *GoVCRTestSuite) TestRoundTrip_ReplaysPlainResponse() {
-	// 1st execution of set of calls
-	err := suite.vcr.LoadCassette(suite.cassetteName)
-	suite.Require().NoError(err)
+func (ts *GoVCRTestSuite) TestRoundTrip_ReplaysPlainResponse() {
+	const k7Name = "temp-fixtures/TestGoVCRTestSuite.TestRoundTrip_ReplaysPlainResponse.cassette.json"
 
-	actualStats := suite.makeHTTPCalls_WithSuccess(0)
-	expectedStats := stats.Stats{
+	// 1st execution of set of calls
+	vcr := ts.loadCassette(k7Name, actionDelete)
+
+	ts.makeHTTPCalls_WithSuccess(vcr.HTTPClient(), 0)
+	expectedStats := &stats.Stats{
 		TotalTracks:    2,
 		TracksLoaded:   0,
 		TracksRecorded: 2,
 		TracksPlayed:   0,
 	}
-	suite.EqualValues(expectedStats, actualStats)
-	suite.Require().FileExists(suite.cassetteName)
-	suite.vcr.EjectCassette()
+	ts.EqualValues(expectedStats, vcr.Stats())
+	ts.Require().FileExists(k7Name)
 
 	// 2nd execution of set of calls (replayed with cassette reload)
-	err = suite.vcr.LoadCassette(suite.cassetteName)
-	suite.Require().NoError(err)
+	vcr = ts.loadCassette(k7Name, actionKeep)
 
-	actualStats = suite.makeHTTPCalls_WithSuccess(0)
-	expectedStats = stats.Stats{
+	ts.makeHTTPCalls_WithSuccess(vcr.HTTPClient(), 0)
+	expectedStats = &stats.Stats{
 		TotalTracks:    2,
 		TracksLoaded:   2,
 		TracksRecorded: 0,
 		TracksPlayed:   2,
 	}
-	suite.EqualValues(expectedStats, actualStats)
+	ts.EqualValues(expectedStats, vcr.Stats())
 
 	// 3rd execution of set of calls (replayed without cassette reload)
-	actualStats = suite.makeHTTPCalls_WithSuccess(int(expectedStats.TotalTracks)) // as we're making live requests, the sever keeps on increasing the counter
-	expectedStats = stats.Stats{
+	ts.makeHTTPCalls_WithSuccess(vcr.HTTPClient(), int(expectedStats.TotalTracks)) // as we're making live requests, the sever keeps on increasing the counter
+	expectedStats = &stats.Stats{
 		TotalTracks:    4,
 		TracksLoaded:   2,
 		TracksRecorded: 2,
 		TracksPlayed:   2,
 	}
-	suite.EqualValues(expectedStats, actualStats)
-	suite.vcr.EjectCassette()
+	ts.EqualValues(expectedStats, vcr.Stats())
 }
 
-func (suite *GoVCRTestSuite) makeHTTPCalls_WithSuccess(serverCurrentCount int) stats.Stats {
+func (ts *GoVCRTestSuite) makeHTTPCalls_WithSuccess(httpClient *http.Client, serverCurrentCount int) {
 	for i := 1; i <= 2; i++ {
-		req, err := http.NewRequest(http.MethodGet, suite.testServer.URL+fmt.Sprintf("?i=%d", i), nil)
-		suite.Require().NoError(err)
+		req, err := http.NewRequest(http.MethodGet, ts.testServer.URL+fmt.Sprintf("?i=%d", i), nil)
+		ts.Require().NoError(err)
 		req.Header.Add("header", "value")
 		req.SetBasicAuth("not_a_username", "not_a_password")
 
-		resp, err := suite.vcr.HTTPClient().Do(req)
-		suite.Require().NoError(err)
+		resp, err := httpClient.Do(req)
+		ts.Require().NoError(err)
 
-		suite.Equal(http.StatusOK, resp.StatusCode)
-		suite.EqualValues(strconv.Itoa(38+len(strconv.Itoa(i))), resp.Header.Get("Content-Length"))
-		suite.EqualValues("text/plain; charset=utf-8", resp.Header.Get("Content-Type"))
-		suite.NotEmpty(resp.Header.Get("Date"))
-		suite.EqualValues(resp.Trailer, http.Header(nil))
+		ts.Equal(http.StatusOK, resp.StatusCode)
+		ts.EqualValues(strconv.Itoa(38+len(strconv.Itoa(i))), resp.Header.Get("Content-Length"))
+		ts.EqualValues("text/plain; charset=utf-8", resp.Header.Get("Content-Type"))
+		ts.NotEmpty(resp.Header.Get("Date"))
+		ts.EqualValues(resp.Trailer, http.Header(nil))
 
 		bodyBytes, err := io.ReadAll(resp.Body)
-		suite.Require().NoError(err)
+		ts.Require().NoError(err)
 		_ = resp.Body.Close()
-		suite.Equal(fmt.Sprintf("Hello, server responds '%d' to query '%d'", serverCurrentCount+i, i), string(bodyBytes))
+		ts.Equal(fmt.Sprintf("Hello, server responds '%d' to query '%d'", serverCurrentCount+i, i), string(bodyBytes))
 
-		suite.Equal(int64(38+len(strconv.Itoa(serverCurrentCount+i))), resp.ContentLength)
-		suite.NotNil(resp.Request)
-		suite.NotNil(resp.TLS)
+		ts.Equal(int64(38+len(strconv.Itoa(serverCurrentCount+i))), resp.ContentLength)
+		ts.NotNil(resp.Request)
+		ts.NotNil(resp.TLS)
 	}
-
-	actualStats := *suite.vcr.Stats()
-
-	return actualStats
 }

@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/seborama/govcr/v9"
-	"github.com/seborama/govcr/v9/cassette/track"
+	"github.com/seborama/govcr/v10"
+	"github.com/seborama/govcr/v10/cassette/track"
 	"github.com/stretchr/testify/require"
 )
 
@@ -20,7 +20,7 @@ const exampleCassetteName3 = "temp-fixtures/TestExample3.cassette.json"
 func TestExample3(t *testing.T) {
 	// Instantiate VCR.
 	vcr := govcr.NewVCR(
-		govcr.WithCassette(exampleCassetteName3),
+		govcr.NewCassetteMaker(exampleCassetteName3),
 		govcr.WithRequestMatcher(
 			govcr.NewBlankRequestMatcher(
 				govcr.WithRequestMatcherFunc(
@@ -49,12 +49,13 @@ func TestExample3(t *testing.T) {
 	}()
 
 	// Start mock server
-	serverURL := mockServer()
+	ts := mockServer()
+	defer ts.Close()
 
 	// Run request, we will receive Status Created.
 	txID := uuid.NewString()
 
-	req, err := http.NewRequest(http.MethodGet, serverURL+"/create", nil)
+	req, err := http.NewRequest(http.MethodGet, ts.URL+"/create", nil)
 	require.NoError(t, err)
 	req.Header.Set("X-Transaction-Id", txID)
 
@@ -64,7 +65,7 @@ func TestExample3(t *testing.T) {
 	require.Equal(t, txID, resp.Header.Get("X-Transaction-Id"))
 
 	// Repeat the request, this time we'll get Status Conflict.
-	req, err = http.NewRequest(http.MethodGet, serverURL+"/get", nil)
+	req, err = http.NewRequest(http.MethodGet, ts.URL+"/get", nil)
 	require.NoError(t, err)
 	req.Header.Set("X-Transaction-Id", txID)
 	require.Equal(t, txID, resp.Header.Get("X-Transaction-Id"))
@@ -79,7 +80,7 @@ func TestExample3(t *testing.T) {
 // There is no value in reading this from a govcr point-of-view.
 //
 
-func mockServer() string {
+func mockServer() *httptest.Server {
 	txns := map[string]struct{}{}
 
 	// Create a basic test server.
@@ -107,5 +108,5 @@ func mockServer() string {
 		fmt.Fprintf(w, "created new txid: %s\n", txID)
 	}))
 
-	return ts.URL
+	return ts
 }

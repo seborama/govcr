@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,11 +14,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
-	"github.com/seborama/govcr/v9/cassette/track"
-	"github.com/seborama/govcr/v9/compression"
-	cryptoerr "github.com/seborama/govcr/v9/encryption/errors"
-	govcrerr "github.com/seborama/govcr/v9/errors"
-	"github.com/seborama/govcr/v9/stats"
+	"github.com/seborama/govcr/v10/cassette/track"
+	"github.com/seborama/govcr/v10/compression"
+	cryptoerr "github.com/seborama/govcr/v10/encryption/errors"
+	govcrerr "github.com/seborama/govcr/v10/errors"
+	"github.com/seborama/govcr/v10/stats"
 )
 
 // Cassette contains a set of tracks.
@@ -50,13 +51,20 @@ type Option func(*Cassette)
 // WithCassetteCrypter provides a crypter to encrypt/decrypt cassette content.
 func WithCassetteCrypter(crypter Crypter) Option {
 	return func(k7 *Cassette) {
+		if k7.crypter != nil {
+			log.Println("notice: setting a crypter but another one had already been registered - this is incorrect usage")
+		}
+
 		k7.crypter = crypter
 	}
 }
 
 // NewCassette creates a ready to use new cassette.
 func NewCassette(name string, opts ...Option) *Cassette {
-	k7 := Cassette{name: name, trackSliceMutex: sync.RWMutex{}}
+	k7 := Cassette{
+		name:            name,
+		trackSliceMutex: sync.RWMutex{},
+	}
 
 	for _, option := range opts {
 		option(&k7)
@@ -262,6 +270,10 @@ func (k7 *Cassette) Name() string {
 // readCassetteFile reads the cassette file, if present or
 // returns a blank cassette.
 func (k7 *Cassette) readCassetteFile(cassetteName string) error {
+	if cassetteName == "" {
+		return errors.New("a cassette name is required")
+	}
+
 	data, err := os.ReadFile(cassetteName) // nolint:gosec
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -384,7 +396,7 @@ func LoadCassette(cassetteName string, opts ...Option) *Cassette {
 
 	err := k7.readCassetteFile(cassetteName)
 	if err != nil {
-		panic(fmt.Sprintf("unable to load corrupted cassette '%s': %+v", cassetteName, err))
+		panic(fmt.Sprintf("unable to invalid / load corrupted cassette '%s': %+v", cassetteName, err))
 	}
 
 	// initial stats

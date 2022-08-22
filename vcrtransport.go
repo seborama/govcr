@@ -5,9 +5,10 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/seborama/govcr/v9/cassette"
-	"github.com/seborama/govcr/v9/cassette/track"
-	"github.com/seborama/govcr/v9/stats"
+	"github.com/seborama/govcr/v10/cassette"
+	"github.com/seborama/govcr/v10/cassette/track"
+	govcrerr "github.com/seborama/govcr/v10/errors"
+	"github.com/seborama/govcr/v10/stats"
 )
 
 // vcrTransport is the heart of VCR. It implements
@@ -23,6 +24,10 @@ type vcrTransport struct {
 // RoundTrip is an implementation of http.RoundTripper.
 // Note: by convention resp should be nil if an error occurs with HTTP.
 func (t *vcrTransport) RoundTrip(httpRequest *http.Request) (*http.Response, error) {
+	if t.cassette == nil {
+		return nil, govcrerr.NewErrGoVCR("invalid VCR state: no cassette loaded")
+	}
+
 	httpRequestClone := track.CloneHTTPRequest(httpRequest)
 
 	// search for a matching track on cassette if liveOnly mode is not selected
@@ -63,21 +68,6 @@ func (t *vcrTransport) RoundTrip(httpRequest *http.Request) (*http.Response, err
 // NumberOfTracks returns the number of tracks contained in the cassette.
 func (t *vcrTransport) NumberOfTracks() int32 {
 	return t.cassette.NumberOfTracks()
-}
-
-func (t *vcrTransport) loadCassette(cassetteName string, opts ...cassette.Option) error {
-	if t.cassette != nil {
-		return errors.Errorf("failed to load cassette '%s': another cassette ('%s') is already loaded", cassetteName, t.cassette.Name())
-	}
-
-	k7 := cassette.LoadCassette(cassetteName, opts...)
-	t.cassette = k7
-
-	return nil
-}
-
-func (t *vcrTransport) ejectCassette() {
-	t.cassette = nil
 }
 
 // SetRequestMatcher sets a new RequestMatcher to the VCR.
