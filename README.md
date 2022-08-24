@@ -162,8 +162,7 @@ This structure contains parameters for configuring your **govcr** recorder.
 Settings are populated via `With*` options:
 
 - Use `WithClient` to provide a custom http.Client otherwise the default Go http.Client will be used.
-- `WithCassette` loads the specified cassette.\
-  Note that it is also possible to call `LoadCassette` from the vcr instance.
+- `WithCassette` loads the specified cassette.
 - See `vcrsettings.go` for more options such as `WithRequestMatcher`, `WithTrackRecordingMutators`, `WithTrackReplayingMutators`, ...
 - TODO: `WithLogging` enables logging to help understand what **govcr** is doing internally.
 
