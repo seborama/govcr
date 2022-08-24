@@ -1,6 +1,7 @@
 package govcr_test
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -15,6 +16,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/seborama/govcr/v10"
+	"github.com/seborama/govcr/v10/encryption"
 	"github.com/seborama/govcr/v10/stats"
 )
 
@@ -91,6 +93,43 @@ func TestVCRControlPanel_HTTPClient(t *testing.T) {
 	vcr := govcr.NewVCR(govcr.NewCassetteMaker("./temp-fixtures/TestVCRControlPanel_HTTPClient.cassette"))
 	unit := vcr.HTTPClient()
 	assert.IsType(t, (*http.Client)(nil), unit)
+}
+
+func TestChangeCrypto(t *testing.T) {
+	const cassetteName = "./test-fixtures/TestChangeCrypto.cassette"
+
+	_ = os.Remove(cassetteName)
+
+	vcr := govcr.NewVCR(
+		govcr.NewCassetteMaker(
+			cassetteName).
+			WithCassetteCrypto(
+				encryption.NewAESGCMWithRandomNonceGenerator,
+				"test-fixtures/TestChangeCrypto.key"),
+	)
+
+	err := vcr.ChangeCrypto(
+		encryption.NewChaCha20Poly1305WithRandomNonceGenerator,
+		"test-fixtures/TestExample4.unsafe.key",
+	)
+	require.NoError(t, err)
+
+}
+
+func getCassetteCrypto(cassetteName string) string {
+	data, err := os.ReadFile(cassetteName)
+	if err != nil {
+		panic(err)
+	}
+
+	marker := "$ENC:V2$"
+
+	if !bytes.HasPrefix(data, []byte(marker)) {
+		panic("cassette does not have expected encryption marker")
+	}
+
+	pos := len(marker)
+	return string(data[pos : pos+int(data[len(marker)])])
 }
 
 type GoVCRTestSuite struct {
