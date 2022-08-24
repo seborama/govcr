@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/seborama/govcr/v9/cassette/track"
+	"github.com/seborama/govcr/v10/cassette/track"
 )
 
 func Test_Mutator_On(t *testing.T) {

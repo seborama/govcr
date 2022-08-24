@@ -11,7 +11,7 @@ import (
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh"
 
-	cryptoerr "github.com/seborama/govcr/v9/encryption/errors"
+	cryptoerr "github.com/seborama/govcr/v10/encryption/errors"
 )
 
 // nolint: deadcode

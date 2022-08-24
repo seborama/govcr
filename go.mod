@@ -1,4 +1,4 @@
-module github.com/seborama/govcr/v9
+module github.com/seborama/govcr/v10
 
 go 1.17
 

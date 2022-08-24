@@ -1,13 +1,10 @@
 package govcr
 
 import (
-	"fmt"
 	"net/http"
-	"os"
 
-	"github.com/seborama/govcr/v9/cassette"
-	"github.com/seborama/govcr/v9/cassette/track"
-	"github.com/seborama/govcr/v9/encryption"
+	"github.com/seborama/govcr/v10/cassette"
+	"github.com/seborama/govcr/v10/cassette/track"
 )
 
 // Setting defines an optional functional parameter as received by NewVCR().
@@ -18,89 +15,6 @@ type Setting func(vcrSettings *VCRSettings)
 func WithClient(httpClient *http.Client) Setting {
 	return func(vcrSettings *VCRSettings) {
 		vcrSettings.client = httpClient
-	}
-}
-
-// CassetteConfig contains various configurable elements of a cassette.
-type CassetteConfig struct {
-	Crypter cassette.Crypter
-}
-
-// CassetteOption allows to modify a cassette config.
-type CassetteOption func(cfg *CassetteConfig)
-
-// CrypterProvider is the signature of a cipher provider function with default nonce generator.
-// Examples are encryption.NewAESGCMWithRandomNonceGenerator and
-// encryption.NewChaCha20Poly1305WithRandomNonceGenerator.
-type CrypterProvider func(key []byte) (*encryption.Crypter, error)
-
-// WithCassetteCrypto creates a cassette cryptographer with the specified cipher function
-// and key file.
-func WithCassetteCrypto(crypter CrypterProvider, keyFile string) CassetteOption {
-	return func(cfg *CassetteConfig) {
-		key, err := os.ReadFile(keyFile)
-		if err != nil {
-			panic(fmt.Sprintf("%+v", err))
-		}
-
-		crypter, err := crypter(key)
-		if err != nil {
-			panic(fmt.Sprintf("%+v", err))
-		}
-
-		cfg.Crypter = crypter
-	}
-}
-
-// CrypterNonceProvider is the signature of a cipher provider function with custom nonce generator.
-// Examples are encryption.NewAESGCM and encryption.NewChaCha20Poly1305.
-type CrypterNonceProvider func(key []byte, nonceGenerator encryption.NonceGenerator) (*encryption.Crypter, error)
-
-// WithCassetteCryptoCustomNonce creates a cassette cryptographer with the specified key file and
-// customer nonce generator.
-func WithCassetteCryptoCustomNonce(crypterNonce CrypterNonceProvider, keyFile string, nonceGenerator encryption.NonceGenerator) CassetteOption {
-	return func(cfg *CassetteConfig) {
-		key, err := os.ReadFile(keyFile)
-		if err != nil {
-			panic(fmt.Sprintf("%+v", err))
-		}
-
-		crypter, err := crypterNonce(key, nonceGenerator)
-		if err != nil {
-			panic(fmt.Sprintf("%+v", err))
-		}
-
-		cfg.Crypter = crypter
-	}
-}
-
-// ToCassetteOptions takes a list of CassetteOption and returns a slice of
-// cassette.Option's, ready to pass to cassette initialisation.
-func ToCassetteOptions(opts ...CassetteOption) []cassette.Option {
-	cfg := &CassetteConfig{}
-
-	for _, opt := range opts {
-		opt(cfg)
-	}
-
-	var k7Opts []cassette.Option
-
-	if cfg.Crypter != nil {
-		k7Opts = append(k7Opts, cassette.WithCassetteCrypter(cfg.Crypter))
-	}
-
-	return k7Opts
-}
-
-// WithCassette is an optional functional parameter to provide a VCR with
-// a cassette to load.
-// Cassette options may be provided (e.g. cryptography).
-func WithCassette(cassetteName string, opts ...CassetteOption) Setting {
-	return func(vcrSettings *VCRSettings) {
-		k7Opts := ToCassetteOptions(opts...)
-
-		k7 := cassette.LoadCassette(cassetteName, k7Opts...)
-		vcrSettings.cassette = k7
 	}
 }
 

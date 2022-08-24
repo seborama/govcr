@@ -3,8 +3,8 @@ package govcr
 import (
 	"net/http"
 
-	"github.com/seborama/govcr/v9/cassette/track"
-	"github.com/seborama/govcr/v9/stats"
+	"github.com/seborama/govcr/v10/cassette/track"
+	"github.com/seborama/govcr/v10/stats"
 )
 
 // ControlPanel holds the parts of a VCR that can be interacted with.
@@ -16,15 +16,6 @@ type ControlPanel struct {
 // Stats returns Stats about the cassette and VCR session.
 func (controlPanel *ControlPanel) Stats() *stats.Stats {
 	return controlPanel.vcrTransport().stats()
-}
-
-// LoadCassette into the VCR.
-// Cassette options may be provided (e.g. cryptography).
-// Note: cassette.LoadCassette panics if the cassette exists but fails to load.
-func (controlPanel *ControlPanel) LoadCassette(cassetteName string, opts ...CassetteOption) error {
-	k7Opts := ToCassetteOptions(opts...)
-
-	return controlPanel.vcrTransport().loadCassette(cassetteName, k7Opts...)
 }
 
 // SetRequestMatcher sets a new RequestMatcher to the VCR.
@@ -88,11 +79,6 @@ func (controlPanel *ControlPanel) ClearReplayingMutators() {
 // HTTPClient returns the http.Client that contains the VCR.
 func (controlPanel *ControlPanel) HTTPClient() *http.Client {
 	return controlPanel.client
-}
-
-// EjectCassette from the VCR.
-func (controlPanel *ControlPanel) EjectCassette() {
-	controlPanel.vcrTransport().ejectCassette()
 }
 
 // NumberOfTracks returns the number of tracks contained in the cassette.

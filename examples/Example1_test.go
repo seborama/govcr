@@ -4,10 +4,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/seborama/govcr/v9"
-	"github.com/seborama/govcr/v9/stats"
+	"github.com/seborama/govcr/v10"
+	"github.com/seborama/govcr/v10/stats"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const exampleCassetteName1 = "temp-fixtures/TestExample1.cassette.json"
@@ -17,7 +16,7 @@ func TestExample1(t *testing.T) {
 	_ = os.Remove(exampleCassetteName1)
 
 	vcr := govcr.NewVCR(
-		govcr.WithCassette(exampleCassetteName1),
+		govcr.NewCassetteMaker(exampleCassetteName1),
 		govcr.WithRequestMatcher(govcr.NewMethodURLRequestMatcher()), // use a "relaxed" request matcher
 	)
 
@@ -36,9 +35,10 @@ func TestExample1(t *testing.T) {
 
 	// The second request will be transparently replayed from the cassette by govcr
 	// No live HTTP request is placed to the live server
-	vcr.EjectCassette()
-	err := vcr.LoadCassette(exampleCassetteName1)
-	require.NoError(t, err)
+	vcr = govcr.NewVCR(
+		govcr.NewCassetteMaker(exampleCassetteName1),
+		govcr.WithRequestMatcher(govcr.NewMethodURLRequestMatcher()), // use a "relaxed" request matcher
+	)
 
 	vcr.HTTPClient().Get("http://example.com/foo")
 	assert.Equal(

@@ -22,3 +22,7 @@ test: deps cover
 
 lint: deps
 	./golangci-lint.sh || :
+
+bin: deps
+	go build -o bin/govcr ./cmd/govcr/...
+

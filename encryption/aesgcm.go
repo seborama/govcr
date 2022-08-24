@@ -4,7 +4,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 
-	cryptoerr "github.com/seborama/govcr/v9/encryption/errors"
+	cryptoerr "github.com/seborama/govcr/v10/encryption/errors"
 )
 
 // NewAESGCMWithRandomNonceGenerator creates a new Cryptor initialised with an
