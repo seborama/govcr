@@ -124,12 +124,12 @@ func (ts *GoVCRTestSuite) TearDownTest() {
 type action int
 
 const (
-	actionKeep = iota
-	actionDelete
+	actionKeepCassette = iota
+	actionDeleteCassette
 )
 
-func (ts *GoVCRTestSuite) loadCassette(cassetteName string, a action) *govcr.ControlPanel {
-	if a == actionDelete {
+func (ts *GoVCRTestSuite) newVCR(cassetteName string, a action) *govcr.ControlPanel {
+	if a == actionDeleteCassette {
 		_ = os.Remove(cassetteName)
 	}
 
@@ -145,7 +145,7 @@ func (ts *GoVCRTestSuite) loadCassette(cassetteName string, a action) *govcr.Con
 func (ts *GoVCRTestSuite) TestVCR_ReadOnlyMode() {
 	const k7Name = "temp-fixtures/TestGoVCRTestSuite.TestVCR_ReadOnlyMode.cassette.json"
 
-	vcr := ts.loadCassette(k7Name, actionDelete)
+	vcr := ts.newVCR(k7Name, actionDeleteCassette)
 	vcr.SetReadOnlyMode(true)
 
 	resp, err := vcr.HTTPClient().Get(ts.testServer.URL)
@@ -166,7 +166,7 @@ func (ts *GoVCRTestSuite) TestVCR_LiveOnlyMode() {
 	const k7Name = "temp-fixtures/TestGoVCRTestSuite.TestVCR_LiveOnlyMode.cassette.json"
 
 	// 1st execution of set of calls
-	vcr := ts.loadCassette(k7Name, actionDelete)
+	vcr := ts.newVCR(k7Name, actionDeleteCassette)
 	vcr.SetLiveOnlyMode()
 	vcr.SetRequestMatcher(govcr.NewBlankRequestMatcher()) // ensure always matching
 
@@ -181,7 +181,7 @@ func (ts *GoVCRTestSuite) TestVCR_LiveOnlyMode() {
 	ts.Require().FileExists(k7Name)
 
 	// 2nd execution of set of calls
-	vcr = ts.loadCassette(k7Name, actionKeep)
+	vcr = ts.newVCR(k7Name, actionKeepCassette)
 	vcr.SetLiveOnlyMode()
 	vcr.SetRequestMatcher(govcr.NewBlankRequestMatcher()) // ensure always matching
 
@@ -199,7 +199,7 @@ func (ts *GoVCRTestSuite) TestVCR_OfflineMode() {
 	const k7Name = "temp-fixtures/TestGoVCRTestSuite.TestVCR_OfflineMode.cassette.json"
 
 	// 1st execution of set of calls - populate cassette
-	vcr := ts.loadCassette(k7Name, actionDelete)
+	vcr := ts.newVCR(k7Name, actionDeleteCassette)
 	vcr.SetRequestMatcher(govcr.NewBlankRequestMatcher()) // ensure always matching
 	vcr.SetNormalMode()                                   // get data in the cassette
 
@@ -214,7 +214,7 @@ func (ts *GoVCRTestSuite) TestVCR_OfflineMode() {
 	ts.Require().FileExists(k7Name)
 
 	// 2nd execution of set of calls -- offline only
-	vcr = ts.loadCassette(k7Name, actionKeep)
+	vcr = ts.newVCR(k7Name, actionKeepCassette)
 	vcr.SetOfflineMode()
 
 	ts.makeHTTPCalls_WithSuccess(vcr.HTTPClient(), 0)
@@ -272,7 +272,7 @@ func (ts *GoVCRTestSuite) TestRoundTrip_ReplaysError() {
 			cassetteName := k7Name + fmt.Sprintf(".test_case_%d", idx)
 
 			// execute HTTP call and record on cassette
-			vcr := ts.loadCassette(cassetteName, actionDelete)
+			vcr := ts.newVCR(cassetteName, actionDeleteCassette)
 
 			resp, err := vcr.HTTPClient().Get(tc.reqURL) //nolint: bodyclose
 			ts.Require().Error(err)
@@ -289,7 +289,7 @@ func (ts *GoVCRTestSuite) TestRoundTrip_ReplaysError() {
 
 			// replay from cassette
 			ts.Require().FileExists(cassetteName)
-			vcr = ts.loadCassette(cassetteName, actionKeep)
+			vcr = ts.newVCR(cassetteName, actionKeepCassette)
 			ts.EqualValues(1, vcr.NumberOfTracks())
 
 			resp, err = vcr.HTTPClient().Get(tc.reqURL) //nolint: bodyclose
@@ -312,7 +312,7 @@ func (ts *GoVCRTestSuite) TestRoundTrip_ReplaysPlainResponse() {
 	const k7Name = "temp-fixtures/TestGoVCRTestSuite.TestRoundTrip_ReplaysPlainResponse.cassette.json"
 
 	// 1st execution of set of calls
-	vcr := ts.loadCassette(k7Name, actionDelete)
+	vcr := ts.newVCR(k7Name, actionDeleteCassette)
 
 	ts.makeHTTPCalls_WithSuccess(vcr.HTTPClient(), 0)
 	expectedStats := &stats.Stats{
@@ -325,7 +325,7 @@ func (ts *GoVCRTestSuite) TestRoundTrip_ReplaysPlainResponse() {
 	ts.Require().FileExists(k7Name)
 
 	// 2nd execution of set of calls (replayed with cassette reload)
-	vcr = ts.loadCassette(k7Name, actionKeep)
+	vcr = ts.newVCR(k7Name, actionKeepCassette)
 
 	ts.makeHTTPCalls_WithSuccess(vcr.HTTPClient(), 0)
 	expectedStats = &stats.Stats{

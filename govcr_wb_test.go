@@ -53,12 +53,12 @@ func (ts *GoVCRWBTestSuite) TearDownTest() {
 type action int
 
 const (
-	actionKeep = iota
-	actionDelete
+	actionKeepCassette = iota
+	actionDeleteCassette
 )
 
-func (ts *GoVCRWBTestSuite) loadCassette(cassetteName string, a action) *ControlPanel {
-	if a == actionDelete {
+func (ts *GoVCRWBTestSuite) newVCR(cassetteName string, a action) *ControlPanel {
+	if a == actionDeleteCassette {
 		_ = os.Remove(cassetteName)
 	}
 
@@ -102,7 +102,7 @@ func (ts *GoVCRWBTestSuite) TestRoundTrip_RequestMatcherDoesNotMutateState() {
 	}
 
 	// 1st call - live
-	vcr := ts.loadCassette(cassetteName, actionDelete)
+	vcr := ts.newVCR(cassetteName, actionDeleteCassette)
 	vcr.SetLiveOnlyMode()                    // ensure we record one track so we can have a request matcher execution later (no track on cassette = no request matching)
 	vcr.SetRequestMatcher(reqMatcher(false)) // false: we want to attempt but not satisfy request matching so to check if the live request was altered
 
@@ -135,7 +135,7 @@ func (ts *GoVCRWBTestSuite) TestRoundTrip_RequestMatcherDoesNotMutateState() {
 	vcrResp.Body = nil
 
 	// 2nd call - live
-	vcr = ts.loadCassette(cassetteName, actionKeep)
+	vcr = ts.newVCR(cassetteName, actionKeepCassette)
 	vcr.SetNormalMode()                      // ensure we attempt request matching
 	vcr.SetRequestMatcher(reqMatcher(false)) // false: we want to attempt but not satisfy request matching so to check if the live request was altered
 
@@ -166,7 +166,7 @@ func (ts *GoVCRWBTestSuite) TestRoundTrip_RequestMatcherDoesNotMutateState() {
 	ts.Require().EqualValues(vcrResp, vcrResp2)
 
 	// 3rd call - replayed
-	vcr = ts.loadCassette(cassetteName, actionKeep)
+	vcr = ts.newVCR(cassetteName, actionKeepCassette)
 	vcr.SetOfflineMode()
 
 	requestMatcherCount = 0
@@ -206,7 +206,7 @@ func (ts *GoVCRWBTestSuite) TestRoundTrip_WithRecordingAndReplayingMutations() {
 	const cassetteName = "temp-fixtures/TestRoundTrip_WithRecordingAndReplayingMutations.cassette.json"
 
 	// 1st execution of set of calls
-	vcr := ts.loadCassette(cassetteName, actionDelete)
+	vcr := ts.newVCR(cassetteName, actionDeleteCassette)
 	vcr.SetRecordingMutators(trackMutator)
 
 	ts.makeHTTPCalls_WithSuccess(vcr.HTTPClient())
@@ -219,7 +219,7 @@ func (ts *GoVCRWBTestSuite) TestRoundTrip_WithRecordingAndReplayingMutations() {
 	ts.Require().EqualValues(expectedStats, vcr.Stats())
 
 	// load the cassette and verify contents has been mutated.
-	vcr = ts.loadCassette(cassetteName, actionKeep)
+	vcr = ts.newVCR(cassetteName, actionKeepCassette)
 	vcr.SetRecordingMutators(trackMutator)
 
 	// note: remember that it usually doesn't make sense to modify the request in the replaying track mutator
@@ -250,7 +250,7 @@ func (ts *GoVCRWBTestSuite) TestRoundTrip_SavesAndReplaysMutatedTracksToCassette
 	const cassetteName = "temp-fixtures/TestRoundTrip_SavesAndReplaysMutatedTracksToCassette.cassette.json"
 
 	// 1st execution of set of calls
-	vcr := ts.loadCassette(cassetteName, actionDelete)
+	vcr := ts.newVCR(cassetteName, actionDeleteCassette)
 	vcr.SetRecordingMutators(trackMutator)
 
 	ts.makeHTTPCalls_WithSuccess(vcr.HTTPClient())
@@ -263,7 +263,7 @@ func (ts *GoVCRWBTestSuite) TestRoundTrip_SavesAndReplaysMutatedTracksToCassette
 	ts.Require().EqualValues(expectedStats, vcr.Stats())
 
 	// load the cassette and verify contents has been mutated.
-	vcr = ts.loadCassette(cassetteName, actionKeep)
+	vcr = ts.newVCR(cassetteName, actionKeepCassette)
 	vcr.SetRecordingMutators(trackMutator)
 
 	tracks := vcr.vcrTransport().cassette.Tracks
