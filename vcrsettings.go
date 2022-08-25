@@ -27,6 +27,17 @@ func WithRequestMatcher(matcher RequestMatcher) Setting {
 	}
 }
 
+// WithRequestMatcherFuncs is syntactic sugar for
+// WithRequestMatcher(NewRequestMatcherCollection(...)).
+// It allows to add a RequestMatcher straight from a collection of RequestMatcherFunc.
+//
+// See also: WithRequestMatcher and NewRequestMatcherCollection.
+func WithRequestMatcherFuncs(matcherFuncs ...RequestMatcherFunc) Setting {
+	return func(vcrSettings *VCRSettings) {
+		vcrSettings.requestMatcher = NewRequestMatcherCollection(matcherFuncs...)
+	}
+}
+
 // WithTrackRecordingMutators is an optional functional parameter to provide a VCR with
 // a set of track mutators applied when recording a track to a cassette.
 func WithTrackRecordingMutators(trackRecordingMutators ...track.Mutator) Setting {

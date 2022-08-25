@@ -77,27 +77,25 @@ func (ts *GoVCRWBTestSuite) TestRoundTrip_RequestMatcherDoesNotMutateState() {
 
 	requestMatcherCount := 0
 
-	reqMatcher := func(outcome bool) *DefaultRequestMatcher {
-		return NewBlankRequestMatcher(
-			WithRequestMatcherFunc(
-				// attempt to mutate state
-				func(httpRequest, trackRequest *track.Request) bool {
-					requestMatcherCount++
+	reqMatcher := func(outcome bool) *RequestMatcherCollection {
+		return NewRequestMatcherCollection(
+			// attempt to mutate state
+			func(httpRequest, trackRequest *track.Request) bool {
+				requestMatcherCount++
 
-					httpRequest.Method = "test"
-					httpRequest.URL = &url.URL{}
-					httpRequest.Body = nil
+				httpRequest.Method = "test"
+				httpRequest.URL = &url.URL{}
+				httpRequest.Body = nil
 
-					trackRequest.Method = "test"
-					trackRequest.URL = &url.URL{}
-					trackRequest.Body = nil
+				trackRequest.Method = "test"
+				trackRequest.URL = &url.URL{}
+				trackRequest.Body = nil
 
-					httpRequest = &track.Request{}  //nolint:staticcheck
-					trackRequest = &track.Request{} //nolint:staticcheck
+				httpRequest = &track.Request{}  //nolint:staticcheck
+				trackRequest = &track.Request{} //nolint:staticcheck
 
-					return outcome
-				},
-			),
+				return outcome
+			},
 		)
 	}
 

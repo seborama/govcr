@@ -21,19 +21,15 @@ func TestExample3(t *testing.T) {
 	// Instantiate VCR.
 	vcr := govcr.NewVCR(
 		govcr.NewCassetteLoader(exampleCassetteName3),
-		govcr.WithRequestMatcher(
-			govcr.NewBlankRequestMatcher(
-				govcr.WithRequestMatcherFunc(
-					func(httpRequest, trackRequest *track.Request) bool {
-						// Remove the header from comparison.
-						// Note: this removal is only scoped to the request matcher, it does not affect the original HTTP request
-						httpRequest.Header.Del("X-Transaction-Id")
-						trackRequest.Header.Del("X-Transaction-Id")
+		govcr.WithRequestMatcherFuncs(
+			func(httpRequest, trackRequest *track.Request) bool {
+				// Remove the header from comparison.
+				// Note: this removal is only scoped to the request matcher, it does not affect the original HTTP request
+				httpRequest.Header.Del("X-Transaction-Id")
+				trackRequest.Header.Del("X-Transaction-Id")
 
-						return govcr.DefaultHeaderMatcher(httpRequest, trackRequest)
-					},
-				),
-			),
+				return govcr.DefaultHeaderMatcher(httpRequest, trackRequest)
+			},
 		),
 		govcr.WithTrackReplayingMutators(
 			// Note: although we deleted the headers in the request matcher, this was limited to the scope of

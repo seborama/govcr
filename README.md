@@ -74,7 +74,6 @@ This project is an adaptation for Google's Go / Golang programming language.
 
 ```go
 // See TestExample1 in tests for fully working example.
-
 func TestExample1() {
     vcr := govcr.NewVCR(
         govcr.NewCassetteLoader("MyCassette1.json"),
@@ -267,7 +266,6 @@ VCR will wrap your `http.Client`. You should use `vcr.HTTPClient()` in your test
 
 ```go
 // See TestExample2 in tests for fully working example.
-
 func TestExample2() {
     // Create a custom http.Transport for our app.
     tr := http.DefaultTransport.(*http.Transport)
@@ -394,24 +392,11 @@ At time of creating a new VCR with **govcr**:
 
 ```go
 // See TestExample4 in tests for fully working example.
-
 vcr := govcr.NewVCR(
     govcr.NewCassetteLoader(exampleCassetteName4).
         WithCipher(
             encryption.NewChaCha20Poly1305WithRandomNonceGenerator,
             "test-fixtures/TestExample4.unsafe.key"),
-)
-```
-
-Or, at time of loading a cassette from the `ControlPanel`:
-
-```go
-// See TestExample4 in tests for fully working example.
-err := vcr.LoadCassette(
-    exampleCassetteName4,
-    govcr.WithCipher(
-        encryption.NewChaCha20Poly1305WithRandomNonceGenerator,
-        "test-fixtures/TestExample4.unsafe.key"),
 )
 ```
 
@@ -427,11 +412,11 @@ Example (this can also be achieved in the same way with the `ControlPanel`):
 type myNonceGenerator struct{}
 
 func (ng myNonceGenerator) Generate() ([]byte, error) {
-	nonce := make([]byte, 12)
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		return nil, err
-	}
-	return nonce, nil
+    nonce := make([]byte, 12)
+    if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+        return nil, err
+    }
+    return nonce, nil
 }
 
 vcr := govcr.NewVCR(
@@ -478,10 +463,10 @@ This example shows how to handle situations where a header in the request needs 
 This could be necessary because the header value is not predictable or changes for each request.
 
 ```go
-vcr.SetRequestMatcher(NewBlankRequestMatcher(
-    WithRequestMatcherFunc(DefaultMethodMatcher),
-    WithRequestMatcherFunc(DefaultURLMatcher),
-    WithRequestMatcherFunc(
+vcr.SetRequestMatcher(
+    govcr.NewRequestMatcherCollection(
+        govcr.DefaultMethodMatcher,
+        govcr.DefaultURLMatcher,
         func(httpRequest, trackRequest *track.Request) bool {
             // we can safely mutate our inputs:
             // mutations affect other RequestMatcherFunc's but _not_ the
@@ -492,7 +477,7 @@ vcr.SetRequestMatcher(NewBlankRequestMatcher(
             return govcr.DefaultHeaderMatcher(httpRequest, trackRequest)
         },
     ),
-))
+)
 ```
 
 [(toc)](#table-of-content)
@@ -511,24 +496,17 @@ How you specifically tackle this in practice really depends on how the API you a
 
 ```go
 // See TestExample3 in tests for fully working example.
-
-func TestExample3(t *testing.T) {
-// Instantiate VCR.
 vcr := govcr.NewVCR(
     govcr.NewCassetteLoader(exampleCassetteName3),
-    govcr.WithRequestMatcher(
-        govcr.NewBlankRequestMatcher(
-            govcr.WithRequestMatcherFunc(
-                func(httpRequest, trackRequest *track.Request) bool {
-                    // Remove the header from comparison.
-                    // Note: this removal is only scoped to the request matcher, it does not affect the original HTTP request
-                    httpRequest.Header.Del("X-Transaction-Id")
-                    trackRequest.Header.Del("X-Transaction-Id")
+    govcr.WithRequestMatcherFuncs(
+        func(httpRequest, trackRequest *track.Request) bool {
+            // Remove the header from comparison.
+            // Note: this removal is only scoped to the request matcher, it does not affect the original HTTP request
+            httpRequest.Header.Del("X-Transaction-Id")
+            trackRequest.Header.Del("X-Transaction-Id")
 
-                    return govcr.DefaultHeaderMatcher(httpRequest, trackRequest)
-                },
-            ),
-        ),
+            return govcr.DefaultHeaderMatcher(httpRequest, trackRequest)
+        },
     ),
     govcr.WithTrackReplayingMutators(
         // Note: although we deleted the headers in the request matcher, this was limited to the scope of

@@ -168,7 +168,7 @@ func (ts *GoVCRTestSuite) TestVCR_LiveOnlyMode() {
 	// 1st execution of set of calls
 	vcr := ts.newVCR(k7Name, actionDeleteCassette)
 	vcr.SetLiveOnlyMode()
-	vcr.SetRequestMatcher(govcr.NewBlankRequestMatcher()) // ensure always matching
+	vcr.SetRequestMatcher(govcr.NewRequestMatcherCollection()) // ensure always matching
 
 	ts.makeHTTPCalls_WithSuccess(vcr.HTTPClient(), 0)
 	expectedStats := &stats.Stats{
@@ -183,7 +183,7 @@ func (ts *GoVCRTestSuite) TestVCR_LiveOnlyMode() {
 	// 2nd execution of set of calls
 	vcr = ts.newVCR(k7Name, actionKeepCassette)
 	vcr.SetLiveOnlyMode()
-	vcr.SetRequestMatcher(govcr.NewBlankRequestMatcher()) // ensure always matching
+	vcr.SetRequestMatcher(govcr.NewRequestMatcherCollection()) // ensure always matching
 
 	ts.makeHTTPCalls_WithSuccess(vcr.HTTPClient(), 2) // as we're making live requests, the sever keeps on increasing the counter
 	expectedStats = &stats.Stats{
@@ -200,8 +200,8 @@ func (ts *GoVCRTestSuite) TestVCR_OfflineMode() {
 
 	// 1st execution of set of calls - populate cassette
 	vcr := ts.newVCR(k7Name, actionDeleteCassette)
-	vcr.SetRequestMatcher(govcr.NewBlankRequestMatcher()) // ensure always matching
-	vcr.SetNormalMode()                                   // get data in the cassette
+	vcr.SetRequestMatcher(govcr.NewRequestMatcherCollection()) // ensure always matching
+	vcr.SetNormalMode()                                        // get data in the cassette
 
 	ts.makeHTTPCalls_WithSuccess(vcr.HTTPClient(), 0)
 	expectedStats := &stats.Stats{
