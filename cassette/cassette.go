@@ -48,8 +48,8 @@ type Crypter interface {
 // to create a new Cassette.
 type Option func(*Cassette)
 
-// WithCassetteCrypter provides a crypter to encrypt/decrypt cassette content.
-func WithCassetteCrypter(crypter Crypter) Option {
+// WithCrypter provides a crypter to encrypt/decrypt cassette content.
+func WithCrypter(crypter Crypter) Option {
 	return func(k7 *Cassette) {
 		if k7.crypter != nil {
 			log.Println("notice: setting a crypter but another one had already been registered - this is incorrect usage")

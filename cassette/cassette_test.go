@@ -132,7 +132,7 @@ func Test_cassette_Encryption(t *testing.T) {
 	c, err := encryption.NewAESGCMWithRandomNonceGenerator(key)
 	require.NoError(t, err)
 
-	k7 := cassette.NewCassette(cassetteName, cassette.WithCassetteCrypter(c))
+	k7 := cassette.NewCassette(cassetteName, cassette.WithCrypter(c))
 
 	trk := &track.Track{}
 
@@ -142,7 +142,7 @@ func Test_cassette_Encryption(t *testing.T) {
 	// STEP 2: ensure cassette loads.
 	var k8 *cassette.Cassette
 	require.NotPanics(t, func() {
-		k8 = cassette.LoadCassette(cassetteName, cassette.WithCassetteCrypter(c))
+		k8 = cassette.LoadCassette(cassetteName, cassette.WithCrypter(c))
 	})
 
 	// STEP 3: perform high and low-level validation checks on cassette file.
@@ -187,7 +187,7 @@ func Test_cassette_CanEncryptPlainCassette(t *testing.T) {
 	c, err := encryption.NewAESGCMWithRandomNonceGenerator(key)
 	require.NoError(t, err)
 
-	k7 = cassette.LoadCassette(cassetteName, cassette.WithCassetteCrypter(c))
+	k7 = cassette.LoadCassette(cassetteName, cassette.WithCrypter(c))
 
 	trk = &track.Track{UUID: "trk-2"}
 
@@ -197,7 +197,7 @@ func Test_cassette_CanEncryptPlainCassette(t *testing.T) {
 	// STEP 2: ensure cassette loads.
 	var k8 *cassette.Cassette
 	require.NotPanics(t, func() {
-		k8 = cassette.LoadCassette(cassetteName, cassette.WithCassetteCrypter(c))
+		k8 = cassette.LoadCassette(cassetteName, cassette.WithCrypter(c))
 	})
 
 	// STEP 3: perform high and low-level validation checks on cassette file.

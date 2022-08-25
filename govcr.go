@@ -57,7 +57,7 @@ func (cb *CassetteLoader) WithCipherCustomNonce(crypterNonce CrypterNonceProvide
 		panic(fmt.Sprintf("%+v", err))
 	}
 
-	cb.opts = append(cb.opts, cassette.WithCassetteCrypter(cr))
+	cb.opts = append(cb.opts, cassette.WithCrypter(cr))
 
 	return cb
 }
