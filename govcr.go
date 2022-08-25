@@ -31,22 +31,22 @@ func NewCassetteLoader(cassetteName string) *CassetteLoader {
 	}
 }
 
-// WithCassetteCrypto creates a cassette cryptographer with the specified cipher function
+// WithCipher creates a cassette cryptographer with the specified cipher function
 // and key file.
-// Only use WithCassetteCrypto or WithCassetteCrypto*. Using both is ambiguous.
-func (cb *CassetteLoader) WithCassetteCrypto(crypter CrypterProvider, keyFile string) *CassetteLoader {
+// Using more than one WithCipher* on the same cassette is ambiguous.
+func (cb *CassetteLoader) WithCipher(crypter CrypterProvider, keyFile string) *CassetteLoader {
 	f := func(key []byte, nonceGenerator encryption.NonceGenerator) (*encryption.Crypter, error) {
 		// a "CrypterProvider" is a CrypterNonceProvider with a pre-defined / default nonceGenerator
 		return crypter(key)
 	}
 
-	return cb.WithCassetteCryptoCustomNonce(f, keyFile, nil)
+	return cb.WithCipherCustomNonce(f, keyFile, nil)
 }
 
-// WithCassetteCryptoCustomNonce creates a cassette cryptographer with the specified key file and
+// WithCipherCustomNonce creates a cassette cryptographer with the specified key file and
 // customer nonce generator.
-// Only use WithCassetteCrypto or WithCassetteCrypto*. Using both is ambiguous.
-func (cb *CassetteLoader) WithCassetteCryptoCustomNonce(crypterNonce CrypterNonceProvider, keyFile string, nonceGenerator encryption.NonceGenerator) *CassetteLoader {
+// Using more than one WithCipher* on the same cassette is ambiguous.
+func (cb *CassetteLoader) WithCipherCustomNonce(crypterNonce CrypterNonceProvider, keyFile string, nonceGenerator encryption.NonceGenerator) *CassetteLoader {
 	key, err := os.ReadFile(keyFile)
 	if err != nil {
 		panic(fmt.Sprintf("%+v", err))

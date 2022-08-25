@@ -399,7 +399,7 @@ At time of creating a new VCR with **govcr**:
 vcr := govcr.NewVCR(
     govcr.WithCassette(
         exampleCassetteName4,
-        govcr.WithCassetteCrypto(
+        govcr.WithCipher(
             encryption.NewChaCha20Poly1305WithRandomNonceGenerator,
             "test-fixtures/TestExample4.unsafe.key"),
     ),
@@ -412,7 +412,7 @@ Or, at time of loading a cassette from the `ControlPanel`:
 // See TestExample4 in tests for fully working example.
 err := vcr.LoadCassette(
     exampleCassetteName4,
-    govcr.WithCassetteCrypto(
+    govcr.WithCipher(
         encryption.NewChaCha20Poly1305WithRandomNonceGenerator,
         "test-fixtures/TestExample4.unsafe.key"),
 )
@@ -440,7 +440,7 @@ func (ng myNonceGenerator) Generate() ([]byte, error) {
 vcr := govcr.NewVCR(
     govcr.WithCassette(
         exampleCassetteName4,
-        govcr.WithCassetteCryptoCustomNonce(
+        govcr.WithCipherCustomNonce(
             encryption.NewChaCha20Poly1305,
             "test-fixtures/TestExample4.unsafe.key",
             nonceGenerator),

@@ -19,7 +19,7 @@ func TestExample4(t *testing.T) {
 
 	vcr := govcr.NewVCR(
 		govcr.NewCassetteLoader(exampleCassetteName4).
-			WithCassetteCrypto(
+			WithCipher(
 				encryption.NewChaCha20Poly1305WithRandomNonceGenerator,
 				"test-fixtures/TestExample4.unsafe.key"),
 		govcr.WithRequestMatcher(govcr.NewMethodURLRequestMatcher()), // use a "relaxed" request matcher
@@ -42,7 +42,7 @@ func TestExample4(t *testing.T) {
 	// No live HTTP request is placed to the live server
 	vcr = govcr.NewVCR(
 		govcr.NewCassetteLoader(exampleCassetteName4).
-			WithCassetteCrypto(
+			WithCipher(
 				encryption.NewChaCha20Poly1305WithRandomNonceGenerator,
 				"test-fixtures/TestExample4.unsafe.key"),
 	)
