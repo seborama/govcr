@@ -4,8 +4,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/seborama/govcr/v10"
-	"github.com/seborama/govcr/v10/stats"
+	"github.com/seborama/govcr/v11"
+	"github.com/seborama/govcr/v11/stats"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,7 +16,7 @@ func TestExample1(t *testing.T) {
 	_ = os.Remove(exampleCassetteName1)
 
 	vcr := govcr.NewVCR(
-		govcr.NewCassetteMaker(exampleCassetteName1),
+		govcr.NewCassetteLoader(exampleCassetteName1),
 		govcr.WithRequestMatcher(govcr.NewMethodURLRequestMatcher()), // use a "relaxed" request matcher
 	)
 
@@ -36,7 +36,7 @@ func TestExample1(t *testing.T) {
 	// The second request will be transparently replayed from the cassette by govcr
 	// No live HTTP request is placed to the live server
 	vcr = govcr.NewVCR(
-		govcr.NewCassetteMaker(exampleCassetteName1),
+		govcr.NewCassetteLoader(exampleCassetteName1),
 		govcr.WithRequestMatcher(govcr.NewMethodURLRequestMatcher()), // use a "relaxed" request matcher
 	)
 

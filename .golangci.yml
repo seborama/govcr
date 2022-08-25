@@ -616,11 +616,6 @@ linters-settings:
     # Default: false
     check-exported: true
 
-  varcheck:
-    # Check usage of exported fields and variables.
-    # Default: false
-    exported-fields: true
-
 linters:
   # Disable all linters.
   # Default: false
@@ -634,7 +629,6 @@ linters:
     - containedctx
     - contextcheck
     - cyclop
-    - deadcode
     # - decorder
     # - depguard
     - dogsled
@@ -695,7 +689,6 @@ linters:
     #- scopelint
     - sqlclosecheck
     - staticcheck
-    - structcheck
     - stylecheck
     - tagliatelle
     - tenv
@@ -706,7 +699,6 @@ linters:
     - unconvert
     - unparam
     - unused
-    - varcheck
     # - varnamelen
     # - wastedassign
     # - whitespace

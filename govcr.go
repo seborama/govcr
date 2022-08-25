@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/seborama/govcr/v10/cassette"
-	"github.com/seborama/govcr/v10/encryption"
+	"github.com/seborama/govcr/v11/cassette"
+	"github.com/seborama/govcr/v11/encryption"
 )
 
 // CrypterProvider is the signature of a cipher provider function with default nonce generator.
@@ -18,35 +18,35 @@ type CrypterProvider func(key []byte) (*encryption.Crypter, error)
 // Examples are encryption.NewAESGCM and encryption.NewChaCha20Poly1305.
 type CrypterNonceProvider func(key []byte, nonceGenerator encryption.NonceGenerator) (*encryption.Crypter, error)
 
-// CassetteMaker helps build a cassette to load in the VCR.
-type CassetteMaker struct {
+// CassetteLoader helps build a cassette to load in the VCR.
+type CassetteLoader struct {
 	cassetteName string
 	opts         []cassette.Option
 }
 
-// NewCassetteMaker creates a new CassetteMaker, initialised with the cassette's name.
-func NewCassetteMaker(cassetteName string) *CassetteMaker {
-	return &CassetteMaker{
+// NewCassetteLoader creates a new CassetteLoader, initialised with the cassette's name.
+func NewCassetteLoader(cassetteName string) *CassetteLoader {
+	return &CassetteLoader{
 		cassetteName: cassetteName,
 	}
 }
 
-// WithCassetteCrypto creates a cassette cryptographer with the specified cipher function
+// WithCipher creates a cassette cryptographer with the specified cipher function
 // and key file.
-// Only use WithCassetteCrypto or WithCassetteCrypto*. Using both is ambiguous.
-func (cb *CassetteMaker) WithCassetteCrypto(crypter CrypterProvider, keyFile string) *CassetteMaker {
+// Using more than one WithCipher* on the same cassette is ambiguous.
+func (cb *CassetteLoader) WithCipher(crypter CrypterProvider, keyFile string) *CassetteLoader {
 	f := func(key []byte, nonceGenerator encryption.NonceGenerator) (*encryption.Crypter, error) {
 		// a "CrypterProvider" is a CrypterNonceProvider with a pre-defined / default nonceGenerator
 		return crypter(key)
 	}
 
-	return cb.WithCassetteCryptoCustomNonce(f, keyFile, nil)
+	return cb.WithCipherCustomNonce(f, keyFile, nil)
 }
 
-// WithCassetteCryptoCustomNonce creates a cassette cryptographer with the specified key file and
+// WithCipherCustomNonce creates a cassette cryptographer with the specified key file and
 // customer nonce generator.
-// Only use WithCassetteCrypto or WithCassetteCrypto*. Using both is ambiguous.
-func (cb *CassetteMaker) WithCassetteCryptoCustomNonce(crypterNonce CrypterNonceProvider, keyFile string, nonceGenerator encryption.NonceGenerator) *CassetteMaker {
+// Using more than one WithCipher* on the same cassette is ambiguous.
+func (cb *CassetteLoader) WithCipherCustomNonce(crypterNonce CrypterNonceProvider, keyFile string, nonceGenerator encryption.NonceGenerator) *CassetteLoader {
 	key, err := os.ReadFile(keyFile)
 	if err != nil {
 		panic(fmt.Sprintf("%+v", err))
@@ -57,7 +57,7 @@ func (cb *CassetteMaker) WithCassetteCryptoCustomNonce(crypterNonce CrypterNonce
 		panic(fmt.Sprintf("%+v", err))
 	}
 
-	cb.opts = append(cb.opts, cassette.WithCassetteCrypter(cr))
+	cb.opts = append(cb.opts, cassette.WithCrypter(cr))
 
 	return cb
 }
@@ -65,7 +65,7 @@ func (cb *CassetteMaker) WithCassetteCryptoCustomNonce(crypterNonce CrypterNonce
 // WithCassette is an optional functional parameter to provide a VCR with
 // a cassette to load.
 // Cassette options may be provided (e.g. cryptography).
-func (cb *CassetteMaker) make() *cassette.Cassette {
+func (cb *CassetteLoader) make() *cassette.Cassette {
 	if cb == nil {
 		panic("please select a cassette for the VCR")
 	}
@@ -74,10 +74,10 @@ func (cb *CassetteMaker) make() *cassette.Cassette {
 }
 
 // NewVCR creates a new VCR.
-func NewVCR(cassetteMaker *CassetteMaker, settings ...Setting) *ControlPanel {
+func NewVCR(cassetteLoader *CassetteLoader, settings ...Setting) *ControlPanel {
 	var vcrSettings VCRSettings
 
-	vcrSettings.cassette = cassetteMaker.make()
+	vcrSettings.cassette = cassetteLoader.make()
 
 	for _, option := range settings {
 		option(&vcrSettings)

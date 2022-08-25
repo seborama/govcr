@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/seborama/govcr/v10"
+	"github.com/seborama/govcr/v11"
 )
 
 const exampleCassetteName2 = "temp-fixtures/TestExample2.cassette.json"
@@ -39,7 +39,7 @@ func TestExample2(t *testing.T) {
 
 	// Instantiate VCR.
 	vcr := govcr.NewVCR(
-		govcr.NewCassetteMaker(exampleCassetteName2),
+		govcr.NewCassetteLoader(exampleCassetteName2),
 		govcr.WithClient(app.httpClient),
 	)
 
