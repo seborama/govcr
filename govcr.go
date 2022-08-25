@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/seborama/govcr/v11/cassette"
-	"github.com/seborama/govcr/v11/encryption"
+	"github.com/seborama/govcr/v12/cassette"
+	"github.com/seborama/govcr/v12/encryption"
 )
 
 // CrypterProvider is the signature of a cipher provider function with default nonce generator.

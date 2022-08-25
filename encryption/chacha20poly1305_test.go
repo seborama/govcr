@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/seborama/govcr/v11/encryption"
+	"github.com/seborama/govcr/v12/encryption"
 )
 
 func TestCryptor_ChaCha20Poly1305(t *testing.T) {
