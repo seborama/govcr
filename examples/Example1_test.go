@@ -4,8 +4,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/seborama/govcr/v11"
-	"github.com/seborama/govcr/v11/stats"
+	"github.com/seborama/govcr/v12"
+	"github.com/seborama/govcr/v12/stats"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -3,8 +3,8 @@ package govcr
 import (
 	"net/http"
 
-	"github.com/seborama/govcr/v11/cassette"
-	"github.com/seborama/govcr/v11/cassette/track"
+	"github.com/seborama/govcr/v12/cassette"
+	"github.com/seborama/govcr/v12/cassette/track"
 )
 
 // HTTPMode defines govcr's mode for HTTP requests.

@@ -14,11 +14,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
-	"github.com/seborama/govcr/v11/cassette/track"
-	"github.com/seborama/govcr/v11/compression"
-	cryptoerr "github.com/seborama/govcr/v11/encryption/errors"
-	govcrerr "github.com/seborama/govcr/v11/errors"
-	"github.com/seborama/govcr/v11/stats"
+	"github.com/seborama/govcr/v12/cassette/track"
+	"github.com/seborama/govcr/v12/compression"
+	cryptoerr "github.com/seborama/govcr/v12/encryption/errors"
+	govcrerr "github.com/seborama/govcr/v12/errors"
+	"github.com/seborama/govcr/v12/stats"
 )
 
 // Cassette contains a set of tracks.
