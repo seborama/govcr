@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/seborama/govcr/v10"
-	"github.com/seborama/govcr/v10/cassette/track"
+	"github.com/seborama/govcr/v11"
+	"github.com/seborama/govcr/v11/cassette/track"
 	"github.com/stretchr/testify/require"
 )
 
@@ -20,7 +20,7 @@ const exampleCassetteName3 = "temp-fixtures/TestExample3.cassette.json"
 func TestExample3(t *testing.T) {
 	// Instantiate VCR.
 	vcr := govcr.NewVCR(
-		govcr.NewCassetteMaker(exampleCassetteName3),
+		govcr.NewCassetteLoader(exampleCassetteName3),
 		govcr.WithRequestMatcher(
 			govcr.NewBlankRequestMatcher(
 				govcr.WithRequestMatcherFunc(

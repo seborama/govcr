@@ -4,9 +4,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/seborama/govcr/v10"
-	"github.com/seborama/govcr/v10/encryption"
-	"github.com/seborama/govcr/v10/stats"
+	"github.com/seborama/govcr/v11"
+	"github.com/seborama/govcr/v11/encryption"
+	"github.com/seborama/govcr/v11/stats"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,8 +18,8 @@ func TestExample4(t *testing.T) {
 	_ = os.Remove(exampleCassetteName4)
 
 	vcr := govcr.NewVCR(
-		govcr.NewCassetteMaker(exampleCassetteName4).
-			WithCassetteCrypto(
+		govcr.NewCassetteLoader(exampleCassetteName4).
+			WithCipher(
 				encryption.NewChaCha20Poly1305WithRandomNonceGenerator,
 				"test-fixtures/TestExample4.unsafe.key"),
 		govcr.WithRequestMatcher(govcr.NewMethodURLRequestMatcher()), // use a "relaxed" request matcher
@@ -41,8 +41,8 @@ func TestExample4(t *testing.T) {
 	// The second request will be transparently replayed from the cassette by govcr
 	// No live HTTP request is placed to the live server
 	vcr = govcr.NewVCR(
-		govcr.NewCassetteMaker(exampleCassetteName4).
-			WithCassetteCrypto(
+		govcr.NewCassetteLoader(exampleCassetteName4).
+			WithCipher(
 				encryption.NewChaCha20Poly1305WithRandomNonceGenerator,
 				"test-fixtures/TestExample4.unsafe.key"),
 	)

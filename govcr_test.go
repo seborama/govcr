@@ -14,8 +14,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/seborama/govcr/v10"
-	"github.com/seborama/govcr/v10/stats"
+	"github.com/seborama/govcr/v11"
+	"github.com/seborama/govcr/v11/stats"
 )
 
 func TestNewVCR(t *testing.T) {
@@ -24,7 +24,7 @@ func TestNewVCR(t *testing.T) {
 	_ = os.Remove(cassetteName)
 	defer func() { _ = os.Remove(cassetteName) }()
 
-	unit := govcr.NewVCR(govcr.NewCassetteMaker(cassetteName))
+	unit := govcr.NewVCR(govcr.NewCassetteLoader(cassetteName))
 	assert.NotNil(t, unit.HTTPClient())
 }
 
@@ -33,21 +33,21 @@ func TestVCRControlPanel_NewVCR_InvalidCassette(t *testing.T) {
 		t,
 		func() {
 			_ = govcr.NewVCR(
-				govcr.NewCassetteMaker("test-fixtures/bad.cassette.json"),
+				govcr.NewCassetteLoader("test-fixtures/bad.cassette.json"),
 			)
 		})
 }
 
 func TestVCRControlPanel_NewVCR_ValidSimpleLongPlayCassette(t *testing.T) {
 	unit := govcr.NewVCR(
-		govcr.NewCassetteMaker("test-fixtures/good_zipped_one_track.cassette.json.gz"),
+		govcr.NewCassetteLoader("test-fixtures/good_zipped_one_track.cassette.json.gz"),
 	)
 	assert.EqualValues(t, 1, unit.NumberOfTracks())
 }
 
 func TestVCRControlPanel_NewVCR_ValidSimpleShortPlayCassette(t *testing.T) {
 	unit := govcr.NewVCR(
-		govcr.NewCassetteMaker("test-fixtures/good_one_track.cassette.json"),
+		govcr.NewCassetteLoader("test-fixtures/good_one_track.cassette.json"),
 	)
 	assert.EqualValues(t, 1, unit.NumberOfTracks())
 }
@@ -62,7 +62,7 @@ func TestVCRControlPanel_NewVCR_UnreadableCassette(t *testing.T) {
 		t,
 		func() {
 			_ = govcr.NewVCR(
-				govcr.NewCassetteMaker(cassetteName),
+				govcr.NewCassetteLoader(cassetteName),
 			)
 		})
 
@@ -88,7 +88,7 @@ func removeUnreadableCassette(t *testing.T, name string) {
 }
 
 func TestVCRControlPanel_HTTPClient(t *testing.T) {
-	vcr := govcr.NewVCR(govcr.NewCassetteMaker("./temp-fixtures/TestVCRControlPanel_HTTPClient.cassette"))
+	vcr := govcr.NewVCR(govcr.NewCassetteLoader("./temp-fixtures/TestVCRControlPanel_HTTPClient.cassette"))
 	unit := vcr.HTTPClient()
 	assert.IsType(t, (*http.Client)(nil), unit)
 }
@@ -137,7 +137,7 @@ func (ts *GoVCRTestSuite) newVCR(cassetteName string, a action) *govcr.ControlPa
 	testServerClient.Timeout = 3 * time.Second
 
 	return govcr.NewVCR(
-		govcr.NewCassetteMaker(cassetteName),
+		govcr.NewCassetteLoader(cassetteName),
 		govcr.WithClient(testServerClient),
 	)
 }
