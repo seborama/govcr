@@ -116,7 +116,7 @@ func TestChangeCrypto(t *testing.T) {
 	_, err := vcr.HTTPClient().Get(testServer.URL)
 	require.NoError(t, err)
 
-	err = vcr.ChangeCrypto(
+	err = vcr.SetCipher(
 		encryption.NewChaCha20Poly1305WithRandomNonceGenerator,
 		"test-fixtures/TestExample4.unsafe.key",
 	)
