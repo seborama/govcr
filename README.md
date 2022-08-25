@@ -77,7 +77,7 @@ This project is an adaptation for Google's Go / Golang programming language.
 
 func TestExample1() {
     vcr := govcr.NewVCR(
-        govcr.WithCassette("MyCassette1.json"),
+        govcr.NewCassetteMaker("MyCassette1.json"),
         govcr.WithRequestMatcher(govcr.NewMethodURLRequestMatcher()), // use a "relaxed" request matcher
     )
 
@@ -162,7 +162,6 @@ This structure contains parameters for configuring your **govcr** recorder.
 Settings are populated via `With*` options:
 
 - Use `WithClient` to provide a custom http.Client otherwise the default Go http.Client will be used.
-- `WithCassette` loads the specified cassette.
 - See `vcrsettings.go` for more options such as `WithRequestMatcher`, `WithTrackRecordingMutators`, `WithTrackReplayingMutators`, ...
 - TODO: `WithLogging` enables logging to help understand what **govcr** is doing internally.
 
@@ -287,7 +286,7 @@ func TestExample2() {
 
     // Instantiate VCR.
     vcr := govcr.NewVCR(
-        govcr.WithCassette(exampleCassetteName2),
+        govcr.NewCassetteMaker(exampleCassetteName2),
         govcr.WithClient(app.httpClient),
     )
 
@@ -310,7 +309,7 @@ Remove Response.TLS from the cassette **recording**:
 
 ```go
 vcr := govcr.NewVCR(
-    govcr.WithCassette(exampleCassetteName2),
+    govcr.NewCassetteMaker(exampleCassetteName2),
     govcr.WithTrackRecordingMutators(track.ResponseDeleteTLS()),
     //             ^^^^^^^^^
 )
@@ -323,7 +322,7 @@ Remove Response.TLS from the track at **playback** time:
 
 ```go
 vcr := govcr.NewVCR(
-    govcr.WithCassette(exampleCassetteName2),
+    govcr.NewCassetteMaker(exampleCassetteName2),
     govcr.WithTrackReplayingMutators(track.ResponseDeleteTLS()),
     //             ^^^^^^^^^
 )
@@ -347,7 +346,7 @@ vcr.AddReplayingMutators(track.ResponseDeleteTLS())
 
 ```go
 vcr := govcr.NewVCR(
-    govcr.WithCassette(exampleCassetteName2),
+    govcr.NewCassetteMaker(exampleCassetteName2),
     // Normal mode is default, no special option required :)
 )
 // or equally:
@@ -358,7 +357,7 @@ vcr.SetNormalMode()
 
 ```go
 vcr := govcr.NewVCR(
-    govcr.WithCassette(exampleCassetteName2),
+    govcr.NewCassetteMaker(exampleCassetteName2),
     govcr.WithLiveOnlyMode(),
 )
 // or equally:
@@ -369,7 +368,7 @@ vcr.SetLiveOnlyMode()
 
 ```go
 vcr := govcr.NewVCR(
-    govcr.WithCassette(exampleCassetteName2),
+    govcr.NewCassetteMaker(exampleCassetteName2),
     govcr.WithReadOnlyMode(),
 )
 // or equally:
@@ -380,7 +379,7 @@ vcr.SetReadOnlyMode(true) // `false` to disable option
 
 ```go
 vcr := govcr.NewVCR(
-    govcr.WithCassette(exampleCassetteName2),
+    govcr.NewCassetteMaker(exampleCassetteName2),
     govcr.WithOfflineMode(),
 )
 // or equally:
@@ -397,12 +396,11 @@ At time of creating a new VCR with **govcr**:
 // See TestExample4 in tests for fully working example.
 
 vcr := govcr.NewVCR(
-    govcr.WithCassette(
-        exampleCassetteName4,
-        govcr.WithCassetteCrypto(
+    govcr.NewCassetteMaker(exampleCassetteName4).
+        WithCassetteCrypto(
             encryption.NewChaCha20Poly1305WithRandomNonceGenerator,
-            "test-fixtures/TestExample4.unsafe.key"),
-    ),
+            "test-fixtures/TestExample4.unsafe.key",
+        ),
 )
 ```
 
@@ -438,13 +436,12 @@ func (ng myNonceGenerator) Generate() ([]byte, error) {
 }
 
 vcr := govcr.NewVCR(
-    govcr.WithCassette(
-        exampleCassetteName4,
-        govcr.WithCassetteCryptoCustomNonce(
+    govcr.NewCassetteMaker(exampleCassetteName4).
+        WithCassetteCryptoCustomNonce(
             encryption.NewChaCha20Poly1305,
             "test-fixtures/TestExample4.unsafe.key",
-            nonceGenerator),
-    ),
+            nonceGenerator,
+        ),
 )
 ```
 
@@ -520,7 +517,7 @@ How you specifically tackle this in practice really depends on how the API you a
 func TestExample3(t *testing.T) {
 // Instantiate VCR.
 vcr := govcr.NewVCR(
-    govcr.WithCassette(exampleCassetteName3),
+    govcr.NewCassetteMaker(exampleCassetteName3),
     govcr.WithRequestMatcher(
         govcr.NewBlankRequestMatcher(
             govcr.WithRequestMatcherFunc(
