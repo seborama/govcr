@@ -3,8 +3,8 @@ package govcr
 import (
 	"net/http"
 
-	"github.com/seborama/govcr/v11/cassette"
-	"github.com/seborama/govcr/v11/cassette/track"
+	"github.com/seborama/govcr/v12/cassette"
+	"github.com/seborama/govcr/v12/cassette/track"
 )
 
 // Setting defines an optional functional parameter as received by NewVCR().
@@ -24,6 +24,17 @@ func WithClient(httpClient *http.Client) Setting {
 func WithRequestMatcher(matcher RequestMatcher) Setting {
 	return func(vcrSettings *VCRSettings) {
 		vcrSettings.requestMatcher = matcher
+	}
+}
+
+// WithRequestMatcherFuncs is syntactic sugar for
+// WithRequestMatcher(NewRequestMatcherCollection(...)).
+// It allows to add a RequestMatcher straight from a collection of RequestMatcherFunc.
+//
+// See also: WithRequestMatcher and NewRequestMatcherCollection.
+func WithRequestMatcherFuncs(matcherFuncs ...RequestMatcherFunc) Setting {
+	return func(vcrSettings *VCRSettings) {
+		vcrSettings.requestMatcher = NewRequestMatcherCollection(matcherFuncs...)
 	}
 }
 

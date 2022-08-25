@@ -5,10 +5,10 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/seborama/govcr/v11/cassette"
-	"github.com/seborama/govcr/v11/cassette/track"
-	govcrerr "github.com/seborama/govcr/v11/errors"
-	"github.com/seborama/govcr/v11/stats"
+	"github.com/seborama/govcr/v12/cassette"
+	"github.com/seborama/govcr/v12/cassette/track"
+	govcrerr "github.com/seborama/govcr/v12/errors"
+	"github.com/seborama/govcr/v12/stats"
 )
 
 // vcrTransport is the heart of VCR. It implements
