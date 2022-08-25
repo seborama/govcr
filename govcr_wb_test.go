@@ -12,8 +12,8 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
-	"github.com/seborama/govcr/v10/cassette/track"
-	"github.com/seborama/govcr/v10/stats"
+	"github.com/seborama/govcr/v11/cassette/track"
+	"github.com/seborama/govcr/v11/stats"
 )
 
 type GoVCRWBTestSuite struct {
@@ -66,7 +66,7 @@ func (ts *GoVCRWBTestSuite) newVCR(cassetteName string, a action) *ControlPanel 
 	testServerClient.Timeout = 3 * time.Second
 
 	return NewVCR(
-		NewCassetteMaker(cassetteName),
+		NewCassetteLoader(cassetteName),
 		WithClient(testServerClient),
 		// WithTrackRecordingMutators(trackMutator),
 	)

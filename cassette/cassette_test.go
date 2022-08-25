@@ -8,9 +8,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/seborama/govcr/v10/cassette"
-	"github.com/seborama/govcr/v10/cassette/track"
-	"github.com/seborama/govcr/v10/encryption"
+	"github.com/seborama/govcr/v11/cassette"
+	"github.com/seborama/govcr/v11/cassette/track"
+	"github.com/seborama/govcr/v11/encryption"
 )
 
 func Test_cassette_GzipFilter(t *testing.T) {

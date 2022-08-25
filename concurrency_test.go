@@ -15,8 +15,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 
-	"github.com/seborama/govcr/v10"
-	"github.com/seborama/govcr/v10/stats"
+	"github.com/seborama/govcr/v11"
+	"github.com/seborama/govcr/v11/stats"
 )
 
 func TestConcurrencySafety(t *testing.T) {
@@ -116,7 +116,7 @@ func TestConcurrencySafety(t *testing.T) {
 
 func createVCR(cassetteName string, client *http.Client) *govcr.ControlPanel {
 	return govcr.NewVCR(
-		govcr.NewCassetteMaker(cassetteName),
+		govcr.NewCassetteLoader(cassetteName),
 		govcr.WithClient(client))
 }
 
