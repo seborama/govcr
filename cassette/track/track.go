@@ -91,7 +91,7 @@ func (trk *Track) ToErr() error {
 // govcr only saves enough info of the http.Request to permit matching.
 // Not all fields of http.Request are populated.
 func (trk *Track) toHTTPRequest() *http.Request {
-	bodyReadCloser := io.NopCloser(bytes.NewReader(trk.Response.Body))
+	bodyReadCloser := io.NopCloser(bytes.NewReader(trk.Request.Body))
 
 	httpRequest := http.Request{
 		Method:           trk.Request.Method,
@@ -101,7 +101,7 @@ func (trk *Track) toHTTPRequest() *http.Request {
 		ProtoMinor:       trk.Request.ProtoMinor,
 		Header:           trk.Request.Header,
 		Body:             bodyReadCloser,
-		ContentLength:    int64(len(trk.Request.Body)),
+		ContentLength:    trk.Request.ContentLength,
 		TransferEncoding: trk.Request.TransferEncoding,
 		Close:            trk.Request.Close,
 		Host:             trk.Request.Host,
