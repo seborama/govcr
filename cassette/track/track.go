@@ -101,7 +101,7 @@ func (trk *Track) toHTTPRequest() *http.Request {
 		ProtoMinor:       trk.Request.ProtoMinor,
 		Header:           trk.Request.Header,
 		Body:             bodyReadCloser,
-		ContentLength:    int64(len(trk.Request.Body)),
+		ContentLength:    trk.Request.ContentLength,
 		TransferEncoding: trk.Request.TransferEncoding,
 		Close:            trk.Request.Close,
 		Host:             trk.Request.Host,
