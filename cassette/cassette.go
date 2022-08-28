@@ -332,7 +332,6 @@ func getEncryptionMarker(data []byte) string {
 
 // Decrypt is a utility function that decrypts the cassette raw data
 // with the use of the supplied crypter.
-// TODO: move this method to the encryption package??
 func Decrypt(data []byte, crypter Crypter) ([]byte, error) {
 	encMarker := getEncryptionMarker(data)
 	markerLen := len(encMarker)
