@@ -77,6 +77,8 @@ func TestTrack_ToHTTPResponse(t *testing.T) {
 			Body:             []byte("resp body"),
 			ContentLength:    826,
 			TransferEncoding: []string{"resp tsf_encoding"},
+			Close:            true,
+			Uncompressed:     true,
 			Trailer: map[string][]string{
 				"resptr1": {"resptrva11", "resptrva22"},
 			},
@@ -104,8 +106,8 @@ func TestTrack_ToHTTPResponse(t *testing.T) {
 		Body:             nil, // we assert Body separately because it's an io.Reader
 		ContentLength:    826,
 		TransferEncoding: []string{"resp tsf_encoding"},
-		Close:            false,
-		Uncompressed:     false,
+		Close:            true,
+		Uncompressed:     true,
 		Trailer: map[string][]string{
 			"resptr1": {"resptrva11", "resptrva22"},
 		},

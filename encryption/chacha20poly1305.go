@@ -1,6 +1,7 @@
 package encryption
 
 import (
+	"github.com/pkg/errors"
 	"golang.org/x/crypto/chacha20poly1305"
 )
 
@@ -17,8 +18,6 @@ func NewChaCha20Poly1305WithRandomNonceGenerator(key []byte) (*Crypter, error) {
 // The key should be 32 bytes long.
 //
 // If you want to convert a passphrase to a key, you can use a function such as Argon2.
-//
-// TODO: add a nonceGenerator validator i.e. call it 1000 times, ensures no dupes.
 func NewChaCha20Poly1305(key []byte, nonceGenerator NonceGenerator) (*Crypter, error) {
 	cc20px, err := chacha20poly1305.NewX(key)
 	if err != nil {
@@ -27,6 +26,10 @@ func NewChaCha20Poly1305(key []byte, nonceGenerator NonceGenerator) (*Crypter, e
 
 	if nonceGenerator == nil {
 		nonceGenerator = NewRandomNonceGenerator(cc20px.NonceSize())
+	}
+
+	if err = validateNonceGenerator(nonceGenerator); err != nil {
+		return nil, errors.Wrap(err, "nonce generator is not valid")
 	}
 
 	return NewCrypter(cc20px, "chacha20poly1305", nonceGenerator), nil

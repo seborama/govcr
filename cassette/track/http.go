@@ -184,6 +184,8 @@ type Response struct {
 	Body             []byte
 	ContentLength    int64
 	TransferEncoding []string
+	Close            bool
+	Uncompressed     bool
 	Trailer          http.Header
 	TLS              *tls.ConnectionState
 
@@ -219,6 +221,8 @@ func ToResponse(httpResponse *http.Response) *Response {
 		Body:             bodyClone,
 		ContentLength:    httpResponse.ContentLength,
 		TransferEncoding: tsfEncodingClone,
+		Close:            httpResponse.Close,
+		Uncompressed:     httpResponse.Uncompressed,
 		Trailer:          trailerClone,
 		TLS:              tlsClone,
 	}
