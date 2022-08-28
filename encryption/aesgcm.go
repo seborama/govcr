@@ -4,6 +4,8 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 
+	"github.com/pkg/errors"
+
 	cryptoerr "github.com/seborama/govcr/v12/encryption/errors"
 )
 
@@ -21,8 +23,6 @@ func NewAESGCMWithRandomNonceGenerator(key []byte) (*Crypter, error) {
 //
 // If you want to convert a passphrase to a key, use a suitable
 // package like bcrypt or scrypt.
-//
-// TODO: add a nonceGenerator validator i.e. call it 1000 times, ensures no dupes.
 func NewAESGCM(key []byte, nonceGenerator NonceGenerator) (*Crypter, error) {
 	if len(key) != 16 && len(key) != 32 {
 		return nil, cryptoerr.NewErrCrypto("key size is not 16 or 32 bytes")
@@ -40,6 +40,10 @@ func NewAESGCM(key []byte, nonceGenerator NonceGenerator) (*Crypter, error) {
 
 	if nonceGenerator == nil {
 		nonceGenerator = NewRandomNonceGenerator(aesgcm.NonceSize())
+	}
+
+	if err = validateNonceGenerator(nonceGenerator); err != nil {
+		return nil, errors.Wrap(err, "nonce generator is not valid")
 	}
 
 	return NewCrypter(aesgcm, "aesgcm", nonceGenerator), nil

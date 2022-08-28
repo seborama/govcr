@@ -2,7 +2,10 @@ package encryption
 
 import (
 	"crypto/rand"
+	"fmt"
 	"io"
+
+	"github.com/pkg/errors"
 )
 
 // RandomNonceGenerator is a random generator of nonce of the specified size.
@@ -27,4 +30,24 @@ func (ng RandomNonceGenerator) Generate() ([]byte, error) {
 	}
 
 	return nonce, nil
+}
+
+func validateNonceGenerator(nonceGenerator NonceGenerator) error {
+	nonces := make(map[string]struct{})
+
+	for i := 1; i <= 1000; i++ {
+		n, err := nonceGenerator.Generate()
+		if err != nil {
+			return errors.Wrap(err, "nonceGenerator failure")
+		}
+
+		nStr := fmt.Sprintf("%x", n)
+		if _, ok := nonces[nStr]; ok {
+			return errors.New("nonceGenerator produces frequent duplicates")
+		}
+
+		nonces[nStr] = struct{}{}
+	}
+
+	return nil
 }
