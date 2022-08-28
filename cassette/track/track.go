@@ -137,7 +137,8 @@ func (trk Track) ToHTTPResponse() *http.Response {
 	httpResponse.Body = bodyReadCloser
 	httpResponse.ContentLength = trk.Response.ContentLength
 	httpResponse.TransferEncoding = trk.Response.TransferEncoding
-	// TODO: Close, Uncompressed ?
+	httpResponse.Close = trk.Response.Close
+	httpResponse.Uncompressed = trk.Response.Uncompressed
 	httpResponse.Trailer = trk.Response.Trailer
 	httpResponse.TLS = trk.Response.TLS
 
