@@ -83,6 +83,34 @@ func Test_Mutator_Any(t *testing.T) {
 	require.True(t, result)
 }
 
+func Test_Mutator_None(t *testing.T) {
+	pTrue := track.Predicate(
+		func(trk *track.Track) bool {
+			return true
+		},
+	)
+
+	pFalse := track.Predicate(
+		func(trk *track.Track) bool {
+			return false
+		},
+	)
+
+	trk := track.NewTrack(nil, nil, nil)
+
+	result := track.None(pFalse, pTrue)(nil)
+	require.False(t, result)
+
+	result = track.None(pFalse, pTrue)(trk)
+	require.False(t, result)
+
+	result = track.None(pFalse, pFalse)(trk)
+	require.True(t, result)
+
+	result = track.None(pTrue, pTrue)(trk)
+	require.False(t, result)
+}
+
 func Test_Mutator_All(t *testing.T) {
 	pTrue := track.Predicate(
 		func(trk *track.Track) bool {

@@ -41,6 +41,12 @@ func All(predicates ...Predicate) Predicate {
 	)
 }
 
+// None requires all predicates to be false.
+// I.e. it is the equivalent of Not(Any(...)).
+func None(predicates ...Predicate) Predicate {
+	return Not(Any(predicates...))
+}
+
 // Not accepts one predicate and returns its logically contrary evaluation.
 // I.e. it returns true when the supplied predicate is false and vice-versa.
 func Not(predicate Predicate) Predicate {

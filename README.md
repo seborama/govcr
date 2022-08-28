@@ -197,6 +197,7 @@ To help construct more complex yet readable predicates easily, **govcr** provide
 - `Any` achieves a logical "**or**" of the provided predicates.
 - `All` achieves a logical "**and**" of the provided predicates.
 - `Not` achieves a logical "**not**" of the provided predicates.
+- `None` is synonymous of "`Not` `Any`".
 
 Examples:
 
@@ -204,7 +205,7 @@ Examples:
 myMutator.
     On(Any(...)). // proceeds if any of the "`...`" predicates is true
     On(Not(Any(...)))  // proceeds if none of the "`...`" predicates is true (i.e. all predicates are false)
-    On(Not(All(...))).  // proceeds if not every of the "`...`" predicates is true (i.e. at least one predicate is false)
+    On(Not(All(...))).  // proceeds if not every (including none) of the "`...`" predicates is true (i.e. at least one predicate is false, possibly all of them).
 ```
 
 A **track recording mutator** can change both the request and the response that will be persisted to the cassette.
