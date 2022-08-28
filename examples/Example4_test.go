@@ -22,7 +22,7 @@ func TestExample4(t *testing.T) {
 			WithCipher(
 				encryption.NewChaCha20Poly1305WithRandomNonceGenerator,
 				"test-fixtures/TestExample4.unsafe.key"),
-		govcr.WithRequestMatcher(govcr.NewMethodURLRequestMatcher()), // use a "relaxed" request matcher
+		govcr.WithRequestMatchers(govcr.NewMethodURLRequestMatchers()...), // use a "relaxed" request matcher
 	)
 
 	// The first request will be live and transparently recorded by govcr since the cassette is empty

@@ -7,80 +7,47 @@ import (
 	"github.com/seborama/govcr/v12/cassette/track"
 )
 
-// RequestMatcherFunc is a function that performs request comparison.
-type RequestMatcherFunc func(httpRequest, trackRequest *track.Request) bool
+// RequestMatcher is a function that performs request comparison.
+// request comparison involves the HTTP request and the track request recorded on cassette.
+type RequestMatcher func(httpRequest, trackRequest *track.Request) bool
 
-// HeaderMatcher is a function that performs header comparison.
-type HeaderMatcher func(httpHeaders, trackHeaders http.Header) bool
+type RequestMatchers []RequestMatcher
 
-// MethodMatcher is a function that performs method name comparison.
-type MethodMatcher func(httpMethod, trackMethod string) bool
-
-// URLMatcher is a function that performs URL comparison.
-type URLMatcher func(httpURL, trackURL *url.URL) bool
-
-// BodyMatcher is a function that performs body comparison.
-type BodyMatcher func(httpBody, trackBody []byte) bool
-
-// TrailerMatcher is a function that performs trailer comparison.
-type TrailerMatcher func(httpTrailers, trackTrailers http.Header) bool
-
-// RequestMatcherCollection is an implementation of RequestMatcher which combines
-// multiple RequestMatcherFunc's with a logical 'AND'.
-type RequestMatcherCollection struct {
-	matchers []RequestMatcherFunc
+// Add a set of RequestMatcher's to this RequestMatchers collection.
+func (rm RequestMatchers) Add(reqMatchers ...RequestMatcher) RequestMatchers {
+	return append(rm, reqMatchers...)
 }
 
-// Match is the default implementation of RequestMatcher.
-func (rm *RequestMatcherCollection) Match(httpRequest, trackRequest *track.Request) bool {
-	for _, matcher := range rm.matchers {
+// Match returns true if all RequestMatcher's in RequestMatchers return true, thereby indicating that
+// the trackRequest matches the httpRequest.
+// When no matchers are supplied, Match returns false.
+func (rm RequestMatchers) Match(httpRequest, trackRequest *track.Request) bool {
+	for _, matcher := range rm {
 		if !matcher(httpRequest, trackRequest) {
 			return false
 		}
 	}
 
-	return true
+	return len(rm) != 0
 }
 
-// NewRequestMatcherCollection creates a new RequestMatcherCollection.
-// If no requestMatcherFuncs are supplied, it will always match any and all requests
-// to a cassette track.
-// You should pass specific RequestMatcherFunc to customise its behaviour.
-//
-// Alternately to manually creating a RequestMatcherCollection, you can also use one
-// of the predefined matchers such as those provided by NewStrictRequestMatcher()
-// or NewMethodURLRequestMatcher().
-func NewRequestMatcherCollection(requestMatcherFuncs ...RequestMatcherFunc) *RequestMatcherCollection {
-	return &RequestMatcherCollection{
-		matchers: requestMatcherFuncs,
+// NewStrictRequestMatchers creates a new default sets of RequestMatcher's.
+func NewStrictRequestMatchers() RequestMatchers {
+	return RequestMatchers{
+		DefaultHeaderMatcher,
+		DefaultMethodMatcher,
+		DefaultURLMatcher,
+		DefaultBodyMatcher,
+		DefaultTrailerMatcher,
 	}
 }
 
-// NewStrictRequestMatcher creates a new default implementation of RequestMatcher.
-func NewStrictRequestMatcher() *RequestMatcherCollection {
-	drm := RequestMatcherCollection{
-		matchers: []RequestMatcherFunc{
-			DefaultHeaderMatcher,
-			DefaultMethodMatcher,
-			DefaultURLMatcher,
-			DefaultBodyMatcher,
-			DefaultTrailerMatcher,
-		},
+// NewMethodURLRequestMatchers creates a new default set of RequestMatcher's based on Method and URL.
+func NewMethodURLRequestMatchers() RequestMatchers {
+	return RequestMatchers{
+		DefaultMethodMatcher,
+		DefaultURLMatcher,
 	}
-
-	return &drm
-}
-
-// NewMethodURLRequestMatcher creates a new implementation of RequestMatcher based on Method and URL.
-func NewMethodURLRequestMatcher() *RequestMatcherCollection {
-	drm := RequestMatcherCollection{
-		matchers: []RequestMatcherFunc{
-			DefaultMethodMatcher,
-			DefaultURLMatcher,
-		},
-	}
-
-	return &drm
 }
 
 // DefaultHeaderMatcher is the default implementation of HeaderMatcher.

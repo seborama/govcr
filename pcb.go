@@ -25,7 +25,7 @@ const (
 // PrintedCircuitBoard is a structure that holds some facilities that are passed to
 // the VCR machine to influence its internal behaviour.
 type PrintedCircuitBoard struct {
-	requestMatcher RequestMatcher
+	requestMatchers RequestMatchers
 
 	// These mutators are applied before saving a track to a cassette.
 	trackRecordingMutators track.Mutators
@@ -67,7 +67,7 @@ func (pcb *PrintedCircuitBoard) trackMatches(k7 *cassette.Cassette, trackNumber 
 	httpRequestClone := httpRequest.Clone()
 	trackReqClone := trk.Request.Clone()
 
-	return !trk.IsReplayed() && pcb.requestMatcher.Match(httpRequestClone, trackReqClone)
+	return !trk.IsReplayed() && pcb.requestMatchers.Match(httpRequestClone, trackReqClone)
 }
 
 func (pcb *PrintedCircuitBoard) replayTrack(k7 *cassette.Cassette, trackNumber int32, httpRequest *track.Request) (*track.Track, error) {
@@ -95,9 +95,14 @@ func (pcb *PrintedCircuitBoard) mutateTrackReplaying(t *track.Track) {
 	pcb.trackReplayingMutators.Mutate(t)
 }
 
-// SetRequestMatcher sets a new RequestMatcher to the VCR.
-func (pcb *PrintedCircuitBoard) SetRequestMatcher(requestMatcher RequestMatcher) {
-	pcb.requestMatcher = requestMatcher
+// SetRequestMatchers sets a collection of RequestMatcher's.
+func (pcb *PrintedCircuitBoard) SetRequestMatchers(requestMatchers ...RequestMatcher) {
+	pcb.requestMatchers = requestMatchers
+}
+
+// AddRequestMatchers adds a collection of RequestMatcher's.
+func (pcb *PrintedCircuitBoard) AddRequestMatchers(requestMatchers ...RequestMatcher) {
+	pcb.requestMatchers = pcb.requestMatchers.Add(requestMatchers...)
 }
 
 // SetReadOnlyMode sets the VCR to read-only mode (true) or to normal read-write (false).
@@ -151,10 +156,4 @@ func (pcb *PrintedCircuitBoard) SetReplayingMutators(trackMutators ...track.Muta
 // ClearReplayingMutators clears the set of replaying Track Mutator's from the VCR.
 func (pcb *PrintedCircuitBoard) ClearReplayingMutators() {
 	pcb.trackReplayingMutators = nil
-}
-
-// RequestMatcher is an interface that exposes the method to perform request comparison.
-// request comparison involves the HTTP request and the track request recorded on cassette.
-type RequestMatcher interface {
-	Match(httpRequest, trackRequest *track.Request) bool
 }

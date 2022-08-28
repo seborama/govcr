@@ -21,7 +21,7 @@ func TestExample3(t *testing.T) {
 	// Instantiate VCR.
 	vcr := govcr.NewVCR(
 		govcr.NewCassetteLoader(exampleCassetteName3),
-		govcr.WithRequestMatcherFuncs(
+		govcr.WithRequestMatchers(
 			func(httpRequest, trackRequest *track.Request) bool {
 				// Remove the header from comparison.
 				// Note: this removal is only scoped to the request matcher, it does not affect the original HTTP request

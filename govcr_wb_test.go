@@ -77,8 +77,8 @@ func (ts *GoVCRWBTestSuite) TestRoundTrip_RequestMatcherDoesNotMutateState() {
 
 	requestMatcherCount := 0
 
-	reqMatcher := func(outcome bool) *RequestMatcherCollection {
-		return NewRequestMatcherCollection(
+	reqMatchers := func(outcome bool) RequestMatchers {
+		return RequestMatchers{
 			// attempt to mutate state
 			func(httpRequest, trackRequest *track.Request) bool {
 				requestMatcherCount++
@@ -96,13 +96,13 @@ func (ts *GoVCRWBTestSuite) TestRoundTrip_RequestMatcherDoesNotMutateState() {
 
 				return outcome
 			},
-		)
+		}
 	}
 
 	// 1st call - live
 	vcr := ts.newVCR(cassetteName, actionDeleteCassette)
-	vcr.SetLiveOnlyMode()                    // ensure we record one track so we can have a request matcher execution later (no track on cassette = no request matching)
-	vcr.SetRequestMatcher(reqMatcher(false)) // false: we want to attempt but not satisfy request matching so to check if the live request was altered
+	vcr.SetLiveOnlyMode()                         // ensure we record one track so we can have a request matcher execution later (no track on cassette = no request matching)
+	vcr.SetRequestMatchers(reqMatchers(false)...) // false: we want to attempt but not satisfy request matching so to check if the live request was altered
 
 	req, err := http.NewRequest(http.MethodGet, ts.testServer.URL, nil)
 	ts.Require().NoError(err)
@@ -134,8 +134,8 @@ func (ts *GoVCRWBTestSuite) TestRoundTrip_RequestMatcherDoesNotMutateState() {
 
 	// 2nd call - live
 	vcr = ts.newVCR(cassetteName, actionKeepCassette)
-	vcr.SetNormalMode()                      // ensure we attempt request matching
-	vcr.SetRequestMatcher(reqMatcher(false)) // false: we want to attempt but not satisfy request matching so to check if the live request was altered
+	vcr.SetNormalMode()                           // ensure we attempt request matching
+	vcr.SetRequestMatchers(reqMatchers(false)...) // false: we want to attempt but not satisfy request matching so to check if the live request was altered
 
 	req, err = http.NewRequest(http.MethodGet, ts.testServer.URL, nil)
 	ts.Require().NoError(err)
@@ -168,7 +168,7 @@ func (ts *GoVCRWBTestSuite) TestRoundTrip_RequestMatcherDoesNotMutateState() {
 	vcr.SetOfflineMode()
 
 	requestMatcherCount = 0
-	vcr.SetRequestMatcher(reqMatcher(true)) // true: xssatisfy request matching and force replay from track to ensure no mutation
+	vcr.SetRequestMatchers(reqMatchers(true)...) // true: satisfy request matching and force replay from track to ensure no mutation
 
 	req, err = http.NewRequest(http.MethodGet, ts.testServer.URL, nil)
 	ts.Require().NoError(err)

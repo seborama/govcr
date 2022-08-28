@@ -17,6 +17,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/seborama/govcr/v12"
+	"github.com/seborama/govcr/v12/cassette/track"
 	"github.com/seborama/govcr/v12/encryption"
 	"github.com/seborama/govcr/v12/stats"
 )
@@ -231,7 +232,7 @@ func (ts *GoVCRTestSuite) TestVCR_LiveOnlyMode() {
 	// 1st execution of set of calls
 	vcr := ts.newVCR(k7Name, actionDeleteCassette)
 	vcr.SetLiveOnlyMode()
-	vcr.SetRequestMatcher(govcr.NewRequestMatcherCollection()) // ensure always matching
+	vcr.SetRequestMatchers(alwaysMatchRequest) // ensure always matching
 
 	ts.makeHTTPCalls_WithSuccess(vcr.HTTPClient(), 0)
 	expectedStats := &stats.Stats{
@@ -246,7 +247,7 @@ func (ts *GoVCRTestSuite) TestVCR_LiveOnlyMode() {
 	// 2nd execution of set of calls
 	vcr = ts.newVCR(k7Name, actionKeepCassette)
 	vcr.SetLiveOnlyMode()
-	vcr.SetRequestMatcher(govcr.NewRequestMatcherCollection()) // ensure always matching
+	vcr.SetRequestMatchers(alwaysMatchRequest) // ensure always matching
 
 	ts.makeHTTPCalls_WithSuccess(vcr.HTTPClient(), 2) // as we're making live requests, the sever keeps on increasing the counter
 	expectedStats = &stats.Stats{
@@ -263,8 +264,8 @@ func (ts *GoVCRTestSuite) TestVCR_OfflineMode() {
 
 	// 1st execution of set of calls - populate cassette
 	vcr := ts.newVCR(k7Name, actionDeleteCassette)
-	vcr.SetRequestMatcher(govcr.NewRequestMatcherCollection()) // ensure always matching
-	vcr.SetNormalMode()                                        // get data in the cassette
+	vcr.SetRequestMatchers(alwaysMatchRequest) // ensure always matching
+	vcr.SetNormalMode()                        // get data in the cassette
 
 	ts.makeHTTPCalls_WithSuccess(vcr.HTTPClient(), 0)
 	expectedStats := &stats.Stats{
@@ -435,4 +436,8 @@ func (ts *GoVCRTestSuite) makeHTTPCalls_WithSuccess(httpClient *http.Client, ser
 		ts.NotNil(resp.Request)
 		ts.NotNil(resp.TLS)
 	}
+}
+
+func alwaysMatchRequest(httpRequest, trackRequest *track.Request) bool {
+	return true
 }

@@ -71,9 +71,14 @@ func (t *vcrTransport) NumberOfTracks() int32 {
 	return t.cassette.NumberOfTracks()
 }
 
-// SetRequestMatcher sets a new RequestMatcher to the VCR.
-func (t *vcrTransport) SetRequestMatcher(requestMatcher RequestMatcher) {
-	t.pcb.SetRequestMatcher(requestMatcher)
+// SetRequestMatchers sets a new collection of RequestMatcher's to the VCR.
+func (t *vcrTransport) SetRequestMatchers(reqMatchers ...RequestMatcher) {
+	t.pcb.SetRequestMatchers(reqMatchers...)
+}
+
+// AddRequestMatchers sets a new collection of RequestMatcher's to the VCR.
+func (t *vcrTransport) AddRequestMatchers(reqMatchers ...RequestMatcher) {
+	t.pcb.AddRequestMatchers(reqMatchers...)
 }
 
 // SetReadOnlyMode sets the VCR to read-only mode (true) or to normal read-write (false).
@@ -123,8 +128,8 @@ func (t *vcrTransport) SetCipherCustomNonce(crypter CrypterNonceProvider, keyFil
 }
 
 // AddRecordingMutators adds a set of recording Track Mutator's to the VCR.
-func (t *vcrTransport) AddRecordingMutators(mutators ...track.Mutator) {
-	t.pcb.AddRecordingMutators(mutators...)
+func (t *vcrTransport) AddRecordingMutators(trackMutators ...track.Mutator) {
+	t.pcb.AddRecordingMutators(trackMutators...)
 }
 
 // SetRecordingMutators replaces the set of recording Track Mutator's in the VCR.
