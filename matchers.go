@@ -11,6 +11,7 @@ import (
 // request comparison involves the HTTP request and the track request recorded on cassette.
 type RequestMatcher func(httpRequest, trackRequest *track.Request) bool
 
+// RequestMatchers is a collection of RequestMatcher's.
 type RequestMatchers []RequestMatcher
 
 // Add a set of RequestMatcher's to this RequestMatchers collection.
@@ -51,22 +52,16 @@ func NewMethodURLRequestMatchers() RequestMatchers {
 }
 
 // DefaultHeaderMatcher is the default implementation of HeaderMatcher.
-// Because this function is meant to be called from RequestMatcher.Match(),
-// it doesn't check for either argument to be nil. Match() takes care of it.
 func DefaultHeaderMatcher(httpRequest, trackRequest *track.Request) bool {
 	return areHTTPHeadersEqual(httpRequest.Header, trackRequest.Header)
 }
 
 // DefaultMethodMatcher is the default implementation of MethodMatcher.
-// Because this function is meant to be called from RequestMatcherCollection.Match(),
-// it doesn't check for either argument to be nil. Match() takes care of it.
 func DefaultMethodMatcher(httpRequest, trackRequest *track.Request) bool {
 	return httpRequest.Method == trackRequest.Method
 }
 
 // DefaultURLMatcher is the default implementation of URLMatcher.
-// Because this function is meant to be called from RequestMatcherCollection.Match(),
-// it doesn't check for either argument to be nil. Match() takes care of it.
 // nolint: gocyclo,gocognit
 func DefaultURLMatcher(httpRequest, trackRequest *track.Request) bool {
 	httpURL := httpRequest.URL
@@ -91,15 +86,11 @@ func DefaultURLMatcher(httpRequest, trackRequest *track.Request) bool {
 }
 
 // DefaultBodyMatcher is the default implementation of BodyMatcher.
-// Because this function is meant to be called from RequestMatcherCollection.Match(),
-// it doesn't check for either argument to be nil. Match() takes care of it.
 func DefaultBodyMatcher(httpRequest, trackRequest *track.Request) bool {
 	return string(httpRequest.Body) == string(trackRequest.Body)
 }
 
 // DefaultTrailerMatcher is the default implementation of TrailerMatcher.
-// Because this function is meant to be called from RequestMatcherCollection.Match(),
-// it doesn't check for either argument to be nil. Match() takes care of it.
 func DefaultTrailerMatcher(httpRequest, trackRequest *track.Request) bool {
 	return areHTTPHeadersEqual(httpRequest.Trailer, trackRequest.Trailer)
 }
