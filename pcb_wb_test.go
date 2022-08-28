@@ -11,54 +11,52 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/seborama/govcr/v12/cassette"
-	"github.com/seborama/govcr/v12/cassette/track"
+	"github.com/seborama/govcr/v13/cassette"
+	"github.com/seborama/govcr/v13/cassette/track"
 )
 
 func TestPrintedCircuitBoard_trackMatches(t *testing.T) {
 	// This test is in addition toTestRoundTrip_RequestMatcherDoesNotMutateState
 	pcb := &PrintedCircuitBoard{}
-	pcb.SetRequestMatcher(
-		NewRequestMatcherCollection(
-			func(httpRequest, trackRequest *track.Request) bool {
-				for k := range httpRequest.Header {
-					httpRequest.Header.Set(k, "nil")
-				}
-				for i := range httpRequest.Body {
-					httpRequest.Body[i] = 'X'
-				}
-				httpRequest.ContentLength = -1
-				for k := range httpRequest.MultipartForm.File {
-					for k2 := range httpRequest.MultipartForm.File[k] {
-						httpRequest.MultipartForm.File[k][k2].Filename = "nil"
-						for k3 := range httpRequest.MultipartForm.File[k][k2].Header {
-							httpRequest.MultipartForm.File[k][k2].Header.Set(k3, "nil")
-						}
+	pcb.SetRequestMatchers(
+		func(httpRequest, trackRequest *track.Request) bool {
+			for k := range httpRequest.Header {
+				httpRequest.Header.Set(k, "nil")
+			}
+			for i := range httpRequest.Body {
+				httpRequest.Body[i] = 'X'
+			}
+			httpRequest.ContentLength = -1
+			for k := range httpRequest.MultipartForm.File {
+				for k2 := range httpRequest.MultipartForm.File[k] {
+					httpRequest.MultipartForm.File[k][k2].Filename = "nil"
+					for k3 := range httpRequest.MultipartForm.File[k][k2].Header {
+						httpRequest.MultipartForm.File[k][k2].Header.Set(k3, "nil")
 					}
 				}
+			}
 
-				for k := range trackRequest.Header {
-					trackRequest.Header.Set(k, "nil")
-				}
-				for i := range trackRequest.Body {
-					trackRequest.Body[i] = 'X'
-				}
-				trackRequest.ContentLength = -1
-				for k := range trackRequest.MultipartForm.File {
-					for k2 := range trackRequest.MultipartForm.File[k] {
-						trackRequest.MultipartForm.File[k][k2].Filename = "nil"
-						for k3 := range trackRequest.MultipartForm.File[k][k2].Header {
-							trackRequest.MultipartForm.File[k][k2].Header.Set(k3, "nil")
-						}
+			for k := range trackRequest.Header {
+				trackRequest.Header.Set(k, "nil")
+			}
+			for i := range trackRequest.Body {
+				trackRequest.Body[i] = 'X'
+			}
+			trackRequest.ContentLength = -1
+			for k := range trackRequest.MultipartForm.File {
+				for k2 := range trackRequest.MultipartForm.File[k] {
+					trackRequest.MultipartForm.File[k][k2].Filename = "nil"
+					for k3 := range trackRequest.MultipartForm.File[k][k2].Header {
+						trackRequest.MultipartForm.File[k][k2].Header.Set(k3, "nil")
 					}
 				}
+			}
 
-				httpRequest = nil
-				trackRequest = nil
+			httpRequest = nil
+			trackRequest = nil
 
-				return true
-			},
-		),
+			return true
+		},
 	)
 
 	k7 := &cassette.Cassette{

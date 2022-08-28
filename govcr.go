@@ -7,8 +7,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/seborama/govcr/v12/cassette"
-	"github.com/seborama/govcr/v12/encryption"
+	"github.com/seborama/govcr/v13/cassette"
+	"github.com/seborama/govcr/v13/encryption"
 )
 
 // CrypterProvider is the signature of a cipher provider function with default nonce generator.
@@ -106,15 +106,15 @@ func NewVCR(cassetteLoader *CassetteLoader, settings ...Setting) *ControlPanel {
 	}
 
 	// use a default RequestMatcher if none provided
-	if vcrSettings.requestMatcher == nil {
-		vcrSettings.requestMatcher = NewStrictRequestMatcher()
+	if vcrSettings.requestMatchers == nil {
+		vcrSettings.requestMatchers = NewStrictRequestMatchers()
 	}
 
 	// create VCR's HTTP client
 	vcrClient := &http.Client{
 		Transport: &vcrTransport{
 			pcb: &PrintedCircuitBoard{
-				requestMatcher:         vcrSettings.requestMatcher,
+				requestMatchers:        vcrSettings.requestMatchers,
 				trackRecordingMutators: vcrSettings.trackRecordingMutators,
 				trackReplayingMutators: vcrSettings.trackReplayingMutators,
 				httpMode:               vcrSettings.httpMode,

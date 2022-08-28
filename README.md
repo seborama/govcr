@@ -24,12 +24,12 @@
     <img src="https://github.com/seborama/govcr/actions/workflows/codeql-analysis.yml/badge.svg?branch=master" alt="govcr">
   </a>
 
-  <a href="https://pkg.go.dev/github.com/seborama/govcr/v12">
+  <a href="https://pkg.go.dev/github.com/seborama/govcr/v13">
     <img src="https://img.shields.io/badge/godoc-reference-blue.svg" alt="govcr">
   </a>
 
-  <a href="https://goreportcard.com/report/github.com/seborama/govcr/v12">
-    <img src="https://goreportcard.com/badge/github.com/seborama/govcr/v12" alt="govcr">
+  <a href="https://goreportcard.com/report/github.com/seborama/govcr/v13">
+    <img src="https://goreportcard.com/badge/github.com/seborama/govcr/v13" alt="govcr">
   </a>
 </p>
 
@@ -77,7 +77,7 @@ This project is an adaptation for Google's Go / Golang programming language.
 func TestExample1() {
     vcr := govcr.NewVCR(
         govcr.NewCassetteLoader("MyCassette1.json"),
-        govcr.WithRequestMatcher(govcr.NewMethodURLRequestMatcher()), // use a "relaxed" request matcher
+        govcr.WithRequestMatchers(govcr.NewMethodURLRequestMatchers()...), // use a "relaxed" request matcher
     )
 
     vcr.Client.Get("http://example.com/foo")
@@ -97,7 +97,7 @@ We use a "relaxed" request matcher because `example.com` injects an "`Age`" head
 ## Install
 
 ```bash
-go get github.com/seborama/govcr/v12@latest
+go get github.com/seborama/govcr/v13@latest
 ```
 
 For all available releases, please check the [releases](https://github.com/seborama/govcr/releases) tab on github.
@@ -105,7 +105,7 @@ For all available releases, please check the [releases](https://github.com/sebor
 And your source code would use this import:
 
 ```go
-import "github.com/seborama/govcr/v12"
+import "github.com/seborama/govcr/v13"
 ```
 
 For versions of **govcr** before v5 (which don't use go.mod), use a dependency manager to lock the version you wish to use (perhaps v4)!
@@ -135,7 +135,7 @@ go get gopkg.in/seborama/govcr.v4
 
 **govcr** is a wrapper around the Go `http.Client`. It can record live HTTP traffic to files (called "**cassettes**") and later replay HTTP requests ("**tracks**") from them instead of live HTTP calls.
 
-The code documentation can be found on [godoc](https://pkg.go.dev/github.com/seborama/govcr/v12).
+The code documentation can be found on [godoc](https://pkg.go.dev/github.com/seborama/govcr/v13).
 
 When using **govcr**'s `http.Client`, the request is matched against the **tracks** on the '**cassette**':
 
@@ -161,7 +161,7 @@ This structure contains parameters for configuring your **govcr** recorder.
 Settings are populated via `With*` options:
 
 - Use `WithClient` to provide a custom http.Client otherwise the default Go http.Client will be used.
-- See `vcrsettings.go` for more options such as `WithRequestMatcher`, `WithTrackRecordingMutators`, `WithTrackReplayingMutators`, ...
+- See `vcrsettings.go` for more options such as `WithRequestMatchers`, `WithTrackRecordingMutators`, `WithTrackReplayingMutators`, ...
 - TODO: `WithLogging` enables logging to help understand what **govcr** is doing internally.
 
 [(toc)](#table-of-content)
@@ -178,7 +178,7 @@ This may be the case when the request contains a timestamp or a dynamically chan
 
 You can create your own matcher on any part of the request and in any manner (like ignoring or modifying some headers, etc).
 
-The input parameters received by a `RequestMatcherFunc` are scoped to the `RequestMatcher`. It is safe to modify them as needed. This affects the other `RequestMatcherFunc`'s in the `RequestMatcher`. But it does **not** permeate to the original incoming HTTP request or the tracks read from or written to the cassette.
+The input parameters received by a `RequestMatcher` are scoped to the `RequestMatchers`. This affects the other `RequestMatcher`'s. But it does **not** permeate throughout the VCR to the original incoming HTTP request or the tracks read from or written to the cassette.
 
 [(toc)](#table-of-content)
 
@@ -437,7 +437,7 @@ vcr := govcr.NewVCR(
 The command is located in the `cmd/govcr` folder, to install it:
 
 ```bash
-go install github.com/seborama/govcr/v12/cmd/govcr@latest
+go install github.com/seborama/govcr/v13/cmd/govcr@latest
 ```
 
 Example usage:
@@ -473,20 +473,18 @@ This example shows how to handle situations where a header in the request needs 
 This could be necessary because the header value is not predictable or changes for each request.
 
 ```go
-vcr.SetRequestMatcher(
-    govcr.NewRequestMatcherCollection(
-        govcr.DefaultMethodMatcher,
-        govcr.DefaultURLMatcher,
-        func(httpRequest, trackRequest *track.Request) bool {
-            // we can safely mutate our inputs:
-            // mutations affect other RequestMatcherFunc's but _not_ the
-            // original HTTP request or the cassette Tracks.
-            httpRequest.Header.Del("X-Custom-Timestamp")
-            trackRequest.Header.Del("X-Custom-Timestamp")
+vcr.SetRequestMatchers(
+    govcr.DefaultMethodMatcher,
+    govcr.DefaultURLMatcher,
+    func(httpRequest, trackRequest *track.Request) bool {
+        // we can safely mutate our inputs:
+        // mutations affect other RequestMatcher's but _not_ the
+        // original HTTP request or the cassette Tracks.
+        httpRequest.Header.Del("X-Custom-Timestamp")
+        trackRequest.Header.Del("X-Custom-Timestamp")
 
-            return govcr.DefaultHeaderMatcher(httpRequest, trackRequest)
-        },
-    ),
+        return govcr.DefaultHeaderMatcher(httpRequest, trackRequest)
+    },
 )
 ```
 
@@ -508,7 +506,7 @@ How you specifically tackle this in practice really depends on how the API you a
 // See TestExample3 in tests for fully working example.
 vcr := govcr.NewVCR(
     govcr.NewCassetteLoader(exampleCassetteName3),
-    govcr.WithRequestMatcherFuncs(
+    govcr.WithRequestMatchers(
         func(httpRequest, trackRequest *track.Request) bool {
             // Remove the header from comparison.
             // Note: this removal is only scoped to the request matcher, it does not affect the original HTTP request

@@ -5,8 +5,9 @@ import (
 	"regexp"
 )
 
+// Predicate is a function signature that takes a Track and returns a boolean.
 // It is used to construct conditional mutators.
-type Predicate func(trk *Track) bool
+type Predicate func(*Track) bool
 
 // Any accepts one or more predicates and returns a new predicate that will evaluate
 // to true when any the supplied predicate is true, otherwise false.

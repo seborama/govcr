@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/seborama/govcr/v12"
-	"github.com/seborama/govcr/v12/cassette/track"
+	"github.com/seborama/govcr/v13"
+	"github.com/seborama/govcr/v13/cassette/track"
 	"github.com/stretchr/testify/require"
 )
 
@@ -21,7 +21,7 @@ func TestExample3(t *testing.T) {
 	// Instantiate VCR.
 	vcr := govcr.NewVCR(
 		govcr.NewCassetteLoader(exampleCassetteName3),
-		govcr.WithRequestMatcherFuncs(
+		govcr.WithRequestMatchers(
 			func(httpRequest, trackRequest *track.Request) bool {
 				// Remove the header from comparison.
 				// Note: this removal is only scoped to the request matcher, it does not affect the original HTTP request

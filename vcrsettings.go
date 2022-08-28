@@ -3,8 +3,8 @@ package govcr
 import (
 	"net/http"
 
-	"github.com/seborama/govcr/v12/cassette"
-	"github.com/seborama/govcr/v12/cassette/track"
+	"github.com/seborama/govcr/v13/cassette"
+	"github.com/seborama/govcr/v13/cassette/track"
 )
 
 // Setting defines an optional functional parameter as received by NewVCR().
@@ -18,23 +18,12 @@ func WithClient(httpClient *http.Client) Setting {
 	}
 }
 
-// WithRequestMatcher is an optional functional parameter to provide a VCR with
-// a RequestMatcher applied when matching an HTTP/S request to an existing track
-// on a cassette.
-func WithRequestMatcher(matcher RequestMatcher) Setting {
+// WithRequestMatchers is an optional functional parameter to provide a VCR with a
+// set of RequestMatcher's applied when matching an HTTP/S request to an existing
+// track on a cassette.
+func WithRequestMatchers(reqMatchers ...RequestMatcher) Setting {
 	return func(vcrSettings *VCRSettings) {
-		vcrSettings.requestMatcher = matcher
-	}
-}
-
-// WithRequestMatcherFuncs is syntactic sugar for
-// WithRequestMatcher(NewRequestMatcherCollection(...)).
-// It allows to add a RequestMatcher straight from a collection of RequestMatcherFunc.
-//
-// See also: WithRequestMatcher and NewRequestMatcherCollection.
-func WithRequestMatcherFuncs(matcherFuncs ...RequestMatcherFunc) Setting {
-	return func(vcrSettings *VCRSettings) {
-		vcrSettings.requestMatcher = NewRequestMatcherCollection(matcherFuncs...)
+		vcrSettings.requestMatchers = vcrSettings.requestMatchers.Add(reqMatchers...)
 	}
 }
 
@@ -87,7 +76,7 @@ func WithOfflineMode() Setting {
 type VCRSettings struct {
 	client                 *http.Client
 	cassette               *cassette.Cassette
-	requestMatcher         RequestMatcher
+	requestMatchers        RequestMatchers
 	trackRecordingMutators track.Mutators
 	trackReplayingMutators track.Mutators
 	httpMode               HTTPMode

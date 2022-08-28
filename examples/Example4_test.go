@@ -4,9 +4,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/seborama/govcr/v12"
-	"github.com/seborama/govcr/v12/encryption"
-	"github.com/seborama/govcr/v12/stats"
+	"github.com/seborama/govcr/v13"
+	"github.com/seborama/govcr/v13/encryption"
+	"github.com/seborama/govcr/v13/stats"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,7 +22,7 @@ func TestExample4(t *testing.T) {
 			WithCipher(
 				encryption.NewChaCha20Poly1305WithRandomNonceGenerator,
 				"test-fixtures/TestExample4.unsafe.key"),
-		govcr.WithRequestMatcher(govcr.NewMethodURLRequestMatcher()), // use a "relaxed" request matcher
+		govcr.WithRequestMatchers(govcr.NewMethodURLRequestMatchers()...), // use a "relaxed" request matcher
 	)
 
 	// The first request will be live and transparently recorded by govcr since the cassette is empty

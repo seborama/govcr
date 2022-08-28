@@ -3,8 +3,8 @@ package govcr
 import (
 	"net/http"
 
-	"github.com/seborama/govcr/v12/cassette/track"
-	"github.com/seborama/govcr/v12/stats"
+	"github.com/seborama/govcr/v13/cassette/track"
+	"github.com/seborama/govcr/v13/stats"
 )
 
 // ControlPanel holds the parts of a VCR that can be interacted with.
@@ -18,9 +18,14 @@ func (controlPanel *ControlPanel) Stats() *stats.Stats {
 	return controlPanel.vcrTransport().stats()
 }
 
-// SetRequestMatcher sets a new RequestMatcher to the VCR.
-func (controlPanel *ControlPanel) SetRequestMatcher(requestMatcher RequestMatcher) {
-	controlPanel.vcrTransport().SetRequestMatcher(requestMatcher)
+// SetRequestMatchers sets a new set of RequestMatcher's to the VCR.
+func (controlPanel *ControlPanel) SetRequestMatchers(requestMatcher ...RequestMatcher) {
+	controlPanel.vcrTransport().SetRequestMatchers(requestMatcher...)
+}
+
+// AddRequestMatchers sets a new set of RequestMatcher's to the VCR.
+func (controlPanel *ControlPanel) AddRequestMatchers(requestMatcher ...RequestMatcher) {
+	controlPanel.vcrTransport().AddRequestMatchers(requestMatcher...)
 }
 
 // SetReadOnlyMode sets the VCR to read-only mode (true) or to normal read-write (false).
