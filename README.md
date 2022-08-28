@@ -404,7 +404,7 @@ vcr := govcr.NewVCR(
 
 ### Recipe: VCR with encrypted cassette - custom nonce generator
 
-This is nearly identical to the previous recipe "VCR with encrypted cassette", except we pass our custom nonce generator.
+This is nearly identical to the recipe ["VCR with encrypted cassette"](#recipe-vcr-with-encrypted-cassette), except we pass our custom nonce generator.
 
 Example (this can also be achieved in the same way with the `ControlPanel`):
 
@@ -452,7 +452,17 @@ govcr decrypt -cassette-file my.cassette.json -key-file my.key
 
 ### Recipe: Changing cassette encryption
 
-TODO
+The cassette cipher can be changed for another with `SetCipher`.
+
+For safety reasons, you cannot use `SetCipher` to remove encryption and decrypt the cassette. See the [cassette decryption recipe](#recipe-cassette-decryption) for that.
+
+```go
+vcr := govcr.NewVCR(...)
+err := vcr.SetCipher(
+    encryption.NewChaCha20Poly1305WithRandomNonceGenerator,
+    "my_secret.key",
+)
+```
 
 [(toc)](#table-of-content)
 
@@ -525,7 +535,7 @@ Recording and replaying track mutators are the same. The only difference is when
 
 To set recording mutators, use `govcr.WithTrackRecordingMutators` when creating a new `VCR`, or use the `SetRecordingMutators` or `AddRecordingMutators` methods of the `ControlPanel` that is returned by `NewVCR`.
 
-See the "VCR with a replaying Track Mutator" recipe for the general approach on creating a track mutator. You can also take a look at the "Remove Response TLS" recipe.
+See the recipe ["VCR with a replaying Track Mutator"](#recipe-vcr-with-a-replaying-track-mutator) for the general approach on creating a track mutator. You can also take a look at the recipe ["Remove Response TLS"](#recipe-remove-response-tls).
 
 [(toc)](#table-of-content)
 
