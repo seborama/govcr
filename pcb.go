@@ -155,10 +155,6 @@ func (pcb *PrintedCircuitBoard) ClearReplayingMutators() {
 
 // RequestMatcher is an interface that exposes the method to perform request comparison.
 // request comparison involves the HTTP request and the track request recorded on cassette.
-//
-// TODO:
-// there could be a case to have RequestMatchers (plural) that would work akin to track.Mutators.
-// I.e. they could be chained and conditional.
 type RequestMatcher interface {
 	Match(httpRequest, trackRequest *track.Request) bool
 }
