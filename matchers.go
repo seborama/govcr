@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/seborama/govcr/v12/cassette/track"
+	"github.com/seborama/govcr/v13/cassette/track"
 )
 
 // RequestMatcher is a function that performs request comparison.

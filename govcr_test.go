@@ -16,10 +16,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/seborama/govcr/v12"
-	"github.com/seborama/govcr/v12/cassette/track"
-	"github.com/seborama/govcr/v12/encryption"
-	"github.com/seborama/govcr/v12/stats"
+	"github.com/seborama/govcr/v13"
+	"github.com/seborama/govcr/v13/cassette/track"
+	"github.com/seborama/govcr/v13/encryption"
+	"github.com/seborama/govcr/v13/stats"
 )
 
 func TestNewVCR(t *testing.T) {
