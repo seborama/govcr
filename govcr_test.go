@@ -97,29 +97,35 @@ func TestVCRControlPanel_HTTPClient(t *testing.T) {
 }
 
 func TestSetCrypto(t *testing.T) {
-	const cassetteName = "./temp-fixtures/TestSetCrypto.cassette"
-
-	_ = os.Remove(cassetteName)
-
-	vcr := govcr.NewVCR(
-		govcr.NewCassetteLoader(cassetteName).
-			WithCipher(
-				encryption.NewAESGCMWithRandomNonceGenerator,
-				"test-fixtures/TestSetCrypto.1.key"),
-	)
-
 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = fmt.Fprintf(w, "Hello: %d\n", rand.Intn(1e9))
 	}))
 
-	// add a track to the cassette so it gets saved
+	const cassetteName = "./temp-fixtures/TestSetCrypto.cassette"
+
+	_ = os.Remove(cassetteName)
+
+	// first, create an unencrypted cassette
+	vcr := govcr.NewVCR(govcr.NewCassetteLoader(cassetteName))
+
+	// add a track to the cassette to trigger its creation in the first place
 	resp, err := vcr.HTTPClient().Get(testServer.URL)
 	require.NoError(t, err)
 
 	_ = resp.Body.Close()
 
+	assert.Equal(t, "not encrypted", getCassetteCrypto(cassetteName))
+
+	// encrypt cassette with AESGCM
+	err = vcr.SetCipher(
+		encryption.NewAESGCMWithRandomNonceGenerator,
+		"test-fixtures/TestSetCrypto.1.key",
+	)
+	require.NoError(t, err)
+
 	assert.Equal(t, "aesgcm", getCassetteCrypto(cassetteName))
 
+	// re-encrypt cassette with ChaCha20Poly1305
 	err = vcr.SetCipher(
 		encryption.NewChaCha20Poly1305WithRandomNonceGenerator,
 		"test-fixtures/TestSetCrypto.2.key",
@@ -127,6 +133,10 @@ func TestSetCrypto(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, "chacha20poly1305", getCassetteCrypto(cassetteName))
+
+	// lastly, attempt to decrypt cassette - this is not permitted
+	err = vcr.SetCipher(nil, "")
+	require.Error(t, err)
 }
 
 func getCassetteCrypto(cassetteName string) string {
@@ -138,7 +148,7 @@ func getCassetteCrypto(cassetteName string) string {
 	marker := "$ENC:V2$"
 
 	if !bytes.HasPrefix(data, []byte(marker)) {
-		panic("cassette does not have expected encryption marker")
+		return "not encrypted"
 	}
 
 	pos := len(marker)
