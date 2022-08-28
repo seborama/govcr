@@ -96,8 +96,8 @@ func TestVCRControlPanel_HTTPClient(t *testing.T) {
 	assert.IsType(t, (*http.Client)(nil), unit)
 }
 
-func TestChangeCrypto(t *testing.T) {
-	const cassetteName = "./temp-fixtures/TestChangeCrypto.cassette"
+func TestSetCrypto(t *testing.T) {
+	const cassetteName = "./temp-fixtures/TestSetCrypto.cassette"
 
 	_ = os.Remove(cassetteName)
 
@@ -105,22 +105,28 @@ func TestChangeCrypto(t *testing.T) {
 		govcr.NewCassetteLoader(cassetteName).
 			WithCipher(
 				encryption.NewAESGCMWithRandomNonceGenerator,
-				"test-fixtures/TestChangeCrypto.key"),
+				"test-fixtures/TestSetCrypto.1.key"),
 	)
 
-	testServer := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = fmt.Fprintf(w, "Hello: %d\n", rand.Intn(1e9))
 	}))
 
 	// add a track to the cassette so it gets saved
-	_, err := vcr.HTTPClient().Get(testServer.URL)
+	resp, err := vcr.HTTPClient().Get(testServer.URL)
 	require.NoError(t, err)
+
+	_ = resp.Body.Close()
+
+	assert.Equal(t, "aesgcm", getCassetteCrypto(cassetteName))
 
 	err = vcr.SetCipher(
 		encryption.NewChaCha20Poly1305WithRandomNonceGenerator,
-		"test-fixtures/TestExample4.unsafe.key",
+		"test-fixtures/TestSetCrypto.2.key",
 	)
 	require.NoError(t, err)
+
+	assert.Equal(t, "chacha20poly1305", getCassetteCrypto(cassetteName))
 }
 
 func getCassetteCrypto(cassetteName string) string {
@@ -136,7 +142,8 @@ func getCassetteCrypto(cassetteName string) string {
 	}
 
 	pos := len(marker)
-	return string(data[pos : pos+int(data[len(marker)])])
+	cipherNameLen := int(data[len(marker)])
+	return string(data[pos+1 : pos+1+cipherNameLen])
 }
 
 type GoVCRTestSuite struct {

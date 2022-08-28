@@ -253,6 +253,15 @@ func (k7 *Cassette) DecryptionFilter(data []byte) ([]byte, error) {
 	return Decrypt(data, k7.crypter)
 }
 
+// SetCrypter sets the cassette Crypter.
+// This can be used to set a cipher when none is present (which already happens automatically
+// when loading a cassette) or change the cipher when one is already present.
+// The cassette is saved to persist the change with the new selected cipher.
+func (k7 *Cassette) SetCrypter(crypter Crypter) error {
+	k7.crypter = crypter
+	return k7.save()
+}
+
 // Track retrieves the requested track number.
 // '0' is the first track.
 func (k7 *Cassette) Track(trackNumber int32) track.Track {

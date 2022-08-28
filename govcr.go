@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/pkg/errors"
+
 	"github.com/seborama/govcr/v12/cassette"
 	"github.com/seborama/govcr/v12/encryption"
 )
@@ -47,12 +49,7 @@ func (cb *CassetteLoader) WithCipher(crypter CrypterProvider, keyFile string) *C
 // customer nonce generator.
 // Using more than one WithCipher* on the same cassette is ambiguous.
 func (cb *CassetteLoader) WithCipherCustomNonce(crypterNonce CrypterNonceProvider, keyFile string, nonceGenerator encryption.NonceGenerator) *CassetteLoader {
-	key, err := os.ReadFile(keyFile)
-	if err != nil {
-		panic(fmt.Sprintf("%+v", err))
-	}
-
-	cr, err := crypterNonce(key, nonceGenerator)
+	cr, err := makeCrypter(crypterNonce, keyFile, nonceGenerator)
 	if err != nil {
 		panic(fmt.Sprintf("%+v", err))
 	}
@@ -62,10 +59,7 @@ func (cb *CassetteLoader) WithCipherCustomNonce(crypterNonce CrypterNonceProvide
 	return cb
 }
 
-// WithCassette is an optional functional parameter to provide a VCR with
-// a cassette to load.
-// Cassette options may be provided (e.g. cryptography).
-func (cb *CassetteLoader) make() *cassette.Cassette {
+func (cb *CassetteLoader) load() *cassette.Cassette {
 	if cb == nil {
 		panic("please select a cassette for the VCR")
 	}
@@ -73,11 +67,29 @@ func (cb *CassetteLoader) make() *cassette.Cassette {
 	return cassette.LoadCassette(cb.cassetteName, cb.opts...)
 }
 
+func makeCrypter(crypterNonce CrypterNonceProvider, keyFile string, nonceGenerator encryption.NonceGenerator) (*encryption.Crypter, error) {
+	if crypterNonce == nil {
+		return nil, errors.New("a cipher must be supplied for encryption, `nil` is not permitted")
+	}
+
+	key, err := os.ReadFile(keyFile)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	cr, err := crypterNonce(key, nonceGenerator)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	return cr, nil
+}
+
 // NewVCR creates a new VCR.
 func NewVCR(cassetteLoader *CassetteLoader, settings ...Setting) *ControlPanel {
 	var vcrSettings VCRSettings
 
-	vcrSettings.cassette = cassetteLoader.make()
+	vcrSettings.cassette = cassetteLoader.load()
 
 	for _, option := range settings {
 		option(&vcrSettings)
