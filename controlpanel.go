@@ -43,6 +43,14 @@ func (controlPanel *ControlPanel) SetLiveOnlyMode() {
 	controlPanel.vcrTransport().SetLiveOnlyMode()
 }
 
+// SetCipher sets the cassette Cipher.
+// This can be used to set a cipher when none is present (which already happens automatically
+// when loading a cassette) or change the cipher when one is already present.
+// The cassette is automatically saved with the new selected cipher.
+func (controlPanel *ControlPanel) SetCipher(crypter CrypterProvider, keyFile string) error {
+	return controlPanel.vcrTransport().SetCipher(crypter, keyFile)
+}
+
 // AddRecordingMutators adds a set of recording Track Mutator's to the VCR.
 func (controlPanel *ControlPanel) AddRecordingMutators(trackMutators ...track.Mutator) {
 	controlPanel.vcrTransport().AddRecordingMutators(trackMutators...)

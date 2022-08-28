@@ -7,6 +7,7 @@ import (
 
 	"github.com/seborama/govcr/v12/cassette"
 	"github.com/seborama/govcr/v12/cassette/track"
+	"github.com/seborama/govcr/v12/encryption"
 	govcrerr "github.com/seborama/govcr/v12/errors"
 	"github.com/seborama/govcr/v12/stats"
 )
@@ -93,6 +94,32 @@ func (t *vcrTransport) SetOfflineMode() {
 // SetLiveOnlyMode sets the VCR to live-only mode.
 func (t *vcrTransport) SetLiveOnlyMode() {
 	t.pcb.SetLiveOnlyMode()
+}
+
+// SetCipher sets the cassette Cipher.
+// This can be used to set a cipher when none is present (which already happens automatically
+// when loading a cassette) or change the cipher when one is already present.
+// The cassette is automatically saved with the new selected cipher.
+func (t *vcrTransport) SetCipher(crypter CrypterProvider, keyFile string) error {
+	f := func(key []byte, nonceGenerator encryption.NonceGenerator) (*encryption.Crypter, error) {
+		// a "CrypterProvider" is a CrypterNonceProvider with a pre-defined / default nonceGenerator
+		return crypter(key)
+	}
+
+	return t.SetCipherCustomNonce(f, keyFile, nil)
+}
+
+// SetCipherCustomNonce sets the cassette Cipher.
+// This can be used to set a cipher when none is present (which already happens automatically
+// when loading a cassette) or change the cipher when one is already present.
+// The cassette is automatically saved with the new selected cipher.
+func (t *vcrTransport) SetCipherCustomNonce(crypter CrypterNonceProvider, keyFile string, nonceGenerator encryption.NonceGenerator) error {
+	cr, err := makeCrypter(crypter, keyFile, nonceGenerator)
+	if err != nil {
+		return err
+	}
+
+	return t.cassette.SetCrypter(cr)
 }
 
 // AddRecordingMutators adds a set of recording Track Mutator's to the VCR.
