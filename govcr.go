@@ -67,6 +67,7 @@ func (cb *CassetteLoader) load() *cassette.Cassette {
 	return cassette.LoadCassette(cb.cassetteName, cb.opts...)
 }
 
+// TODO: offer ability to supply the key via an environment variable in base64 format.
 func makeCrypter(crypterNonce CrypterNonceProvider, keyFile string, nonceGenerator encryption.NonceGenerator) (*encryption.Crypter, error) {
 	if crypterNonce == nil {
 		return nil, errors.New("a cipher must be supplied for encryption, `nil` is not permitted")

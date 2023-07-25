@@ -63,6 +63,7 @@ func decryptCommand(cassetteFile, keyFile string) error {
 	return nil
 }
 
+// TODO: offer ability to supply the key via an environment variable in base64 format.
 func decryptCassette(cassetteFile, keyFile string) (string, error) {
 	key, err := os.ReadFile(keyFile)
 	if err != nil {
@@ -74,15 +75,7 @@ func decryptCassette(cassetteFile, keyFile string) (string, error) {
 		return "", errors.Wrap(err, "cryptographer")
 	}
 
-	k7RawData, err := os.ReadFile(cassetteFile)
-	if err != nil {
-		return "", errors.Wrap(err, "cassette file")
-	}
+	data := cassette.DumpCassette(cassetteFile, cassette.WithCrypter(crypter))
 
-	k7Data, err := cassette.Decrypt(k7RawData, crypter)
-	if err != nil {
-		return "", errors.Wrap(err, "decryption")
-	}
-
-	return string(k7Data), nil
+	return string(data), nil
 }

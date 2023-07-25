@@ -18,6 +18,7 @@ import (
 	"github.com/seborama/govcr/v13/compression"
 	cryptoerr "github.com/seborama/govcr/v13/encryption/errors"
 	govcrerr "github.com/seborama/govcr/v13/errors"
+	"github.com/seborama/govcr/v13/fileio"
 	"github.com/seborama/govcr/v13/stats"
 )
 
@@ -30,6 +31,14 @@ type Cassette struct {
 	trackSliceMutex sync.RWMutex
 	tracksLoaded    int32
 	crypter         Crypter
+	store           FileIO
+}
+
+type FileIO interface {
+	MkdirAll(path string, perm os.FileMode) error
+	ReadFile(name string) ([]byte, error)
+	WriteFile(name string, data []byte, perm os.FileMode) error
+	IsNotExist(err error) bool
 }
 
 const (
@@ -59,7 +68,19 @@ func WithCrypter(crypter Crypter) Option {
 	}
 }
 
+// WithStore provides a dedicated storage engine for the cassette data.
+func WithStore(crypter Crypter) Option {
+	return func(k7 *Cassette) {
+		if k7.crypter != nil {
+			log.Println("notice: setting a crypter but another one had already been registered - this is incorrect usage")
+		}
+
+		k7.crypter = crypter
+	}
+}
+
 // NewCassette creates a ready to use new cassette.
+// When no storage backend (store) is provided, the default OSFile storage is used.
 func NewCassette(name string, opts ...Option) *Cassette {
 	k7 := Cassette{
 		name:            name,
@@ -68,6 +89,10 @@ func NewCassette(name string, opts ...Option) *Cassette {
 
 	for _, option := range opts {
 		option(&k7)
+	}
+
+	if k7.store == nil {
+		k7.store = &fileio.OSFile{}
 	}
 
 	return &k7
@@ -152,10 +177,14 @@ func (k7 *Cassette) wantEncrypted() bool {
 	return k7.crypter != nil
 }
 
-// saveCassette writes a cassette to file.
+// saveCassette writes a cassette to storage.
 func (k7 *Cassette) save() error {
 	k7.trackSliceMutex.Lock()
 	defer k7.trackSliceMutex.Unlock()
+
+	if k7.store == nil {
+		k7.store = &fileio.OSFile{}
+	}
 
 	data, err := json.MarshalIndent(k7, "", "  ")
 	if err != nil {
@@ -174,11 +203,11 @@ func (k7 *Cassette) save() error {
 	}
 
 	path := filepath.Dir(k7.name)
-	if err = os.MkdirAll(path, 0o750); err != nil {
+	if err = k7.store.MkdirAll(path, 0o750); err != nil {
 		return errors.Wrap(err, path)
 	}
 
-	err = os.WriteFile(k7.name, eData, 0o600)
+	err = k7.store.WriteFile(k7.name, eData, 0o600)
 	return errors.Wrap(err, k7.name)
 }
 
@@ -276,37 +305,35 @@ func (k7 *Cassette) Name() string {
 	return k7.name
 }
 
-// readCassetteFile reads the cassette file, if present or
-// returns a blank cassette.
-func (k7 *Cassette) readCassetteFile(cassetteName string) error {
+// readCassette reads the cassette source, if present or else nil data.
+func (k7 *Cassette) readCassette(cassetteName string) ([]byte, error) {
 	if cassetteName == "" {
-		return errors.New("a cassette name is required")
+		return nil, errors.New("a cassette name is required")
 	}
 
-	data, err := os.ReadFile(cassetteName) // nolint:gosec
+	if k7.store == nil {
+		k7.store = &fileio.OSFile{}
+	}
+
+	data, err := k7.store.ReadFile(cassetteName)
 	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
+		if k7.store.IsNotExist(err) {
+			return nil, nil // not found, return nil data
 		}
-		return errors.Wrap(err, "failed to read cassette data from file")
+		return nil, errors.Wrap(err, "failed to read cassette data from source")
 	}
 
 	dData, err := k7.DecryptionFilter(data)
 	if err != nil {
-		return errors.WithStack(err)
+		return nil, errors.WithStack(err)
 	}
 
 	gData, err := k7.GunzipFilter(dData)
 	if err != nil {
-		return errors.WithStack(err)
+		return nil, errors.WithStack(err)
 	}
 
-	// NOTE: Properties which are of type 'interface{} / any' are not handled very well
-	if err = json.Unmarshal(gData, k7); err != nil {
-		return errors.Wrap(err, "failed to interpret cassette data in file")
-	}
-
-	return nil
+	return gData, nil
 }
 
 func getEncryptionMarker(data []byte) string {
@@ -396,19 +423,40 @@ func AddTrackToCassette(cassette *Cassette, trk *track.Track) error {
 	return cassette.save()
 }
 
-// LoadCassette loads a cassette from file and initialises its associated stats.
+// LoadCassette loads a cassette from source and initialises its associated stats.
 // It panics when a cassette exists but cannot be loaded because that indicates
 // corruption (or a severe bug).
 func LoadCassette(cassetteName string, opts ...Option) *Cassette {
 	k7 := NewCassette(cassetteName, opts...)
 
-	err := k7.readCassetteFile(cassetteName)
+	data, err := k7.readCassette(cassetteName)
 	if err != nil {
 		panic(fmt.Sprintf("unable to invalid / load corrupted cassette '%s': %+v", cassetteName, err))
+	}
+
+	if data != nil {
+		// NOTE: Properties which are of type 'interface{} / any' are not handled very well
+		if err = json.Unmarshal(data, k7); err != nil {
+			panic(fmt.Sprintf("failed to interpret cassette data in source '%s': %+v", cassetteName, err))
+		}
 	}
 
 	// initial stats
 	atomic.StoreInt32(&k7.tracksLoaded, k7.NumberOfTracks())
 
 	return k7
+}
+
+// DumpCassette loads a cassette from source and returns its (decrypted) contents.
+// It panics when a cassette exists but cannot be loaded because that indicates
+// corruption (or a severe bug).
+func DumpCassette(cassetteName string, opts ...Option) []byte {
+	k7 := NewCassette(cassetteName, opts...)
+
+	data, err := k7.readCassette(cassetteName)
+	if err != nil {
+		panic(fmt.Sprintf("unable to invalid / load corrupted cassette '%s': %+v", cassetteName, err))
+	}
+
+	return data
 }
