@@ -433,7 +433,7 @@ vcr := govcr.NewVCR(
 
 ### Recipe: Cassette decryption
 
-**govcr** provides a CLI utility to decrypt existing cassette files, should we want to.
+**govcr** provides a CLI utility to decrypt existing cassette files, should this be wanted.
 
 The command is located in the `cmd/govcr` folder, to install it:
 
@@ -447,7 +447,7 @@ Example usage:
 govcr decrypt -cassette-file my.cassette.json -key-file my.key
 ```
 
-`decrypt` will cowardly refuse to write to a file to avoid errors or lingering decrypted files. It will write to the standard output.
+`decrypt` writes to the standard output to avoid errors or lingering decrypted files.
 
 [(toc)](#table-of-content)
 

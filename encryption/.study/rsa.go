@@ -15,6 +15,7 @@ import (
 )
 
 // nolint: deadcode
+// TODO: offer ability to supply the key via an environment variable in base64 format.
 func readSSHRSAPrivateKeyFile(privKeyFile, passphrase string) (rsaPrivKey *rsa.PrivateKey, sshSigner ssh.Signer, rsaPubKey *rsa.PublicKey, err error) {
 	keyData, err := os.ReadFile(privKeyFile)
 	if err != nil {
@@ -61,6 +62,7 @@ func readSSHRSAPrivateKeyFile(privKeyFile, passphrase string) (rsaPrivKey *rsa.P
 }
 
 // nolint: deadcode
+// TODO: offer ability to supply the key via an environment variable in base64 format.
 func readSSHRSAPublicKeyFile(pubKeyFile string) (*rsa.PublicKey, error) {
 	keyData, err := os.ReadFile(pubKeyFile)
 	if err != nil {
