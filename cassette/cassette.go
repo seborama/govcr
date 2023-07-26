@@ -431,7 +431,7 @@ func LoadCassette(cassetteName string, opts ...Option) *Cassette {
 
 	data, err := k7.readCassette(cassetteName)
 	if err != nil {
-		panic(fmt.Sprintf("unable to invalid / load corrupted cassette '%s': %+v", cassetteName, err))
+		panic(fmt.Sprintf("unable to load invalid / corrupted cassette '%s': %+v", cassetteName, err))
 	}
 
 	if data != nil {
