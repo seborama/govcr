@@ -24,12 +24,12 @@
     <img src="https://github.com/seborama/govcr/actions/workflows/codeql-analysis.yml/badge.svg?branch=master" alt="govcr">
   </a>
 
-  <a href="https://pkg.go.dev/github.com/seborama/govcr/v13">
+  <a href="https://pkg.go.dev/github.com/seborama/govcr/v14">
     <img src="https://img.shields.io/badge/godoc-reference-blue.svg" alt="govcr">
   </a>
 
-  <a href="https://goreportcard.com/report/github.com/seborama/govcr/v13">
-    <img src="https://goreportcard.com/badge/github.com/seborama/govcr/v13" alt="govcr">
+  <a href="https://goreportcard.com/report/github.com/seborama/govcr/v14">
+    <img src="https://goreportcard.com/badge/github.com/seborama/govcr/v14" alt="govcr">
   </a>
 </p>
 
@@ -58,6 +58,7 @@ This project is an adaptation for Google's Go / Golang programming language.
   - [Recipe: VCR with encrypted cassette - custom nonce generator](#recipe-vcr-with-encrypted-cassette---custom-nonce-generator)
   - [Recipe: Cassette decryption](#recipe-cassette-decryption)
   - [Recipe: Changing cassette encryption](#recipe-changing-cassette-encryption)
+  - [Recipe: VCR with cassette storage on AWS S3](#recipe-vcr-with-cassette-storage-on-aws-s3)
   - [Recipe: VCR with a custom RequestMatcher](#recipe-vcr-with-a-custom-requestmatcher)
   - [Recipe: VCR with a replaying Track Mutator](#recipe-vcr-with-a-replaying-track-mutator)
   - [Recipe: VCR with a recording Track Mutator](#recipe-vcr-with-a-recording-track-mutator)
@@ -97,7 +98,7 @@ We use a "relaxed" request matcher because `example.com` injects an "`Age`" head
 ## Install
 
 ```bash
-go get github.com/seborama/govcr/v13@latest
+go get github.com/seborama/govcr/v14@latest
 ```
 
 For all available releases, please check the [releases](https://github.com/seborama/govcr/releases) tab on github.
@@ -105,7 +106,7 @@ For all available releases, please check the [releases](https://github.com/sebor
 And your source code would use this import:
 
 ```go
-import "github.com/seborama/govcr/v13"
+import "github.com/seborama/govcr/v14"
 ```
 
 For versions of **govcr** before v5 (which don't use go.mod), use a dependency manager to lock the version you wish to use (perhaps v4)!
@@ -135,7 +136,7 @@ go get gopkg.in/seborama/govcr.v4
 
 **govcr** is a wrapper around the Go `http.Client`. It can record live HTTP traffic to files (called "**cassettes**") and later replay HTTP requests ("**tracks**") from them instead of live HTTP calls.
 
-The code documentation can be found on [godoc](https://pkg.go.dev/github.com/seborama/govcr/v13).
+The code documentation can be found on [godoc](https://pkg.go.dev/github.com/seborama/govcr/v14).
 
 When using **govcr**'s `http.Client`, the request is matched against the **tracks** on the '**cassette**':
 
@@ -438,7 +439,7 @@ vcr := govcr.NewVCR(
 The command is located in the `cmd/govcr` folder, to install it:
 
 ```bash
-go install github.com/seborama/govcr/v13/cmd/govcr@latest
+go install github.com/seborama/govcr/v14/cmd/govcr@latest
 ```
 
 Example usage:
@@ -462,6 +463,23 @@ vcr := govcr.NewVCR(...)
 err := vcr.SetCipher(
     encryption.NewChaCha20Poly1305WithRandomNonceGenerator,
     "my_secret.key",
+)
+```
+
+[(toc)](#table-of-content)
+
+### Recipe: VCR with cassette storage on AWS S3
+
+At time of creating a new VCR with **govcr**:
+
+```go
+// See TestExample5 in tests for fully working example.
+s3Client := /* ... */
+s3f := fileio.NewAWS(s3Client)
+
+vcr := govcr.NewVCR(govcr.
+    NewCassetteLoader(exampleCassetteName5).
+    WithStore(s3f),
 )
 ```
 
