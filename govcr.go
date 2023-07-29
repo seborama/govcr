@@ -7,8 +7,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/seborama/govcr/v13/cassette"
-	"github.com/seborama/govcr/v13/encryption"
+	"github.com/seborama/govcr/v14/cassette"
+	"github.com/seborama/govcr/v14/encryption"
 )
 
 // CrypterProvider is the signature of a cipher provider function with default nonce generator.
@@ -56,6 +56,13 @@ func (cb *CassetteLoader) WithCipherCustomNonce(crypterNonce CrypterNonceProvide
 
 	cb.opts = append(cb.opts, cassette.WithCrypter(cr))
 
+	return cb
+}
+
+// WithStore creates a cassette in a specific storeage backedn.
+// Using more than one WithStore on the same cassette is ambiguous.
+func (cb *CassetteLoader) WithStore(store cassette.FileIO) *CassetteLoader {
+	cb.opts = append(cb.opts, cassette.WithStore(store))
 	return cb
 }
 

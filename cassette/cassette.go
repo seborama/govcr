@@ -14,12 +14,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
-	"github.com/seborama/govcr/v13/cassette/track"
-	"github.com/seborama/govcr/v13/compression"
-	cryptoerr "github.com/seborama/govcr/v13/encryption/errors"
-	govcrerr "github.com/seborama/govcr/v13/errors"
-	"github.com/seborama/govcr/v13/fileio"
-	"github.com/seborama/govcr/v13/stats"
+	"github.com/seborama/govcr/v14/cassette/track"
+	"github.com/seborama/govcr/v14/compression"
+	cryptoerr "github.com/seborama/govcr/v14/encryption/errors"
+	govcrerr "github.com/seborama/govcr/v14/errors"
+	"github.com/seborama/govcr/v14/fileio"
+	"github.com/seborama/govcr/v14/stats"
 )
 
 // Cassette contains a set of tracks.
@@ -69,13 +69,13 @@ func WithCrypter(crypter Crypter) Option {
 }
 
 // WithStore provides a dedicated storage engine for the cassette data.
-func WithStore(crypter Crypter) Option {
+func WithStore(store FileIO) Option {
 	return func(k7 *Cassette) {
-		if k7.crypter != nil {
-			log.Println("notice: setting a crypter but another one had already been registered - this is incorrect usage")
+		if k7.store != nil {
+			log.Println("notice: setting a storer but another one had already been registered - this is incorrect usage")
 		}
 
-		k7.crypter = crypter
+		k7.store = store
 	}
 }
 
