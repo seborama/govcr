@@ -19,7 +19,7 @@ import (
 
 func TestS3Client_WriteFile_ReadFile(t *testing.T) {
 	if err := godotenv.Load("../.envrc"); err != nil {
-		panic(err)
+		log.Println(".envrc load failed: ", err)
 	}
 
 	ctx := context.Background()
