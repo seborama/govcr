@@ -120,7 +120,7 @@ go get gopkg.in/seborama/govcr.v4
 
 ## Glossary of Terms
 
-**VCR**: Video Cassette Recorder. In this context, a VCR refers to the engine and data that this project provides. A VCR is both an HTTP recorder and player. When you use a VCR, HTTP requests are replayed from previous recordings (**tracks** saved in **cassette** files on the filesystem). When no previous recording exists for the request, it is performed live on the HTTP server, after what it is saved to a **track** on the **cassette**.
+**VCR**: Video Cassette Recorder. In this context, a VCR refers to the engine and data that this project provides. A VCR is both an HTTP recorder and player. When you use a VCR, HTTP requests are replayed from previous recordings (**tracks** saved in **cassette** files, on the filesystem or in AWS S3, etc). When no previous recording exists for the request, it is performed live on the HTTP server, after what it is saved to a **track** on the **cassette**.
 
 **cassette**: a sequential collection of **tracks**. This is in effect a JSON file.
 
@@ -135,6 +135,8 @@ go get gopkg.in/seborama/govcr.v4
 ## Concepts
 
 **govcr** is a wrapper around the Go `http.Client`. It can record live HTTP traffic to files (called "**cassettes**") and later replay HTTP requests ("**tracks**") from them instead of live HTTP calls.
+
+Cassette files can be stored on the filesystem or on a cloud storage service (AWS S3), etc.
 
 The code documentation can be found on [godoc](https://pkg.go.dev/github.com/seborama/govcr/v14).
 
@@ -470,7 +472,7 @@ err := vcr.SetCipher(
 
 ### Recipe: VCR with cassette storage on AWS S3
 
-At time of creating a new VCR with **govcr**:
+At time of creating a new VCR with **govcr**, provide an initialised S3 client:
 
 ```go
 // See TestExample5 in tests for fully working example.
