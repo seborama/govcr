@@ -42,9 +42,9 @@ func (f *S3File) WriteFile(name string, data []byte, _ os.FileMode) error {
 	}
 
 	largeBuffer := bytes.NewReader(data)
-	const partMiBs int64 = 10
+	const partSize int64 = 10 * 1024 * 1024
 	uploader := manager.NewUploader(f.s3Client, func(u *manager.Uploader) {
-		u.PartSize = partMiBs * 1024 * 1024
+		u.PartSize = partSize
 	})
 	_, err = uploader.Upload(context.TODO(), &s3.PutObjectInput{
 		Bucket: aws.String(bucket),
