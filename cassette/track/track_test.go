@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/seborama/govcr/v13/cassette/track"
+	"github.com/seborama/govcr/v14/cassette/track"
 )
 
 func TestTrack_ToHTTPResponse(t *testing.T) {

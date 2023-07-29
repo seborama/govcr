@@ -1,24 +1,32 @@
 package examples_test
 
 import (
-	"os"
+	"log"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/seborama/govcr/v14"
+	"github.com/seborama/govcr/v14/fileio"
 	"github.com/seborama/govcr/v14/stats"
 )
 
-const exampleCassetteName1 = "temp-fixtures/TestExample1.cassette.json"
+// TestExample5 is a simple example use of govcr with a AWS S3 cassette storage.
+func TestExample5(t *testing.T) {
+	bucketName := "example5-" + uuid.New().String() // warning: max length: 63 chars
+	log.Println("bucketName:", bucketName)
+	exampleCassetteName5 := "/" + bucketName + "/temp-fixtures/TestExample5.cassette.json"
 
-// TestExample1 is a simple example use of govcr.
-func TestExample1(t *testing.T) {
-	_ = os.Remove(exampleCassetteName1)
+	s3Client, err := makeS3ClientWithBucket(bucketName)
+	require.NoError(t, err)
 
-	vcr := govcr.NewVCR(
-		govcr.NewCassetteLoader(exampleCassetteName1),
-		govcr.WithRequestMatchers(govcr.NewMethodURLRequestMatchers()...), // use a "relaxed" request matcher
+	s3f := fileio.NewAWS(s3Client)
+
+	vcr := govcr.NewVCR(govcr.
+		NewCassetteLoader(exampleCassetteName5).
+		WithStore(s3f),
 	)
 
 	// The first request will be live and transparently recorded by govcr since the cassette is empty
@@ -37,8 +45,8 @@ func TestExample1(t *testing.T) {
 	// The second request will be transparently replayed from the cassette by govcr
 	// No live HTTP request is placed to the live server
 	vcr = govcr.NewVCR(
-		govcr.NewCassetteLoader(exampleCassetteName1),
-		govcr.WithRequestMatchers(govcr.NewMethodURLRequestMatchers()...), // use a "relaxed" request matcher
+		govcr.NewCassetteLoader(exampleCassetteName5).
+			WithStore(s3f),
 	)
 
 	vcr.HTTPClient().Get("http://example.com/foo")

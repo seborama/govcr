@@ -23,10 +23,20 @@ jobs:
 
   test:
     name: Test
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
 
+      - name: Start LocalStack
+        run: |
+          pip install localstack awscli-local[ver1] # install LocalStack cli and awslocal
+          docker pull localstack/localstack         # Make sure to pull the latest version of the image
+          localstack start -d                       # Start LocalStack in the background
+          
+          echo "Waiting for LocalStack startup..."  # Wait 30 seconds for the LocalStack container
+          localstack wait -t 30                     # to become ready before timing out 
+          echo "Startup complete"          
+ 
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
@@ -34,3 +44,8 @@ jobs:
 
       - name: Test
         run: make test
+        env:
+          LOCALSTACK_ENDPOINT: http://localhost:4566
+          AWS_DEFAULT_REGION: eu-west-1
+          AWS_ACCESS_KEY_ID: test
+          AWS_SECRET_ACCESS_KEY: test

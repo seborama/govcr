@@ -14,12 +14,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
-	"github.com/seborama/govcr/v13/cassette/track"
-	"github.com/seborama/govcr/v13/compression"
-	cryptoerr "github.com/seborama/govcr/v13/encryption/errors"
-	govcrerr "github.com/seborama/govcr/v13/errors"
-	"github.com/seborama/govcr/v13/fileio"
-	"github.com/seborama/govcr/v13/stats"
+	"github.com/seborama/govcr/v14/cassette/track"
+	"github.com/seborama/govcr/v14/compression"
+	cryptoerr "github.com/seborama/govcr/v14/encryption/errors"
+	govcrerr "github.com/seborama/govcr/v14/errors"
+	"github.com/seborama/govcr/v14/fileio"
+	"github.com/seborama/govcr/v14/stats"
 )
 
 // Cassette contains a set of tracks.
@@ -38,7 +38,7 @@ type FileIO interface {
 	MkdirAll(path string, perm os.FileMode) error
 	ReadFile(name string) ([]byte, error)
 	WriteFile(name string, data []byte, perm os.FileMode) error
-	IsNotExist(err error) bool
+	NotExist(name string) (bool, error)
 }
 
 const (
@@ -69,13 +69,13 @@ func WithCrypter(crypter Crypter) Option {
 }
 
 // WithStore provides a dedicated storage engine for the cassette data.
-func WithStore(crypter Crypter) Option {
+func WithStore(store FileIO) Option {
 	return func(k7 *Cassette) {
-		if k7.crypter != nil {
-			log.Println("notice: setting a crypter but another one had already been registered - this is incorrect usage")
+		if k7.store != nil {
+			log.Println("notice: setting a storer but another one had already been registered - this is incorrect usage")
 		}
 
-		k7.crypter = crypter
+		k7.store = store
 	}
 }
 
@@ -315,11 +315,14 @@ func (k7 *Cassette) readCassette(cassetteName string) ([]byte, error) {
 		k7.store = &fileio.OSFile{}
 	}
 
+	if notExist, err := k7.store.NotExist(cassetteName); err != nil {
+		return nil, errors.Wrap(err, "failed to check cassette existence")
+	} else if notExist {
+		return nil, nil // not found, return nil data
+	}
+
 	data, err := k7.store.ReadFile(cassetteName)
 	if err != nil {
-		if k7.store.IsNotExist(err) {
-			return nil, nil // not found, return nil data
-		}
 		return nil, errors.Wrap(err, "failed to read cassette data from source")
 	}
 
@@ -431,7 +434,7 @@ func LoadCassette(cassetteName string, opts ...Option) *Cassette {
 
 	data, err := k7.readCassette(cassetteName)
 	if err != nil {
-		panic(fmt.Sprintf("unable to invalid / load corrupted cassette '%s': %+v", cassetteName, err))
+		panic(fmt.Sprintf("unable to load invalid / corrupted cassette '%s': %+v", cassetteName, err))
 	}
 
 	if data != nil {
