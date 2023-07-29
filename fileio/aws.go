@@ -3,6 +3,8 @@ package fileio
 import (
 	"bytes"
 	"context"
+	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -30,7 +32,26 @@ func (f *S3File) MkdirAll(path string, perm os.FileMode) error {
 }
 
 func (f *S3File) ReadFile(name string) ([]byte, error) {
-	panic("not implemented") // TODO: Implement
+	bucket, key, err := f.bucketAndKey(name)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	result, err := f.s3Client.GetObject(context.TODO(), &s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	defer result.Body.Close()
+
+	data, err := io.ReadAll(result.Body)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	return data, errors.WithStack(err)
 }
 
 // TODO: instead of `data []byte`, we could use an io.Writer
@@ -40,6 +61,8 @@ func (f *S3File) WriteFile(name string, data []byte, _ os.FileMode) error {
 	if err != nil {
 		return err
 	}
+	fmt.Println("bucket:", bucket)
+	fmt.Println("key:", key)
 
 	largeBuffer := bytes.NewReader(data)
 	const partSize int64 = 10 * 1024 * 1024
@@ -62,7 +85,7 @@ func (f *S3File) IsNotExist(err error) bool {
 func (f *S3File) bucketAndKey(name string) (bucket, key string, err error) {
 	splits := strings.SplitN(name, "/", 3)
 	if len(splits) != 3 {
-		err = errors.Errorf("invalid S3 object name: '%s' - expected format is '/bucketName/[folder/.../]file'", name)
+		err = errors.Errorf("invalid S3 object name: '%s' - expected format is '/bucket/[folder/.../]file'", name)
 		return
 	}
 
