@@ -38,7 +38,7 @@ type FileIO interface {
 	MkdirAll(path string, perm os.FileMode) error
 	ReadFile(name string) ([]byte, error)
 	WriteFile(name string, data []byte, perm os.FileMode) error
-	IsNotExist(err error) bool
+	NotExist(name string) (bool, error)
 }
 
 const (
@@ -315,11 +315,14 @@ func (k7 *Cassette) readCassette(cassetteName string) ([]byte, error) {
 		k7.store = &fileio.OSFile{}
 	}
 
+	if notExist, err := k7.store.NotExist(cassetteName); err != nil {
+		return nil, errors.Wrap(err, "failed to check cassette existence")
+	} else if notExist {
+		return nil, nil // not found, return nil data
+	}
+
 	data, err := k7.store.ReadFile(cassetteName)
 	if err != nil {
-		if k7.store.IsNotExist(err) {
-			return nil, nil // not found, return nil data
-		}
 		return nil, errors.Wrap(err, "failed to read cassette data from source")
 	}
 

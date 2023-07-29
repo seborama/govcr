@@ -17,7 +17,7 @@ import (
 	"github.com/seborama/govcr/v13/fileio"
 )
 
-func TestS3Client_WriteFile_ReadFile(t *testing.T) {
+func TestS3Client(t *testing.T) {
 	if err := godotenv.Load("../.envrc"); err != nil {
 		log.Println(".envrc load failed: ", err)
 	}
@@ -55,9 +55,25 @@ func TestS3Client_WriteFile_ReadFile(t *testing.T) {
 	require.NoError(t, err)
 
 	s3f := fileio.NewAWS(s3Client)
-	err = s3f.WriteFile("/"+bucketName+"/Development/TestS3Client_WriteFile.tmp", []byte("hello"), 0)
+
+	objectName := "/" + bucketName + "/Development/TestS3Client_WriteFile.tmp"
+
+	// NotExist true
+	notExist, err := s3f.NotExist(objectName)
+	require.True(t, notExist)
 	require.NoError(t, err)
-	data, err := s3f.ReadFile("/" + bucketName + "/Development/TestS3Client_WriteFile.tmp")
+
+	// WriteFile
+	err = s3f.WriteFile(objectName, []byte("hello"), 0)
+	require.NoError(t, err)
+
+	// NotExist false
+	notExist, err = s3f.NotExist(objectName)
+	require.False(t, notExist)
+	require.NoError(t, err)
+
+	// ReadFile
+	data, err := s3f.ReadFile(objectName)
 	require.NoError(t, err)
 	require.EqualValues(t, "hello", data)
 }
@@ -71,23 +87,3 @@ func createBucket(ctx context.Context, s3Client *s3.Client, region, name string)
 	})
 	return err
 }
-
-// func deleteBucket(ctx context.Context, s3Client *s3.Client, name string) error {
-// 	_, err := s3Client.DeleteBucket(ctx, &s3.DeleteBucketInput{
-// 		Bucket: &name,
-// 	})
-
-// 	// apologies: this has to be a mistake, there must be an intelligent way to do this...
-// 	var oe *smithy.OperationError
-// 	if errors.As(err, &oe) && oe.Err != nil {
-// 		oeErrUW := errors.Unwrap(oe.Err)
-// 		var gae *smithy.GenericAPIError
-// 		if errors.As(oeErrUW, &gae) {
-// 			if gae.ErrorCode() == (&types.NoSuchBucket{}).ErrorCode() {
-// 				return nil
-// 			}
-// 		}
-// 	}
-
-// 	return err
-// }
