@@ -12,11 +12,12 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
-	"github.com/seborama/govcr/v13/fileio"
 	"github.com/stretchr/testify/require"
+
+	"github.com/seborama/govcr/v13/fileio"
 )
 
-func TestS3Client_WriteFile(t *testing.T) {
+func TestS3Client_WriteFile_ReadFile(t *testing.T) {
 	if err := godotenv.Load("../.envrc"); err != nil {
 		panic(err)
 	}
@@ -46,13 +47,19 @@ func TestS3Client_WriteFile(t *testing.T) {
 	sdkConfig, err := config.LoadDefaultConfig(ctx, optFns...)
 	require.NoError(t, err)
 
-	s3Client := s3.NewFromConfig(sdkConfig, func(o *s3.Options) { o.UsePathStyle = true /* REQUIRED for localstack */ })
+	// Note: "UsePathStyle" REQUIRED for localstack
+	// https://docs.localstack.cloud/user-guide/aws/s3/
+	// https://docs.aws.amazon.com/AmazonS3/latest/userguide/VirtualHosting.html
+	s3Client := s3.NewFromConfig(sdkConfig, func(o *s3.Options) { o.UsePathStyle = true })
 	err = createBucket(ctx, s3Client, awsRegion, bucketName)
 	require.NoError(t, err)
 
 	s3f := fileio.NewAWS(s3Client)
 	err = s3f.WriteFile("/"+bucketName+"/Development/TestS3Client_WriteFile.tmp", []byte("hello"), 0)
 	require.NoError(t, err)
+	data, err := s3f.ReadFile("/" + bucketName + "/Development/TestS3Client_WriteFile.tmp")
+	require.NoError(t, err)
+	require.EqualValues(t, "hello", data)
 }
 
 func createBucket(ctx context.Context, s3Client *s3.Client, region, name string) error {
