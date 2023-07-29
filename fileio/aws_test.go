@@ -2,6 +2,7 @@ package fileio_test
 
 import (
 	"context"
+	"log"
 	"os"
 	"testing"
 
@@ -9,9 +10,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
-	"github.com/aws/smithy-go"
+	"github.com/google/uuid"
 	"github.com/joho/godotenv"
-	"github.com/pkg/errors"
 	"github.com/seborama/govcr/v13/fileio"
 	"github.com/stretchr/testify/require"
 )
@@ -25,6 +25,8 @@ func TestS3Client_WriteFile(t *testing.T) {
 
 	awsEndpoint := os.Getenv("LOCALSTACK_ENDPOINT")
 	awsRegion := os.Getenv("AWS_DEFAULT_REGION")
+	bucketName := "tests3client-writefile-" + uuid.New().String() // warning: max length: 63 chars
+	log.Println("bucketName:", bucketName)
 
 	var optFns []func(*config.LoadOptions) error
 
@@ -45,36 +47,40 @@ func TestS3Client_WriteFile(t *testing.T) {
 	require.NoError(t, err)
 
 	s3Client := s3.NewFromConfig(sdkConfig, func(o *s3.Options) { o.UsePathStyle = true /* REQUIRED for localstack */ })
-	if err = deleteBucket(ctx, s3Client, "blahdiblah"); err != nil {
-		panic(err)
-	}
+	err = createBucket(ctx, s3Client, awsRegion, bucketName)
+	require.NoError(t, err)
 
 	s3f := fileio.NewAWS(s3Client)
-	err = s3f.WriteFile("/seborama-govcr/Development/TestS3Client_WriteFile.tmp", []byte("hello"), 0)
+	err = s3f.WriteFile("/"+bucketName+"/Development/TestS3Client_WriteFile.tmp", []byte("hello"), 0)
 	require.NoError(t, err)
 }
 
-func createBucket(ctx context.Context, s3Client *s3.Client, name string) error {
-	_, err := s3Client.CreateBucket(ctx, &s3.CreateBucketInput{})
-	return err
-}
-
-func deleteBucket(ctx context.Context, s3Client *s3.Client, name string) error {
-	_, err := s3Client.DeleteBucket(ctx, &s3.DeleteBucketInput{
+func createBucket(ctx context.Context, s3Client *s3.Client, region, name string) error {
+	_, err := s3Client.CreateBucket(ctx, &s3.CreateBucketInput{
 		Bucket: &name,
+		CreateBucketConfiguration: &types.CreateBucketConfiguration{
+			LocationConstraint: types.BucketLocationConstraint(region),
+		},
 	})
-
-	// apologies: this has to be a mistake, there must be an intelligent way to do this...
-	var oe *smithy.OperationError
-	if errors.As(err, &oe) && oe.Err != nil {
-		oeErrUW := errors.Unwrap(oe.Err)
-		var gae *smithy.GenericAPIError
-		if errors.As(oeErrUW, &gae) {
-			if gae.ErrorCode() == (&types.NoSuchBucket{}).ErrorCode() {
-				return nil
-			}
-		}
-	}
-
 	return err
 }
+
+// func deleteBucket(ctx context.Context, s3Client *s3.Client, name string) error {
+// 	_, err := s3Client.DeleteBucket(ctx, &s3.DeleteBucketInput{
+// 		Bucket: &name,
+// 	})
+
+// 	// apologies: this has to be a mistake, there must be an intelligent way to do this...
+// 	var oe *smithy.OperationError
+// 	if errors.As(err, &oe) && oe.Err != nil {
+// 		oeErrUW := errors.Unwrap(oe.Err)
+// 		var gae *smithy.GenericAPIError
+// 		if errors.As(oeErrUW, &gae) {
+// 			if gae.ErrorCode() == (&types.NoSuchBucket{}).ErrorCode() {
+// 				return nil
+// 			}
+// 		}
+// 	}
+
+// 	return err
+// }
