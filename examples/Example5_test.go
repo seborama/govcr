@@ -8,9 +8,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/seborama/govcr/v14"
-	"github.com/seborama/govcr/v14/fileio"
-	"github.com/seborama/govcr/v14/stats"
+	"github.com/seborama/govcr/v15"
+	"github.com/seborama/govcr/v15/fileio"
+	"github.com/seborama/govcr/v15/stats"
 )
 
 // TestExample5 is a simple example use of govcr with a AWS S3 cassette storage.

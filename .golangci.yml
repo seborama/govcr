@@ -215,8 +215,6 @@ linters-settings:
     # To check which checks are enabled run `GL_DEBUG=gocritic golangci-lint run`.
     # By default, list of stable checks is used.
     enabled-checks:
-      - captLocal
-      - elseif
       - hugeParam
       - nestingReduce
       - rangeExprCopy
@@ -224,7 +222,6 @@ linters-settings:
       - ruleguard
       - tooManyResultsChecker
       - truncateCmp
-      - underef
       - unnamedResult
 
 
@@ -460,7 +457,7 @@ linters-settings:
   govet:
     # Report about shadowed variables.
     # Default: false
-    check-shadowing: true
+    check-shadowing: false
 
     # Settings per analyzer.
     settings:
@@ -700,6 +697,7 @@ linters:
     - unparam
     - unused
     # - varnamelen
+    - vetshadow
     # - wastedassign
     # - whitespace
     # - wrapcheck
