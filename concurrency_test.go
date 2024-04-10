@@ -15,8 +15,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 
-	"github.com/seborama/govcr/v14"
-	"github.com/seborama/govcr/v14/stats"
+	"github.com/seborama/govcr/v15"
+	"github.com/seborama/govcr/v15/stats"
 )
 
 func TestConcurrencySafety(t *testing.T) {

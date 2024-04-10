@@ -7,8 +7,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/seborama/govcr/v14"
-	"github.com/seborama/govcr/v14/cassette/track"
+	"github.com/seborama/govcr/v15"
+	"github.com/seborama/govcr/v15/cassette/track"
 )
 
 func Test_DefaultHeaderMatcher(t *testing.T) {

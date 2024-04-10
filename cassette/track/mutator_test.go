@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/seborama/govcr/v14/cassette/track"
+	"github.com/seborama/govcr/v15/cassette/track"
 )
 
 func Test_Mutator_On(t *testing.T) {
@@ -238,8 +238,8 @@ func Test_Mutator_HasNoErr(t *testing.T) {
 func Test_Mutator_OnNoErr_WhenNoErr(t *testing.T) {
 	unitMutator := track.Mutator(
 		func(tk *track.Track) {
-			tk.Request.Method = tk.Request.Method + " has been mutated"
-			tk.Response.Status = tk.Response.Status + " has been mutated"
+			tk.Request.Method += " has been mutated"
+			tk.Response.Status += " has been mutated"
 			tk.ErrType = strPtr("ErrType was mutated")
 			tk.ErrMsg = strPtr("ErrMsg was mutated")
 		}).OnNoErr()
@@ -266,8 +266,8 @@ func Test_Mutator_OnNoErr_WhenNoErr(t *testing.T) {
 func Test_Mutator_OnNoErr_WhenErr(t *testing.T) {
 	unitMutator := track.Mutator(
 		func(tk *track.Track) {
-			tk.Request.Method = tk.Request.Method + " has been mutated"
-			tk.Response.Status = tk.Response.Status + " has been mutated"
+			tk.Request.Method += " has been mutated"
+			tk.Response.Status += " has been mutated"
 			tk.ErrType = strPtr("ErrType was mutated")
 			tk.ErrMsg = strPtr("ErrMsg was mutated")
 		}).OnNoErr()
@@ -294,8 +294,8 @@ func Test_Mutator_OnNoErr_WhenErr(t *testing.T) {
 func Test_Mutator_OnErr_WhenErr(t *testing.T) {
 	unitMutator := track.Mutator(
 		func(tk *track.Track) {
-			tk.Request.Method = tk.Request.Method + " has been mutated"
-			tk.Response.Status = tk.Response.Status + " has been mutated"
+			tk.Request.Method += " has been mutated"
+			tk.Response.Status += " has been mutated"
 			tk.ErrType = strPtr("ErrType was mutated")
 			tk.ErrMsg = strPtr("ErrMsg was mutated")
 		}).OnErr()
@@ -321,8 +321,8 @@ func Test_Mutator_OnErr_WhenErr(t *testing.T) {
 func Test_Mutator_OnErr_WhenNoErr(t *testing.T) {
 	unitMutator := track.Mutator(
 		func(tk *track.Track) {
-			tk.Request.Method = tk.Request.Method + " has been mutated"
-			tk.Response.Status = tk.Response.Status + " has been mutated"
+			tk.Request.Method += " has been mutated"
+			tk.Response.Status += " has been mutated"
 			tk.ErrType = strPtr("ErrType was mutated")
 			tk.ErrMsg = strPtr("ErrMsg was mutated")
 		}).OnErr()
@@ -879,7 +879,7 @@ func Test_Mutator_Multiple_On(t *testing.T) {
 
 	mutator := track.Mutator(
 		func(tk *track.Track) {
-			tk.Request.Method = tk.Request.Method + " has been mutated"
+			tk.Request.Method += " has been mutated"
 		})
 
 	for name, tc := range tt {

@@ -24,12 +24,12 @@
     <img src="https://github.com/seborama/govcr/actions/workflows/codeql-analysis.yml/badge.svg?branch=master" alt="govcr">
   </a>
 
-  <a href="https://pkg.go.dev/github.com/seborama/govcr/v14">
+  <a href="https://pkg.go.dev/github.com/seborama/govcr/v15">
     <img src="https://img.shields.io/badge/godoc-reference-blue.svg" alt="govcr">
   </a>
 
-  <a href="https://goreportcard.com/report/github.com/seborama/govcr/v14">
-    <img src="https://goreportcard.com/badge/github.com/seborama/govcr/v14" alt="govcr">
+  <a href="https://goreportcard.com/report/github.com/seborama/govcr/v15">
+    <img src="https://goreportcard.com/badge/github.com/seborama/govcr/v15" alt="govcr">
   </a>
 </p>
 
@@ -98,7 +98,7 @@ We use a "relaxed" request matcher because `example.com` injects an "`Age`" head
 ## Install
 
 ```bash
-go get github.com/seborama/govcr/v14@latest
+go get github.com/seborama/govcr/v15@latest
 ```
 
 For all available releases, please check the [releases](https://github.com/seborama/govcr/releases) tab on github.
@@ -106,7 +106,7 @@ For all available releases, please check the [releases](https://github.com/sebor
 And your source code would use this import:
 
 ```go
-import "github.com/seborama/govcr/v14"
+import "github.com/seborama/govcr/v15"
 ```
 
 For versions of **govcr** before v5 (which don't use go.mod), use a dependency manager to lock the version you wish to use (perhaps v4)!
@@ -138,7 +138,7 @@ go get gopkg.in/seborama/govcr.v4
 
 Cassette files can be stored on the filesystem or on a cloud storage service (AWS S3), etc.
 
-The code documentation can be found on [godoc](https://pkg.go.dev/github.com/seborama/govcr/v14).
+The code documentation can be found on [godoc](https://pkg.go.dev/github.com/seborama/govcr/v15).
 
 When using **govcr**'s `http.Client`, the request is matched against the **tracks** on the '**cassette**':
 
@@ -441,7 +441,7 @@ vcr := govcr.NewVCR(
 The command is located in the `cmd/govcr` folder, to install it:
 
 ```bash
-go install github.com/seborama/govcr/v14/cmd/govcr@latest
+go install github.com/seborama/govcr/v15/cmd/govcr@latest
 ```
 
 Example usage:
@@ -573,6 +573,8 @@ To access the stats, call `vcr.Stats()` where vcr is the `ControlPanel` instance
 [(toc)](#table-of-content)
 
 ## Run the tests
+
+For the S3 tests, install and configure [localstack](https://www.localstack.cloud/) or use your own AWS credentials.
 
 ```bash
 make test

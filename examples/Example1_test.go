@@ -6,8 +6,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/seborama/govcr/v14"
-	"github.com/seborama/govcr/v14/stats"
+	"github.com/seborama/govcr/v15"
+	"github.com/seborama/govcr/v15/stats"
 )
 
 const exampleCassetteName1 = "temp-fixtures/TestExample1.cassette.json"

@@ -14,12 +14,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
-	"github.com/seborama/govcr/v14/cassette/track"
-	"github.com/seborama/govcr/v14/compression"
-	cryptoerr "github.com/seborama/govcr/v14/encryption/errors"
-	govcrerr "github.com/seborama/govcr/v14/errors"
-	"github.com/seborama/govcr/v14/fileio"
-	"github.com/seborama/govcr/v14/stats"
+	"github.com/seborama/govcr/v15/cassette/track"
+	"github.com/seborama/govcr/v15/compression"
+	cryptoerr "github.com/seborama/govcr/v15/encryption/errors"
+	govcrerr "github.com/seborama/govcr/v15/errors"
+	"github.com/seborama/govcr/v15/fileio"
+	"github.com/seborama/govcr/v15/stats"
 )
 
 // Cassette contains a set of tracks.
@@ -257,6 +257,7 @@ func (k7 *Cassette) EncryptionFilter(data []byte) ([]byte, error) {
 	header = append(header, byte(nonceLen))
 	header = append(header, nonce...)
 
+	// nolint: gocritic
 	eData := append(header, ciphertext...)
 
 	return eData, nil

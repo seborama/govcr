@@ -3,8 +3,8 @@ package govcr
 import (
 	"net/http"
 
-	"github.com/seborama/govcr/v14/cassette/track"
-	"github.com/seborama/govcr/v14/stats"
+	"github.com/seborama/govcr/v15/cassette/track"
+	"github.com/seborama/govcr/v15/stats"
 )
 
 // ControlPanel holds the parts of a VCR that can be interacted with.
