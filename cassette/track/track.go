@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"os"
 
 	"github.com/pkg/errors"
 
@@ -80,6 +81,21 @@ func (trk *Track) ToErr() error {
 			Source: nil,
 			Addr:   nil,
 			Err:    errors.WithStack(trkerr.NewErrTransportFailure(errType, errMsg)),
+		}
+	} else if errType == "*os.SyscallError" {
+		return &os.SyscallError{
+			Syscall: errMsg,
+			Err:     errors.WithStack(trkerr.NewErrTransportFailure(errType, errMsg)),
+		}
+	} else if errType == "*net.DNSError" {
+		return &net.DNSError{
+			UnwrapErr:   errors.WithStack(trkerr.NewErrTransportFailure(errType, errMsg)),
+			Err:         errMsg,
+			Name:        "govcr",
+			Server:      "govcr",
+			IsTimeout:   false,
+			IsTemporary: false,
+			IsNotFound:  false,
 		}
 	}
 
