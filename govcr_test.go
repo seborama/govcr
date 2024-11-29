@@ -294,7 +294,7 @@ func (ts *GoVCRTestSuite) TestVCR_OfflineMode() {
 	// we've run out of tracks on the cassette and we're in offline mode so we expect a transport error
 	req, err := http.NewRequest(http.MethodGet, ts.testServer.URL, nil)
 	ts.Require().NoError(err)
-	resp, err := vcr.HTTPClient().Do(req) //nolint: bodyclose
+	resp, err := vcr.HTTPClient().Do(req) //nolint:bodyclose
 	ts.Require().Error(err)
 	ts.Assert().Contains(err.Error(), "no track matched on cassette and offline mode is active")
 	ts.Assert().Nil(resp)
@@ -338,7 +338,7 @@ func (ts *GoVCRTestSuite) TestRoundTrip_ReplaysError() {
 			// execute HTTP call and record on cassette
 			vcr := ts.newVCR(cassetteName, actionDeleteCassette)
 
-			resp, err := vcr.HTTPClient().Get(tc.reqURL) //nolint: bodyclose
+			resp, err := vcr.HTTPClient().Get(tc.reqURL) //nolint:bodyclose
 			ts.Require().Error(err)
 			ts.EqualError(err, tc.wantErr)
 			ts.Require().Nil(resp)
@@ -356,7 +356,7 @@ func (ts *GoVCRTestSuite) TestRoundTrip_ReplaysError() {
 			vcr = ts.newVCR(cassetteName, actionKeepCassette)
 			ts.EqualValues(1, vcr.NumberOfTracks())
 
-			resp, err = vcr.HTTPClient().Get(tc.reqURL) //nolint: bodyclose
+			resp, err = vcr.HTTPClient().Get(tc.reqURL) //nolint:bodyclose
 			ts.Require().Error(err)
 			ts.EqualError(err, tc.wantVCRErr)
 			ts.Require().Nil(resp)

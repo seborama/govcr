@@ -140,7 +140,7 @@ func (ts *GoVCRWBTestSuite) TestRoundTrip_RequestMatcherDoesNotMutateState() {
 	req, err = http.NewRequest(http.MethodGet, ts.testServer.URL, nil)
 	ts.Require().NoError(err)
 
-	resp2, err := vcr.HTTPClient().Do(req) //nolint: bodyclose
+	resp2, err := vcr.HTTPClient().Do(req) //nolint:bodyclose
 	ts.Require().NoError(err)
 	defer func() { _ = resp.Body.Close() }()
 

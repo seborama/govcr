@@ -97,7 +97,7 @@ func TestConcurrencySafety(t *testing.T) {
 						// check outcome of the request
 						expectedBody := generateBinaryBody(i1)
 						if err := validateResponseForTestPlaybackOrder(resp, expectedBody); err != nil {
-							t.Fatalf(err.Error())
+							t.Fatal(err.Error())
 						}
 					}()
 				})

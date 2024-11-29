@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"os"
 
 	"github.com/pkg/errors"
 
@@ -73,13 +74,31 @@ func (trk *Track) ToErr() error {
 		errMsg = *trk.ErrMsg
 	}
 
-	if errType == "*net.OpError" {
+	switch errType {
+	case "*net.OpError":
 		return &net.OpError{
 			Op:     "govcr",
 			Net:    "govcr",
 			Source: nil,
 			Addr:   nil,
 			Err:    errors.WithStack(trkerr.NewErrTransportFailure(errType, errMsg)),
+		}
+
+	case "*os.SyscallError":
+		return &os.SyscallError{
+			Syscall: errMsg,
+			Err:     errors.WithStack(trkerr.NewErrTransportFailure(errType, errMsg)),
+		}
+
+	case "*net.DNSError":
+		return &net.DNSError{
+			UnwrapErr:   errors.WithStack(trkerr.NewErrTransportFailure(errType, errMsg)),
+			Err:         errMsg,
+			Name:        "govcr",
+			Server:      "govcr",
+			IsTimeout:   false,
+			IsTemporary: false,
+			IsNotFound:  false,
 		}
 	}
 
@@ -117,7 +136,7 @@ func (trk *Track) toHTTPRequest() *http.Request {
 }
 
 // ToHTTPResponse converts the track Response to an http.Response.
-// nolint: gocritic
+// nolint:gocritic
 func (trk Track) ToHTTPResponse() *http.Response {
 	if trk.Response == nil {
 		return nil
