@@ -100,5 +100,5 @@ func (controlPanel *ControlPanel) NumberOfTracks() int32 {
 }
 
 func (controlPanel *ControlPanel) vcrTransport() *vcrTransport {
-	return controlPanel.client.Transport.(*vcrTransport)
+	return controlPanel.client.Transport.(*vcrTransport) //nolint:errcheck // either way, this would require a panic.
 }

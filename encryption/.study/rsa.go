@@ -14,7 +14,7 @@ import (
 	cryptoerr "github.com/seborama/govcr/v15/encryption/errors"
 )
 
-// nolint: deadcode
+// nolint:deadcode
 // TODO: offer ability to supply the key via an environment variable in base64 format.
 func readSSHRSAPrivateKeyFile(privKeyFile, passphrase string) (rsaPrivKey *rsa.PrivateKey, sshSigner ssh.Signer, rsaPubKey *rsa.PublicKey, err error) {
 	keyData, err := os.ReadFile(privKeyFile)
@@ -61,7 +61,7 @@ func readSSHRSAPrivateKeyFile(privKeyFile, passphrase string) (rsaPrivKey *rsa.P
 	return rsaPrivKey, sshSigner, rsaPubKey, nil
 }
 
-// nolint: deadcode
+// nolint:deadcode
 // TODO: offer ability to supply the key via an environment variable in base64 format.
 func readSSHRSAPublicKeyFile(pubKeyFile string) (*rsa.PublicKey, error) {
 	keyData, err := os.ReadFile(pubKeyFile)

@@ -23,7 +23,7 @@ import (
 )
 
 // Cassette contains a set of tracks.
-// nolint: govet
+// nolint:govet
 type Cassette struct {
 	Tracks []track.Track
 
@@ -134,7 +134,7 @@ func (k7 *Cassette) NumberOfTracks() int32 {
 	k7.trackSliceMutex.RLock()
 	defer k7.trackSliceMutex.RUnlock()
 
-	return int32(len(k7.Tracks))
+	return int32(len(k7.Tracks)) //nolint:gosec // int32 can more than sufficiently hold the number of tracks on a cassette.
 }
 
 // ReplayTrack returns the specified track number, as recorded on cassette.
@@ -257,7 +257,7 @@ func (k7 *Cassette) EncryptionFilter(data []byte) ([]byte, error) {
 	header = append(header, byte(nonceLen))
 	header = append(header, nonce...)
 
-	// nolint: gocritic
+	// nolint:gocritic
 	eData := append(header, ciphertext...)
 
 	return eData, nil

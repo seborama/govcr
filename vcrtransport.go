@@ -43,7 +43,7 @@ func (t *vcrTransport) RoundTrip(httpRequest *http.Request) (*http.Response, err
 		httpResponse := trk.ToHTTPResponse()
 		httpError := trk.ToErr()
 
-		return httpResponse, httpError //nolint: wrapcheck
+		return httpResponse, httpError //nolint:wrapcheck
 	}
 
 	if t.pcb.httpMode == HTTPModeOffline {

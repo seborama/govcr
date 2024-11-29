@@ -19,7 +19,7 @@ import (
 // with a RequestMatcher (albeit perfectly possible).
 // These fields also help when converting Response to http.Response to
 // populate http.Response.Request.
-// nolint: govet
+// nolint:govet
 type Request struct {
 	Method           string
 	URL              *url.URL
@@ -172,7 +172,7 @@ func ToRequest(httpRequest *http.Request) *Request {
 }
 
 // Response is a track HTTP Response.
-// nolint: govet
+// nolint:govet
 type Response struct {
 	Status     string
 	StatusCode int
@@ -270,13 +270,13 @@ func cloneTLS(tlsCS *tls.ConnectionState) *tls.ConnectionState {
 		DidResume:                   tlsCS.DidResume,
 		CipherSuite:                 tlsCS.CipherSuite,
 		NegotiatedProtocol:          tlsCS.NegotiatedProtocol,
-		NegotiatedProtocolIsMutual:  tlsCS.NegotiatedProtocolIsMutual, //nolint: staticcheck
+		NegotiatedProtocolIsMutual:  tlsCS.NegotiatedProtocolIsMutual, //nolint:staticcheck
 		ServerName:                  tlsCS.ServerName,
 		PeerCertificates:            peerCertificatesClone,
 		VerifiedChains:              verifiedChainsClone,
 		SignedCertificateTimestamps: signedCertificateTimestampsClone,
 		OCSPResponse:                []byte(string(tlsCS.OCSPResponse)),
-		TLSUnique:                   []byte(string(tlsCS.TLSUnique)), //nolint: staticcheck
+		TLSUnique:                   []byte(string(tlsCS.TLSUnique)), //nolint:staticcheck
 	}
 }
 
