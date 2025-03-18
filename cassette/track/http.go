@@ -194,7 +194,7 @@ type Response struct {
 	// This is useful in scenarios where the request contains a dynamic piece of information
 	// such as e.g. a transaction ID, a customer number, etc.
 	// This is solely for informational purpose at replaying time. Mutating it achieves nothing.
-	Request *Request
+	Request *Request `json:"-"`
 }
 
 // ToResponse transcodes an HTTP Response to a track Response.
