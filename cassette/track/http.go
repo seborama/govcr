@@ -189,11 +189,13 @@ type Response struct {
 	Trailer          http.Header
 	TLS              *tls.ConnectionState
 
-	// Request is nil when recording a track to the cassette.
+	// govcr initially sets Request to nil when recording a track to the cassette.
+	// It is only possible to force a value to cassette through a track record mutator.
 	// At _replaying_ _time_ _only_ it will be populated with the "current" HTTP request.
 	// This is useful in scenarios where the request contains a dynamic piece of information
 	// such as e.g. a transaction ID, a customer number, etc.
-	// This is solely for informational purpose at replaying time. Mutating it achieves nothing.
+	// This is solely for informational purpose at replaying time.
+	// Mutating it at replay time typically achieves nothing very useful.
 	Request *Request
 }
 
