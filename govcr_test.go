@@ -16,10 +16,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/seborama/govcr/v15"
-	"github.com/seborama/govcr/v15/cassette/track"
-	"github.com/seborama/govcr/v15/encryption"
-	"github.com/seborama/govcr/v15/stats"
+	"github.com/seborama/govcr/v16"
+	"github.com/seborama/govcr/v16/cassette/track"
+	"github.com/seborama/govcr/v16/encryption"
+	"github.com/seborama/govcr/v16/stats"
 )
 
 func TestNewVCR(t *testing.T) {
@@ -98,7 +98,7 @@ func TestVCRControlPanel_HTTPClient(t *testing.T) {
 }
 
 func TestSetCrypto(t *testing.T) {
-	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = fmt.Fprintf(w, "Hello: %d\n", rand.Intn(1e9))
 	}))
 
@@ -223,7 +223,7 @@ func (ts *GoVCRTestSuite) TestVCR_ReadOnlyMode() {
 		TracksRecorded: 0,
 		TracksPlayed:   0,
 	}
-	ts.EqualValues(expectedStats, vcr.Stats())
+	ts.Equal(expectedStats, vcr.Stats())
 }
 
 func (ts *GoVCRTestSuite) TestVCR_LiveOnlyMode() {
@@ -234,14 +234,14 @@ func (ts *GoVCRTestSuite) TestVCR_LiveOnlyMode() {
 	vcr.SetLiveOnlyMode()
 	vcr.SetRequestMatchers(alwaysMatchRequest) // ensure always matching
 
-	ts.makeHTTPCalls_WithSuccess(vcr.HTTPClient(), 0)
+	ts.makeHTTPCallsWithSuccess(vcr.HTTPClient(), 0)
 	expectedStats := &stats.Stats{
 		TotalTracks:    2,
 		TracksLoaded:   0,
 		TracksRecorded: 2,
 		TracksPlayed:   0,
 	}
-	ts.EqualValues(expectedStats, vcr.Stats())
+	ts.Equal(expectedStats, vcr.Stats())
 	ts.Require().FileExists(k7Name)
 
 	// 2nd execution of set of calls
@@ -249,14 +249,14 @@ func (ts *GoVCRTestSuite) TestVCR_LiveOnlyMode() {
 	vcr.SetLiveOnlyMode()
 	vcr.SetRequestMatchers(alwaysMatchRequest) // ensure always matching
 
-	ts.makeHTTPCalls_WithSuccess(vcr.HTTPClient(), 2) // as we're making live requests, the sever keeps on increasing the counter
+	ts.makeHTTPCallsWithSuccess(vcr.HTTPClient(), 2) // as we're making live requests, the sever keeps on increasing the counter
 	expectedStats = &stats.Stats{
 		TotalTracks:    4,
 		TracksLoaded:   2,
 		TracksRecorded: 2,
 		TracksPlayed:   0,
 	}
-	ts.EqualValues(expectedStats, vcr.Stats())
+	ts.Equal(expectedStats, vcr.Stats())
 }
 
 func (ts *GoVCRTestSuite) TestVCR_OfflineMode() {
@@ -267,37 +267,37 @@ func (ts *GoVCRTestSuite) TestVCR_OfflineMode() {
 	vcr.SetRequestMatchers(alwaysMatchRequest) // ensure always matching
 	vcr.SetNormalMode()                        // get data in the cassette
 
-	ts.makeHTTPCalls_WithSuccess(vcr.HTTPClient(), 0)
+	ts.makeHTTPCallsWithSuccess(vcr.HTTPClient(), 0)
 	expectedStats := &stats.Stats{
 		TotalTracks:    2,
 		TracksLoaded:   0,
 		TracksRecorded: 2,
 		TracksPlayed:   0,
 	}
-	ts.EqualValues(expectedStats, vcr.Stats())
+	ts.Equal(expectedStats, vcr.Stats())
 	ts.Require().FileExists(k7Name)
 
 	// 2nd execution of set of calls -- offline only
 	vcr = ts.newVCR(k7Name, actionKeepCassette)
 	vcr.SetOfflineMode()
 
-	ts.makeHTTPCalls_WithSuccess(vcr.HTTPClient(), 0)
+	ts.makeHTTPCallsWithSuccess(vcr.HTTPClient(), 0)
 	expectedStats = &stats.Stats{
 		TotalTracks:    2,
 		TracksLoaded:   2,
 		TracksRecorded: 0,
 		TracksPlayed:   2,
 	}
-	ts.EqualValues(expectedStats, vcr.Stats())
+	ts.Equal(expectedStats, vcr.Stats())
 
 	// 3rd execution of set of calls -- still offline only
 	// we've run out of tracks on the cassette and we're in offline mode so we expect a transport error
-	req, err := http.NewRequest(http.MethodGet, ts.testServer.URL, nil)
+	req, err := http.NewRequest(http.MethodGet, ts.testServer.URL, http.NoBody)
 	ts.Require().NoError(err)
-	resp, err := vcr.HTTPClient().Do(req) //nolint:bodyclose
+	resp, err := vcr.HTTPClient().Do(req)
 	ts.Require().Error(err)
-	ts.Assert().Contains(err.Error(), "no track matched on cassette and offline mode is active")
-	ts.Assert().Nil(resp)
+	ts.Contains(err.Error(), "no track matched on cassette and offline mode is active")
+	ts.Nil(resp)
 }
 
 func (ts *GoVCRTestSuite) TestRoundTrip_ReplaysError() {
@@ -332,15 +332,14 @@ func (ts *GoVCRTestSuite) TestRoundTrip_ReplaysError() {
 	const k7Name = "temp-fixtures/TestGoVCRTestSuite.TestRoundTrip_ReplaysError.cassette.json"
 
 	for idx, tc := range tt {
-		ts.T().Run(tc.name, func(t *testing.T) {
+		ts.Run(tc.name, func() {
 			cassetteName := k7Name + fmt.Sprintf(".test_case_%d", idx)
 
 			// execute HTTP call and record on cassette
 			vcr := ts.newVCR(cassetteName, actionDeleteCassette)
 
-			resp, err := vcr.HTTPClient().Get(tc.reqURL) //nolint:bodyclose
-			ts.Require().Error(err)
-			ts.EqualError(err, tc.wantErr)
+			resp, err := vcr.HTTPClient().Get(tc.reqURL)
+			ts.Require().EqualError(err, tc.wantErr)
 			ts.Require().Nil(resp)
 
 			expectedStats := &stats.Stats{
@@ -349,16 +348,15 @@ func (ts *GoVCRTestSuite) TestRoundTrip_ReplaysError() {
 				TracksRecorded: 1,
 				TracksPlayed:   0,
 			}
-			ts.EqualValues(expectedStats, vcr.Stats())
+			ts.Equal(expectedStats, vcr.Stats())
 
 			// replay from cassette
 			ts.Require().FileExists(cassetteName)
 			vcr = ts.newVCR(cassetteName, actionKeepCassette)
 			ts.EqualValues(1, vcr.NumberOfTracks())
 
-			resp, err = vcr.HTTPClient().Get(tc.reqURL) //nolint:bodyclose
-			ts.Require().Error(err)
-			ts.EqualError(err, tc.wantVCRErr)
+			resp, err = vcr.HTTPClient().Get(tc.reqURL)
+			ts.Require().EqualError(err, tc.wantVCRErr)
 			ts.Require().Nil(resp)
 
 			expectedStats = &stats.Stats{
@@ -367,7 +365,7 @@ func (ts *GoVCRTestSuite) TestRoundTrip_ReplaysError() {
 				TracksRecorded: 0,
 				TracksPlayed:   1,
 			}
-			ts.EqualValues(expectedStats, vcr.Stats())
+			ts.Equal(expectedStats, vcr.Stats())
 		})
 	}
 }
@@ -378,54 +376,54 @@ func (ts *GoVCRTestSuite) TestRoundTrip_ReplaysPlainResponse() {
 	// 1st execution of set of calls
 	vcr := ts.newVCR(k7Name, actionDeleteCassette)
 
-	ts.makeHTTPCalls_WithSuccess(vcr.HTTPClient(), 0)
+	ts.makeHTTPCallsWithSuccess(vcr.HTTPClient(), 0)
 	expectedStats := &stats.Stats{
 		TotalTracks:    2,
 		TracksLoaded:   0,
 		TracksRecorded: 2,
 		TracksPlayed:   0,
 	}
-	ts.EqualValues(expectedStats, vcr.Stats())
+	ts.Equal(expectedStats, vcr.Stats())
 	ts.Require().FileExists(k7Name)
 
 	// 2nd execution of set of calls (replayed with cassette reload)
 	vcr = ts.newVCR(k7Name, actionKeepCassette)
 
-	ts.makeHTTPCalls_WithSuccess(vcr.HTTPClient(), 0)
+	ts.makeHTTPCallsWithSuccess(vcr.HTTPClient(), 0)
 	expectedStats = &stats.Stats{
 		TotalTracks:    2,
 		TracksLoaded:   2,
 		TracksRecorded: 0,
 		TracksPlayed:   2,
 	}
-	ts.EqualValues(expectedStats, vcr.Stats())
+	ts.Equal(expectedStats, vcr.Stats())
 
 	// 3rd execution of set of calls (replayed without cassette reload)
-	ts.makeHTTPCalls_WithSuccess(vcr.HTTPClient(), int(expectedStats.TotalTracks)) // as we're making live requests, the sever keeps on increasing the counter
+	ts.makeHTTPCallsWithSuccess(vcr.HTTPClient(), int(expectedStats.TotalTracks)) // as we're making live requests, the sever keeps on increasing the counter
 	expectedStats = &stats.Stats{
 		TotalTracks:    4,
 		TracksLoaded:   2,
 		TracksRecorded: 2,
 		TracksPlayed:   2,
 	}
-	ts.EqualValues(expectedStats, vcr.Stats())
+	ts.Equal(expectedStats, vcr.Stats())
 }
 
-func (ts *GoVCRTestSuite) makeHTTPCalls_WithSuccess(httpClient *http.Client, serverCurrentCount int) {
+func (ts *GoVCRTestSuite) makeHTTPCallsWithSuccess(httpClient *http.Client, serverCurrentCount int) {
 	for i := 1; i <= 2; i++ {
-		req, err := http.NewRequest(http.MethodGet, ts.testServer.URL+fmt.Sprintf("?i=%d", i), nil)
+		req, err := http.NewRequest(http.MethodGet, ts.testServer.URL+fmt.Sprintf("?i=%d", i), http.NoBody)
 		ts.Require().NoError(err)
-		req.Header.Add("header", "value")
+		req.Header.Add("Header", "value")
 		req.SetBasicAuth("not_a_username", "not_a_password")
 
 		resp, err := httpClient.Do(req)
 		ts.Require().NoError(err)
 
 		ts.Equal(http.StatusOK, resp.StatusCode)
-		ts.EqualValues(strconv.Itoa(38+len(strconv.Itoa(i))), resp.Header.Get("Content-Length"))
-		ts.EqualValues("text/plain; charset=utf-8", resp.Header.Get("Content-Type"))
+		ts.Equal(strconv.Itoa(38+len(strconv.Itoa(i))), resp.Header.Get("Content-Length"))
+		ts.Equal("text/plain; charset=utf-8", resp.Header.Get("Content-Type"))
 		ts.NotEmpty(resp.Header.Get("Date"))
-		ts.EqualValues(resp.Trailer, http.Header(nil))
+		ts.Equal(resp.Trailer, http.Header(nil))
 
 		bodyBytes, err := io.ReadAll(resp.Body)
 		ts.Require().NoError(err)
@@ -438,6 +436,6 @@ func (ts *GoVCRTestSuite) makeHTTPCalls_WithSuccess(httpClient *http.Client, ser
 	}
 }
 
-func alwaysMatchRequest(httpRequest, trackRequest *track.Request) bool {
+func alwaysMatchRequest(_, _ *track.Request) bool {
 	return true
 }

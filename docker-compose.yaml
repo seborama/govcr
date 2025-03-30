@@ -1,5 +1,7 @@
 version: "3.8"
 
+## this file is used by the CI on GitHub
+
 services:
   localstack:
     container_name: "${LOCALSTACK_DOCKER_NAME-localstack_main}"
@@ -13,5 +15,3 @@ services:
     volumes:
       - "${LOCALSTACK_VOLUME_DIR:-/tmp/lima/govcr}:/var/lib/localstack"
       - "/var/run/docker.sock:/var/run/docker.sock"
-
-

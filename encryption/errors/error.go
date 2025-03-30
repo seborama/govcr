@@ -1,9 +1,5 @@
 package errors
 
-import (
-	"fmt"
-)
-
 // ErrCrypto is an error that indicates a cryptographic failure.
 type ErrCrypto struct {
 	message string
@@ -17,5 +13,5 @@ func NewErrCrypto(message string) *ErrCrypto {
 }
 
 func (e ErrCrypto) Error() string {
-	return fmt.Sprint(e.message)
+	return e.message
 }

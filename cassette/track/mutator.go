@@ -179,8 +179,8 @@ func (tm Mutator) OnStatusCode(codes ...int) Mutator {
 	return tm.On(HasAnyStatusCode(codes...))
 }
 
-// TrackRequestAddHeaderValue adds or overwrites a header key / value to the HTTP request.
-func TrackRequestAddHeaderValue(key, value string) Mutator {
+// AddTrackRequestHeaderValue adds or overwrites a header key / value to the HTTP request.
+func AddTrackRequestHeaderValue(key, value string) Mutator {
 	return func(trk *Track) {
 		if trk != nil {
 			// TODO: add a debug log on trk.Response.Request != nil as it indicates replaying time rather than recording time.
@@ -192,9 +192,9 @@ func TrackRequestAddHeaderValue(key, value string) Mutator {
 	}
 }
 
-// TrackRequestDeleteHeaderKeys deletes one or more header keys from the track request.
+// DeleteTrackRequestHeaderKeys deletes one or more header keys from the track request.
 // This is useful with a recording track mutator.
-func TrackRequestDeleteHeaderKeys(keys ...string) Mutator {
+func DeleteTrackRequestHeaderKeys(keys ...string) Mutator {
 	return func(trk *Track) {
 		if trk != nil {
 			// TODO: add a debug log on trk.Response.Request != nil as it indicates replaying time rather than recording time.
@@ -296,10 +296,10 @@ func ResponseTransferHTTPTrailerKeys(keys ...string) Mutator {
 	}
 }
 
-// TrackRequestChangeBody allows to change the body of the request.
+// ChangeTrackRequestBody allows to change the body of the request.
 // Supply a function that does input to output transformation.
 // This is useful with a recording track mutator.
-func TrackRequestChangeBody(fn func(b []byte) []byte) Mutator {
+func ChangeTrackRequestBody(fn func(b []byte) []byte) Mutator {
 	return func(trk *Track) {
 		if trk != nil {
 			// TODO: add a debug log on trk.Response.Request != nil as it indicates replaying time rather than recording time.

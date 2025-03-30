@@ -3,8 +3,8 @@ package govcr
 import (
 	"net/http"
 
-	"github.com/seborama/govcr/v15/cassette"
-	"github.com/seborama/govcr/v15/cassette/track"
+	"github.com/seborama/govcr/v16/cassette"
+	"github.com/seborama/govcr/v16/cassette/track"
 )
 
 // Setting defines an optional functional parameter as received by NewVCR().

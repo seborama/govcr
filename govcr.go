@@ -7,8 +7,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/seborama/govcr/v15/cassette"
-	"github.com/seborama/govcr/v15/encryption"
+	"github.com/seborama/govcr/v16/cassette"
+	"github.com/seborama/govcr/v16/encryption"
 )
 
 // CrypterProvider is the signature of a cipher provider function with default nonce generator.
@@ -37,7 +37,7 @@ func NewCassetteLoader(cassetteName string) *CassetteLoader {
 // and key file.
 // Using more than one WithCipher* on the same cassette is ambiguous.
 func (cb *CassetteLoader) WithCipher(crypter CrypterProvider, keyFile string) *CassetteLoader {
-	f := func(key []byte, nonceGenerator encryption.NonceGenerator) (*encryption.Crypter, error) {
+	f := func(key []byte, _ encryption.NonceGenerator) (*encryption.Crypter, error) {
 		// a "CrypterProvider" is a CrypterNonceProvider with a pre-defined / default nonceGenerator
 		return crypter(key)
 	}

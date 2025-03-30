@@ -10,16 +10,16 @@ import (
 
 	"github.com/pkg/errors"
 
-	trkerr "github.com/seborama/govcr/v15/cassette/track/errors"
+	trkerr "github.com/seborama/govcr/v16/cassette/track/errors"
 )
 
 // Track is a recording (HTTP Request + Response) in a cassette.
 type Track struct {
-	Request  Request
-	Response *Response
-	ErrType  *string
-	ErrMsg   *string
-	UUID     string // future enhancement to identify tracks in logs, etc
+	Request  Request   `json:"Request"`
+	Response *Response `json:"Response"`
+	ErrType  *string   `json:"ErrType"`
+	ErrMsg   *string   `json:"ErrMsg"`
+	UUID     string    `json:"UUID"` // future enhancement to identify tracks in logs, etc
 
 	// replayed indicates whether the track has already been processed in the cassette playback.
 	replayed bool
@@ -110,7 +110,7 @@ func (trk *Track) ToErr() error {
 // govcr only saves enough info of the http.Request to permit matching.
 // Not all fields of http.Request are populated.
 func (trk *Track) toHTTPRequest() *http.Request {
-	bodyReadCloser := io.NopCloser(bytes.NewReader(trk.Request.Body))
+	bodyReadCloser := io.NopCloser(bytes.NewReader(trk.Request.Body)) // this causes a side-effect on trk.Request.Body
 
 	httpRequest := http.Request{
 		Method:           trk.Request.Method,
@@ -136,15 +136,14 @@ func (trk *Track) toHTTPRequest() *http.Request {
 }
 
 // ToHTTPResponse converts the track Response to an http.Response.
-// nolint:gocritic
-func (trk Track) ToHTTPResponse() *http.Response {
+func (trk *Track) ToHTTPResponse() *http.Response {
 	if trk.Response == nil {
 		return nil
 	}
 
 	httpResponse := http.Response{}
 
-	bodyReadCloser := io.NopCloser(bytes.NewReader(trk.Response.Body))
+	bodyReadCloser := io.NopCloser(bytes.NewReader(trk.Response.Body)) // this causes a side-effect on trk.Request.Body
 
 	httpResponse.Status = trk.Response.Status
 	httpResponse.StatusCode = trk.Response.StatusCode

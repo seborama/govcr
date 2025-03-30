@@ -5,11 +5,11 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/seborama/govcr/v15/cassette"
-	"github.com/seborama/govcr/v15/cassette/track"
-	"github.com/seborama/govcr/v15/encryption"
-	govcrerr "github.com/seborama/govcr/v15/errors"
-	"github.com/seborama/govcr/v15/stats"
+	"github.com/seborama/govcr/v16/cassette"
+	"github.com/seborama/govcr/v16/cassette/track"
+	"github.com/seborama/govcr/v16/encryption"
+	govcrerr "github.com/seborama/govcr/v16/errors"
+	"github.com/seborama/govcr/v16/stats"
 )
 
 // vcrTransport is the heart of VCR. It implements
@@ -43,7 +43,7 @@ func (t *vcrTransport) RoundTrip(httpRequest *http.Request) (*http.Response, err
 		httpResponse := trk.ToHTTPResponse()
 		httpError := trk.ToErr()
 
-		return httpResponse, httpError //nolint:wrapcheck
+		return httpResponse, httpError
 	}
 
 	if t.pcb.httpMode == HTTPModeOffline {
@@ -106,7 +106,7 @@ func (t *vcrTransport) SetLiveOnlyMode() {
 // when loading a cassette) or change the cipher when one is already present.
 // The cassette is automatically saved with the new selected cipher.
 func (t *vcrTransport) SetCipher(crypter CrypterProvider, keyFile string) error {
-	f := func(key []byte, nonceGenerator encryption.NonceGenerator) (*encryption.Crypter, error) {
+	f := func(key []byte, _ encryption.NonceGenerator) (*encryption.Crypter, error) {
 		// a "CrypterProvider" is a CrypterNonceProvider with a pre-defined / default nonceGenerator
 		return crypter(key)
 	}

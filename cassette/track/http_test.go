@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/seborama/govcr/v15/cassette/track"
+	"github.com/seborama/govcr/v16/cassette/track"
 )
 
 func TestRequest_Clone(t *testing.T) {
@@ -128,9 +128,6 @@ func TestRequest_Clone(t *testing.T) {
 	}
 
 	for name, tc := range tt {
-		name := name
-		tc := tc
-
 		t.Run(name, func(t *testing.T) {
 			reqJSON, err := json.MarshalIndent(tc.req, "", "  ")
 			require.NoError(t, err)
@@ -147,7 +144,7 @@ func TestRequest_Clone(t *testing.T) {
 
 			reqJSON2, err := json.MarshalIndent(tc.req, "", "  ")
 			require.NoError(t, err)
-			assert.Equal(t, string(reqJSON), string(reqJSON2))
+			assert.JSONEq(t, string(reqJSON), string(reqJSON2))
 		})
 	}
 }

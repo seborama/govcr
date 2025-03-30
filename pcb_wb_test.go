@@ -11,10 +11,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/seborama/govcr/v15/cassette"
-	"github.com/seborama/govcr/v15/cassette/track"
+	"github.com/seborama/govcr/v16/cassette"
+	"github.com/seborama/govcr/v16/cassette/track"
 )
 
+//nolint:gocognit
 func TestPrintedCircuitBoard_trackMatches(t *testing.T) {
 	// This test is in addition toTestRoundTrip_RequestMatcherDoesNotMutateState
 	pcb := &PrintedCircuitBoard{}
@@ -51,9 +52,6 @@ func TestPrintedCircuitBoard_trackMatches(t *testing.T) {
 					}
 				}
 			}
-
-			httpRequest = nil
-			trackRequest = nil
 
 			return true
 		},
@@ -126,79 +124,37 @@ func TestPrintedCircuitBoard_trackMatches(t *testing.T) {
 	require.True(t, res)
 
 	// track validation
-	require.Equal(
-		t,
+	require.Equal(t,
 		http.Header{
 			"req header": {"req header value"},
 		},
 		k7.Tracks[0].Request.Header,
 	)
-	require.Equal(
-		t,
-		[]byte("req body"),
-		k7.Tracks[0].Request.Body,
-	)
-	require.Equal(
-		t,
-		int64(456),
-		k7.Tracks[0].Request.ContentLength,
-	)
-	require.Len(
-		t,
-		k7.Tracks,
-		1,
-	)
+	require.Equal(t, []byte("req body"), k7.Tracks[0].Request.Body)
+	require.Equal(t, int64(456), k7.Tracks[0].Request.ContentLength)
+	require.Len(t, k7.Tracks, 1)
 	_, ok := k7.Tracks[0].Request.MultipartForm.File["req multipartpostform file"]
-	require.True(
-		t,
-		ok,
-	)
-	require.Len(
-		t,
-		k7.Tracks[0].Request.MultipartForm.File["req multipartpostform file"],
-		1,
-	)
-	require.Equal(
-		t,
+	require.True(t, ok)
+	require.Len(t, k7.Tracks[0].Request.MultipartForm.File["req multipartpostform file"], 1)
+	require.Equal(t,
 		"req multipartpostform file filename",
 		k7.Tracks[0].Request.MultipartForm.File["req multipartpostform file"][0].Filename,
 	)
 
 	// httpRequest validation
-	require.Equal(
-		t,
+	require.Equal(t,
 		http.Header{
 			"hreq header": {"hreq header value"},
 		},
 		httpRequest.Header,
 	)
-	require.Equal(
-		t,
-		[]byte("hreq body"),
-		httpRequest.Body,
-	)
-	require.Equal(
-		t,
-		int64(890),
-		httpRequest.ContentLength,
-	)
-	require.Len(
-		t,
-		k7.Tracks,
-		1,
-	)
+	require.Equal(t, []byte("hreq body"), httpRequest.Body)
+	require.Equal(t, int64(890), httpRequest.ContentLength)
+	require.Len(t, k7.Tracks, 1)
 	_, ok2 := httpRequest.MultipartForm.File["hreq multipartpostform file"]
-	require.True(
-		t,
-		ok2,
-	)
-	require.Len(
-		t,
-		httpRequest.MultipartForm.File["hreq multipartpostform file"],
-		1,
-	)
-	require.Equal(
-		t,
+	require.True(t, ok2)
+	require.Len(t, httpRequest.MultipartForm.File["hreq multipartpostform file"], 1)
+	require.Equal(t,
 		"hreq multipartpostform file filename",
 		httpRequest.MultipartForm.File["hreq multipartpostform file"][0].Filename,
 	)

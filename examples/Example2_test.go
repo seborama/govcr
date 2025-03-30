@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/seborama/govcr/v15"
+	"github.com/seborama/govcr/v16"
 )
 
 const exampleCassetteName2 = "temp-fixtures/TestExample2.cassette.json"
 
-// imaginary app
+// imaginary app.
 type myApp struct {
 	httpClient *http.Client
 }

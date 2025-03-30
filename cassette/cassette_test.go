@@ -8,9 +8,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/seborama/govcr/v15/cassette"
-	"github.com/seborama/govcr/v15/cassette/track"
-	"github.com/seborama/govcr/v15/encryption"
+	"github.com/seborama/govcr/v16/cassette"
+	"github.com/seborama/govcr/v16/cassette/track"
+	"github.com/seborama/govcr/v16/encryption"
 )
 
 func Test_cassette_GzipFilter(t *testing.T) {
@@ -36,8 +36,6 @@ func Test_cassette_GzipFilter(t *testing.T) {
 	}
 
 	for _, tc := range tt {
-		tc := tc
-
 		t.Run(tc.name, func(t *testing.T) {
 			k7 := cassette.NewCassette(tc.cassetteName)
 			for _, aTrack := range tc.tracks {
@@ -46,7 +44,7 @@ func Test_cassette_GzipFilter(t *testing.T) {
 
 			got, err := k7.GzipFilter(tc.trackData)
 			require.NoError(t, err)
-			assert.EqualValues(t, tc.want, got)
+			assert.Equal(t, tc.want, got)
 		})
 	}
 }
@@ -70,13 +68,11 @@ func Test_cassette_IsLongPlay(t *testing.T) {
 	}
 
 	for _, tc := range tt {
-		tc := tc
-
 		t.Run(tc.name, func(t *testing.T) {
 			k7 := cassette.NewCassette(tc.cassetteName)
 
 			got := k7.IsLongPlay()
-			assert.EqualValues(t, tc.want, got)
+			assert.Equal(t, tc.want, got)
 		})
 	}
 }
@@ -107,8 +103,6 @@ func Test_cassette_GunzipFilter(t *testing.T) {
 	}
 
 	for _, tc := range tt {
-		tc := tc
-
 		t.Run(tc.name, func(t *testing.T) {
 			k7 := cassette.NewCassette(tc.cassetteName)
 			for i := range tc.tracks {
@@ -117,7 +111,7 @@ func Test_cassette_GunzipFilter(t *testing.T) {
 
 			got, err := k7.GunzipFilter(tc.trackData)
 			require.Equal(t, tc.wantErr, err != nil)
-			assert.EqualValues(t, tc.want, got)
+			assert.Equal(t, tc.want, got)
 		})
 	}
 }
@@ -146,7 +140,7 @@ func Test_cassette_Encryption(t *testing.T) {
 	})
 
 	// STEP 3: perform high and low-level validation checks on cassette file.
-	data, err := os.ReadFile(cassetteName) // nolint:gosec
+	data, err := os.ReadFile(cassetteName)
 	require.NoError(t, err)
 
 	const encryptedCassetteHeader = "$ENC:V2$"
@@ -201,7 +195,7 @@ func Test_cassette_CanEncryptPlainCassette(t *testing.T) {
 	})
 
 	// STEP 3: perform high and low-level validation checks on cassette file.
-	data, err := os.ReadFile(cassetteName) // nolint:gosec
+	data, err := os.ReadFile(cassetteName)
 	require.NoError(t, err)
 
 	const encryptedCassetteHeader = "$ENC:V2$"

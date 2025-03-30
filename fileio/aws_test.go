@@ -1,18 +1,18 @@
 package fileio_test
 
 import (
-	"log"
+	"log/slog"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	"github.com/seborama/govcr/v15/fileio"
+	"github.com/seborama/govcr/v16/fileio"
 )
 
 func TestS3Client(t *testing.T) {
 	bucketName := "tests3client-writefile-" + uuid.New().String() // warning: max length: 63 chars
-	log.Println("bucketName:", bucketName)
+	slog.Info("AWS", slog.String("bucketName:", bucketName))
 
 	s3Client, err := makeS3ClientWithBucket(bucketName)
 	require.NoError(t, err)

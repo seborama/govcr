@@ -10,26 +10,26 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/seborama/govcr/v15/cassette/track"
+	"github.com/seborama/govcr/v16/cassette/track"
 )
 
 func Test_Mutator_On(t *testing.T) {
 	mutatorCallCounter := 0
 
 	unitMutator := track.Mutator(
-		func(tk *track.Track) {
+		func(_ *track.Track) {
 			mutatorCallCounter++
 		},
 	)
 
 	pTrue := track.Predicate(
-		func(trk *track.Track) bool {
+		func(_ *track.Track) bool {
 			return true
 		},
 	)
 
 	pFalse := track.Predicate(
-		func(trk *track.Track) bool {
+		func(_ *track.Track) bool {
 			return false
 		},
 	)
@@ -57,13 +57,13 @@ func Test_Mutator_On(t *testing.T) {
 
 func Test_Mutator_Any(t *testing.T) {
 	pTrue := track.Predicate(
-		func(trk *track.Track) bool {
+		func(_ *track.Track) bool {
 			return true
 		},
 	)
 
 	pFalse := track.Predicate(
-		func(trk *track.Track) bool {
+		func(_ *track.Track) bool {
 			return false
 		},
 	)
@@ -85,13 +85,13 @@ func Test_Mutator_Any(t *testing.T) {
 
 func Test_Mutator_None(t *testing.T) {
 	pTrue := track.Predicate(
-		func(trk *track.Track) bool {
+		func(_ *track.Track) bool {
 			return true
 		},
 	)
 
 	pFalse := track.Predicate(
-		func(trk *track.Track) bool {
+		func(_ *track.Track) bool {
 			return false
 		},
 	)
@@ -113,13 +113,13 @@ func Test_Mutator_None(t *testing.T) {
 
 func Test_Mutator_All(t *testing.T) {
 	pTrue := track.Predicate(
-		func(trk *track.Track) bool {
+		func(_ *track.Track) bool {
 			return true
 		},
 	)
 
 	pFalse := track.Predicate(
-		func(trk *track.Track) bool {
+		func(_ *track.Track) bool {
 			return false
 		},
 	)
@@ -141,13 +141,13 @@ func Test_Mutator_All(t *testing.T) {
 
 func Test_Mutator_Not(t *testing.T) {
 	pTrue := track.Predicate(
-		func(trk *track.Track) bool {
+		func(_ *track.Track) bool {
 			return true
 		},
 	)
 
 	pFalse := track.Predicate(
-		func(trk *track.Track) bool {
+		func(_ *track.Track) bool {
 			return false
 		},
 	)
@@ -350,7 +350,7 @@ func Test_Mutator_OnRequestPath(t *testing.T) {
 	mutatorCallCounter := 0
 
 	unitMutator := track.Mutator(
-		func(tk *track.Track) {
+		func(_ *track.Track) {
 			mutatorCallCounter++
 		})
 
@@ -384,7 +384,7 @@ func Test_Mutator_OnStatus(t *testing.T) {
 	mutatorCallCounter := 0
 
 	unitMutator := track.Mutator(
-		func(tk *track.Track) {
+		func(_ *track.Track) {
 			mutatorCallCounter++
 		})
 
@@ -413,7 +413,7 @@ func Test_Mutator_OnStatusCode(t *testing.T) {
 	mutatorCallCounter := 0
 
 	unitMutator := track.Mutator(
-		func(tk *track.Track) {
+		func(_ *track.Track) {
 			mutatorCallCounter++
 		})
 
@@ -439,10 +439,10 @@ func Test_Mutator_OnStatusCode(t *testing.T) {
 }
 
 func Test_Mutator_RequestAddHeaderValue(t *testing.T) {
-	unitMutator := track.TrackRequestAddHeaderValue("key-1", "value-1")
+	unitMutator := track.AddTrackRequestHeaderValue("key-1", "value-1")
 
 	h := http.Header{}
-	h.Set("key-a", "value-b")
+	h.Set("Key-A", "value-b")
 
 	trk := track.NewTrack(
 		&track.Request{Header: h},
@@ -453,11 +453,11 @@ func Test_Mutator_RequestAddHeaderValue(t *testing.T) {
 	assert.NotPanics(t, func() { unitMutator(nil) })
 
 	unitMutator(trk)
-	assert.Equal(t, trk.Request.Header.Get("key-1"), "value-1")
+	assert.Equal(t, "value-1", trk.Request.Header.Get("Key-1"))
 }
 
 func Test_Mutator_RequestAddHeaderValue_NilHeader(t *testing.T) {
-	unitMutator := track.TrackRequestAddHeaderValue("key-1", "value-1")
+	unitMutator := track.AddTrackRequestHeaderValue("key-1", "value-1")
 
 	trk := track.NewTrack(
 		&track.Request{},
@@ -468,14 +468,14 @@ func Test_Mutator_RequestAddHeaderValue_NilHeader(t *testing.T) {
 	assert.NotPanics(t, func() { unitMutator(nil) })
 
 	unitMutator(trk)
-	assert.Equal(t, trk.Request.Header.Get("key-1"), "value-1")
+	assert.Equal(t, "value-1", trk.Request.Header.Get("Key-1"))
 }
 
 func Test_Mutator_RequestDeleteHeaderKeys(t *testing.T) {
-	unitMutator := track.TrackRequestDeleteHeaderKeys("other", "key-a")
+	unitMutator := track.DeleteTrackRequestHeaderKeys("other", "key-a")
 
 	h := http.Header{}
-	h.Set("key-a", "value-b")
+	h.Set("Key-A", "value-b")
 
 	trk := track.NewTrack(
 		&track.Request{Header: h},
@@ -486,11 +486,11 @@ func Test_Mutator_RequestDeleteHeaderKeys(t *testing.T) {
 	assert.NotPanics(t, func() { unitMutator(nil) })
 
 	unitMutator(trk)
-	assert.Equal(t, trk.Request.Header.Values("key-a"), []string(nil))
+	assert.Equal(t, trk.Request.Header.Values("Key-A"), []string(nil))
 }
 
 func Test_Mutator_RequestDeleteHeaderKeys_NilHeader(t *testing.T) {
-	unitMutator := track.TrackRequestDeleteHeaderKeys("other", "key-a")
+	unitMutator := track.DeleteTrackRequestHeaderKeys("other", "key-a")
 
 	trk := track.NewTrack(
 		&track.Request{},
@@ -501,14 +501,14 @@ func Test_Mutator_RequestDeleteHeaderKeys_NilHeader(t *testing.T) {
 	assert.NotPanics(t, func() { unitMutator(nil) })
 
 	unitMutator(trk)
-	assert.Equal(t, trk.Request.Header.Values("key-a"), []string(nil))
+	assert.Equal(t, trk.Request.Header.Values("Key-A"), []string(nil))
 }
 
 func Test_Mutator_ResponseAddHeaderValue(t *testing.T) {
 	unitMutator := track.ResponseAddHeaderValue("key-1", "value-1")
 
 	h := http.Header{}
-	h.Set("key-a", "value-b")
+	h.Set("Key-A", "value-b")
 
 	trk := track.NewTrack(
 		&track.Request{},
@@ -519,7 +519,7 @@ func Test_Mutator_ResponseAddHeaderValue(t *testing.T) {
 	assert.NotPanics(t, func() { unitMutator(nil) })
 
 	unitMutator(trk)
-	assert.Equal(t, trk.Response.Header.Get("key-1"), "value-1")
+	assert.Equal(t, "value-1", trk.Response.Header.Get("Key-1"))
 }
 
 func Test_Mutator_ResponseAddHeaderValue_NilHeader(t *testing.T) {
@@ -534,14 +534,14 @@ func Test_Mutator_ResponseAddHeaderValue_NilHeader(t *testing.T) {
 	assert.NotPanics(t, func() { unitMutator(nil) })
 
 	unitMutator(trk)
-	assert.Equal(t, trk.Response.Header.Get("key-1"), "value-1")
+	assert.Equal(t, "value-1", trk.Response.Header.Get("Key-1"))
 }
 
 func Test_Mutator_ResponseDeleteHeaderKeys(t *testing.T) {
 	unitMutator := track.ResponseDeleteHeaderKeys("other", "key-a")
 
 	h := http.Header{}
-	h.Set("key-a", "value-b")
+	h.Set("Key-A", "value-b")
 
 	trk := track.NewTrack(
 		&track.Request{},
@@ -552,7 +552,7 @@ func Test_Mutator_ResponseDeleteHeaderKeys(t *testing.T) {
 	assert.NotPanics(t, func() { unitMutator(nil) })
 
 	unitMutator(trk)
-	assert.Equal(t, trk.Response.Header.Values("key-a"), []string(nil))
+	assert.Equal(t, trk.Response.Header.Values("Key-A"), []string(nil))
 }
 
 func Test_Mutator_ResponseDeleteHeaderKeys_NilHeader(t *testing.T) {
@@ -567,12 +567,12 @@ func Test_Mutator_ResponseDeleteHeaderKeys_NilHeader(t *testing.T) {
 	assert.NotPanics(t, func() { unitMutator(nil) })
 
 	unitMutator(trk)
-	assert.Equal(t, trk.Response.Header.Values("key-a"), []string(nil))
+	assert.Equal(t, trk.Response.Header.Values("Key-A"), []string(nil))
 }
 
 func Test_Mutator_RequestChangeBody(t *testing.T) {
-	unitMutator := track.TrackRequestChangeBody(
-		func(b []byte) []byte {
+	unitMutator := track.ChangeTrackRequestBody(
+		func(_ []byte) []byte {
 			return []byte("changed")
 		},
 	)
@@ -608,7 +608,7 @@ func Test_Mutator_RequestChangeBody(t *testing.T) {
 
 func Test_Mutator_ResponseChangeBody(t *testing.T) {
 	unitMutator := track.ResponseChangeBody(
-		func(b []byte) []byte {
+		func(_ []byte) []byte {
 			return []byte("changed")
 		},
 	)
@@ -713,41 +713,38 @@ func Test_Mutator_ResponseTransferHTTPHeaderKeys(t *testing.T) {
 			wantRespHeader: http.Header{},
 		},
 		"nil response header and eligible request header": {
-			respReqHeader:  func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
+			respReqHeader:  func() http.Header { h := http.Header{}; h.Set("Unit-Key-1", "unit-value-1"); return h }(),
 			respHeader:     nil,
-			wantRespHeader: func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
+			wantRespHeader: func() http.Header { h := http.Header{}; h.Set("Unit-Key-1", "unit-value-1"); return h }(),
 		},
 		"blank response header and eligible request header": {
-			respReqHeader:  func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
+			respReqHeader:  func() http.Header { h := http.Header{}; h.Set("Unit-Key-1", "unit-value-1"); return h }(),
 			respHeader:     http.Header{},
-			wantRespHeader: func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
+			wantRespHeader: func() http.Header { h := http.Header{}; h.Set("Unit-Key-1", "unit-value-1"); return h }(),
 		},
 		"eligible request header with response header containing other data": {
-			respReqHeader: func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
-			respHeader:    func() http.Header { h := http.Header{}; h.Set("unit-key-a", "unit-value-a"); return h }(),
+			respReqHeader: func() http.Header { h := http.Header{}; h.Set("Unit-Key-1", "unit-value-1"); return h }(),
+			respHeader:    func() http.Header { h := http.Header{}; h.Set("Unit-Key-A", "unit-value-a"); return h }(),
 			wantRespHeader: func() http.Header {
 				h := http.Header{}
-				h.Set("unit-key-a", "unit-value-a")
-				h.Add("unit-key-1", "unit-value-1")
+				h.Set("Unit-Key-A", "unit-value-a")
+				h.Add("Unit-Key-1", "unit-value-1")
 				return h
 			}(),
 		},
 		"eligible request header with response header already containing the transfer data": {
-			respReqHeader: func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
-			respHeader:    func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
+			respReqHeader: func() http.Header { h := http.Header{}; h.Set("Unit-Key-1", "unit-value-1"); return h }(),
+			respHeader:    func() http.Header { h := http.Header{}; h.Set("Unit-Key-1", "unit-value-1"); return h }(),
 			wantRespHeader: func() http.Header {
 				h := http.Header{}
-				h.Set("unit-key-1", "unit-value-1")
-				h.Add("unit-key-1", "unit-value-1")
+				h.Set("Unit-Key-1", "unit-value-1")
+				h.Add("Unit-Key-1", "unit-value-1")
 				return h
 			}(),
 		},
 	}
 
 	for name, tc := range tt {
-		name := name
-		tc := tc
-
 		t.Run(name, func(t *testing.T) {
 			trk := track.NewTrack(
 				nil,
@@ -789,41 +786,38 @@ func Test_Mutator_ResponseTransferHTTPTrailerKeys(t *testing.T) {
 			wantRespTrailer: http.Header{},
 		},
 		"nil response trailer and eligible request trailer": {
-			respReqTrailer:  func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
+			respReqTrailer:  func() http.Header { h := http.Header{}; h.Set("Unit-Key-1", "unit-value-1"); return h }(),
 			respTrailer:     nil,
-			wantRespTrailer: func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
+			wantRespTrailer: func() http.Header { h := http.Header{}; h.Set("Unit-Key-1", "unit-value-1"); return h }(),
 		},
 		"blank response trailer and eligible request trailer": {
-			respReqTrailer:  func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
+			respReqTrailer:  func() http.Header { h := http.Header{}; h.Set("Unit-Key-1", "unit-value-1"); return h }(),
 			respTrailer:     http.Header{},
-			wantRespTrailer: func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
+			wantRespTrailer: func() http.Header { h := http.Header{}; h.Set("Unit-Key-1", "unit-value-1"); return h }(),
 		},
 		"eligible request trailer with response trailer containing other data": {
-			respReqTrailer: func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
-			respTrailer:    func() http.Header { h := http.Header{}; h.Set("unit-key-a", "unit-value-a"); return h }(),
+			respReqTrailer: func() http.Header { h := http.Header{}; h.Set("Unit-Key-1", "unit-value-1"); return h }(),
+			respTrailer:    func() http.Header { h := http.Header{}; h.Set("Unit-Key-A", "unit-value-a"); return h }(),
 			wantRespTrailer: func() http.Header {
 				h := http.Header{}
-				h.Set("unit-key-a", "unit-value-a")
-				h.Add("unit-key-1", "unit-value-1")
+				h.Set("Unit-Key-A", "unit-value-a")
+				h.Add("Unit-Key-1", "unit-value-1")
 				return h
 			}(),
 		},
 		"eligible request trailer with response trailer already containing the transfer data": {
-			respReqTrailer: func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
-			respTrailer:    func() http.Header { h := http.Header{}; h.Set("unit-key-1", "unit-value-1"); return h }(),
+			respReqTrailer: func() http.Header { h := http.Header{}; h.Set("Unit-Key-1", "unit-value-1"); return h }(),
+			respTrailer:    func() http.Header { h := http.Header{}; h.Set("Unit-Key-1", "unit-value-1"); return h }(),
 			wantRespTrailer: func() http.Header {
 				h := http.Header{}
-				h.Set("unit-key-1", "unit-value-1")
-				h.Add("unit-key-1", "unit-value-1")
+				h.Set("Unit-Key-1", "unit-value-1")
+				h.Add("Unit-Key-1", "unit-value-1")
 				return h
 			}(),
 		},
 	}
 
 	for name, tc := range tt {
-		name := name
-		tc := tc
-
 		t.Run(name, func(t *testing.T) {
 			trk := track.NewTrack(
 				nil,
@@ -883,9 +877,6 @@ func Test_Mutator_Multiple_On(t *testing.T) {
 		})
 
 	for name, tc := range tt {
-		name := name
-		tc := tc
-
 		t.Run(name, func(t *testing.T) {
 			trk := track.NewTrack(
 				&track.Request{

@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/seborama/govcr/v15/cassette/track"
+	"github.com/seborama/govcr/v16/cassette/track"
 )
 
 func TestControlPanel_SetRecordingMutators(t *testing.T) {
@@ -15,18 +15,18 @@ func TestControlPanel_SetRecordingMutators(t *testing.T) {
 			Transport: &vcrTransport{
 				pcb: &PrintedCircuitBoard{
 					trackRecordingMutators: track.Mutators{
-						track.TrackRequestAddHeaderValue("k", "v"),
-						track.TrackRequestDeleteHeaderKeys("k2"),
+						track.AddTrackRequestHeaderValue("k", "v"),
+						track.DeleteTrackRequestHeaderKeys("k2"),
 					},
 				},
 			},
 		},
 	}
 
-	unit.SetRecordingMutators(track.TrackRequestDeleteHeaderKeys("k1"))
+	unit.SetRecordingMutators(track.DeleteTrackRequestHeaderKeys("k1"))
 
 	assert.Len(t, unit.client.Transport.(*vcrTransport).pcb.trackRecordingMutators, 1)
-	assert.Len(t, unit.client.Transport.(*vcrTransport).pcb.trackReplayingMutators, 0)
+	assert.Empty(t, unit.client.Transport.(*vcrTransport).pcb.trackReplayingMutators)
 }
 
 func TestControlPanel_AddRecordingMutators(t *testing.T) {
@@ -35,17 +35,17 @@ func TestControlPanel_AddRecordingMutators(t *testing.T) {
 			Transport: &vcrTransport{
 				pcb: &PrintedCircuitBoard{
 					trackRecordingMutators: track.Mutators{
-						track.TrackRequestAddHeaderValue("k", "v"),
+						track.AddTrackRequestHeaderValue("k", "v"),
 					},
 				},
 			},
 		},
 	}
 
-	unit.AddRecordingMutators(track.TrackRequestDeleteHeaderKeys("k2"))
+	unit.AddRecordingMutators(track.DeleteTrackRequestHeaderKeys("k2"))
 
 	assert.Len(t, unit.client.Transport.(*vcrTransport).pcb.trackRecordingMutators, 2)
-	assert.Len(t, unit.client.Transport.(*vcrTransport).pcb.trackReplayingMutators, 0)
+	assert.Empty(t, unit.client.Transport.(*vcrTransport).pcb.trackReplayingMutators)
 }
 
 func TestControlPanel_SetReplayingMutators(t *testing.T) {
@@ -54,18 +54,18 @@ func TestControlPanel_SetReplayingMutators(t *testing.T) {
 			Transport: &vcrTransport{
 				pcb: &PrintedCircuitBoard{
 					trackReplayingMutators: track.Mutators{
-						track.TrackRequestAddHeaderValue("k", "v"),
-						track.TrackRequestDeleteHeaderKeys("k2"),
+						track.AddTrackRequestHeaderValue("k", "v"),
+						track.DeleteTrackRequestHeaderKeys("k2"),
 					},
 				},
 			},
 		},
 	}
 
-	unit.SetReplayingMutators(track.TrackRequestDeleteHeaderKeys("k1"))
+	unit.SetReplayingMutators(track.DeleteTrackRequestHeaderKeys("k1"))
 
 	assert.Len(t, unit.client.Transport.(*vcrTransport).pcb.trackReplayingMutators, 1)
-	assert.Len(t, unit.client.Transport.(*vcrTransport).pcb.trackRecordingMutators, 0)
+	assert.Empty(t, unit.client.Transport.(*vcrTransport).pcb.trackRecordingMutators)
 }
 
 func TestControlPanel_AddReplayingMutators(t *testing.T) {
@@ -74,15 +74,15 @@ func TestControlPanel_AddReplayingMutators(t *testing.T) {
 			Transport: &vcrTransport{
 				pcb: &PrintedCircuitBoard{
 					trackReplayingMutators: track.Mutators{
-						track.TrackRequestAddHeaderValue("k", "v"),
+						track.AddTrackRequestHeaderValue("k", "v"),
 					},
 				},
 			},
 		},
 	}
 
-	unit.AddReplayingMutators(track.TrackRequestDeleteHeaderKeys("k2"))
+	unit.AddReplayingMutators(track.DeleteTrackRequestHeaderKeys("k2"))
 
 	assert.Len(t, unit.client.Transport.(*vcrTransport).pcb.trackReplayingMutators, 2)
-	assert.Len(t, unit.client.Transport.(*vcrTransport).pcb.trackRecordingMutators, 0)
+	assert.Empty(t, unit.client.Transport.(*vcrTransport).pcb.trackRecordingMutators)
 }
