@@ -5,6 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_validateNonceGenerator_Passes(t *testing.T) {
@@ -14,13 +15,13 @@ func Test_validateNonceGenerator_Passes(t *testing.T) {
 
 func Test_validateNonceGenerator_Fails_NonceGenErr(t *testing.T) {
 	err := validateNonceGenerator(brokenNonceGenerator{})
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "nonceGenerator failure: broken nonce")
 }
 
 func Test_validateNonceGenerator_Fails_WeakNonceGen(t *testing.T) {
 	err := validateNonceGenerator(weakNonceGenerator{})
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "nonceGenerator produces frequent duplicates")
 }
 

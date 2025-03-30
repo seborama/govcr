@@ -2,7 +2,7 @@ package encryption
 
 import (
 	"crypto/rand"
-	"fmt"
+	"encoding/hex"
 	"io"
 
 	"github.com/pkg/errors"
@@ -41,7 +41,7 @@ func validateNonceGenerator(nonceGenerator NonceGenerator) error {
 			return errors.Wrap(err, "nonceGenerator failure")
 		}
 
-		nStr := fmt.Sprintf("%x", n)
+		nStr := hex.EncodeToString(n)
 		if _, ok := nonces[nStr]; ok {
 			return errors.New("nonceGenerator produces frequent duplicates")
 		}

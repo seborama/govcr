@@ -25,7 +25,7 @@ func NewAWS(s3Client *s3.Client) *S3Storage {
 	}
 }
 
-func (f *S3Storage) MkdirAll(path string, perm os.FileMode) error {
+func (f *S3Storage) MkdirAll(_ string, _ os.FileMode) error {
 	// this is a noop in S3
 	return nil
 }
@@ -80,17 +80,18 @@ func (f *S3Storage) NotExist(name string) (bool, error) {
 	return !exists, err
 }
 
-func (f *S3Storage) bucketAndKey(name string) (bucket, key string, err error) {
-	splits := strings.SplitN(name, "/", 3)
-	if len(splits) != 3 {
-		err = errors.Errorf("invalid S3 object name: '%s' - expected format is '/bucket/[folder/.../]file'", name)
-		return
+func (f *S3Storage) bucketAndKey(name string) (string, string, error) {
+	const firstThree = 3 // we only need the beginning of the path to find what we want
+
+	splits := strings.SplitN(name, "/", firstThree)
+	if len(splits) != firstThree {
+		return "", "", errors.Errorf("invalid S3 object name: '%s' - expected format is '/bucket/[folder/.../]file'", name)
 	}
 
-	bucket = splits[1]
-	key = splits[2]
+	bucket := splits[1]
+	key := splits[2]
 
-	return
+	return bucket, key, nil
 }
 
 func (f *S3Storage) exists(ctx context.Context, name string) (bool, error) {

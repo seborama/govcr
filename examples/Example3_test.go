@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/seborama/govcr/v15"
-	"github.com/seborama/govcr/v15/cassette/track"
+	"github.com/seborama/govcr/v16"
+	"github.com/seborama/govcr/v16/cassette/track"
 	"github.com/stretchr/testify/require"
 )
 
@@ -51,7 +51,7 @@ func TestExample3(t *testing.T) {
 	// Run request, we will receive Status Created.
 	txID := uuid.NewString()
 
-	req, err := http.NewRequest(http.MethodGet, ts.URL+"/create", nil)
+	req, err := http.NewRequest(http.MethodGet, ts.URL+"/create", http.NoBody)
 	require.NoError(t, err)
 	req.Header.Set("X-Transaction-Id", txID)
 
@@ -59,9 +59,10 @@ func TestExample3(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, http.StatusCreated, resp.StatusCode)
 	require.Equal(t, txID, resp.Header.Get("X-Transaction-Id"))
+	require.NoError(t, resp.Body.Close())
 
 	// Repeat the request, this time we'll get Status Conflict.
-	req, err = http.NewRequest(http.MethodGet, ts.URL+"/get", nil)
+	req, err = http.NewRequest(http.MethodGet, ts.URL+"/get", http.NoBody)
 	require.NoError(t, err)
 	req.Header.Set("X-Transaction-Id", txID)
 	require.Equal(t, txID, resp.Header.Get("X-Transaction-Id"))
@@ -69,6 +70,7 @@ func TestExample3(t *testing.T) {
 	resp, err = vcr.HTTPClient().Do(req)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.NoError(t, resp.Body.Close())
 }
 
 //

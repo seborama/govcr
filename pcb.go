@@ -3,8 +3,8 @@ package govcr
 import (
 	"net/http"
 
-	"github.com/seborama/govcr/v15/cassette"
-	"github.com/seborama/govcr/v15/cassette/track"
+	"github.com/seborama/govcr/v16/cassette"
+	"github.com/seborama/govcr/v16/cassette/track"
 )
 
 // HTTPMode defines govcr's mode for HTTP requests.
@@ -44,19 +44,21 @@ type PrintedCircuitBoard struct {
 
 func (pcb *PrintedCircuitBoard) SeekTrack(k7 *cassette.Cassette, httpRequest *http.Request) (*track.Track, error) {
 	if pcb.httpMode == HTTPModeLiveOnly {
+		//nolint:nilnil // no track is not an error
 		return nil, nil
 	}
 
 	request := track.ToRequest(httpRequest)
 
 	numberOfTracksInCassette := k7.NumberOfTracks()
-	for trackNumber := int32(0); trackNumber < numberOfTracksInCassette; trackNumber++ {
+	for trackNumber := range numberOfTracksInCassette {
 		if pcb.trackMatches(k7, trackNumber, request) {
 			currentReq := track.ToRequest(httpRequest)
 			return pcb.replayTrack(k7, trackNumber, currentReq)
 		}
 	}
 
+	//nolint:nilnil // no track is not an error
 	return nil, nil
 }
 

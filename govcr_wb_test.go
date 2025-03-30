@@ -12,8 +12,8 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
-	"github.com/seborama/govcr/v15/cassette/track"
-	"github.com/seborama/govcr/v15/stats"
+	"github.com/seborama/govcr/v16/cassette/track"
+	"github.com/seborama/govcr/v16/stats"
 )
 
 type GoVCRWBTestSuite struct {
@@ -33,12 +33,12 @@ func (ts *GoVCRWBTestSuite) SetupTest() {
 		counter := 0
 		ts.testServer = httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Trailer", "trailer_1")
-			w.Header().Set("header_1", "header_1_value")
+			w.Header().Set("Header_1", "header_1_value")
 			w.WriteHeader(http.StatusOK)
 			counter++
 			iQuery := r.URL.Query().Get("i")
 			_, _ = fmt.Fprintf(w, "Hello, server responds '%d' to query '%s'", counter, iQuery)
-			w.Header().Set("trailer_1", "trailer_1_value")
+			w.Header().Set("Trailer_1", "trailer_1_value")
 		}))
 	}()
 
@@ -91,9 +91,6 @@ func (ts *GoVCRWBTestSuite) TestRoundTrip_RequestMatcherDoesNotMutateState() {
 				trackRequest.URL = &url.URL{}
 				trackRequest.Body = nil
 
-				httpRequest = &track.Request{}  //nolint:staticcheck
-				trackRequest = &track.Request{} //nolint:staticcheck
-
 				return outcome
 			},
 		}
@@ -104,7 +101,7 @@ func (ts *GoVCRWBTestSuite) TestRoundTrip_RequestMatcherDoesNotMutateState() {
 	vcr.SetLiveOnlyMode()                         // ensure we record one track so we can have a request matcher execution later (no track on cassette = no request matching)
 	vcr.SetRequestMatchers(reqMatchers(false)...) // false: we want to attempt but not satisfy request matching so to check if the live request was altered
 
-	req, err := http.NewRequest(http.MethodGet, ts.testServer.URL, nil)
+	req, err := http.NewRequest(http.MethodGet, ts.testServer.URL, http.NoBody)
 	ts.Require().NoError(err)
 
 	preRoundTripReq := track.CloneHTTPRequest(req)
@@ -119,17 +116,17 @@ func (ts *GoVCRWBTestSuite) TestRoundTrip_RequestMatcherDoesNotMutateState() {
 		TracksRecorded: 1,
 		TracksPlayed:   0,
 	}
-	ts.Require().EqualValues(expectedStats, vcr.Stats())
+	ts.Require().Equal(expectedStats, vcr.Stats())
 
 	ts.Require().Equal(0, requestMatcherCount) // no track on cassette so no matching attempted by govcr
 
 	postRoundTripReq := track.CloneHTTPRequest(req)
-	ts.Require().EqualValues(preRoundTripReq, postRoundTripReq)
+	ts.Require().Equal(preRoundTripReq, postRoundTripReq)
 
 	// for simplification, we're using our own track.Response
 	// we'll make the assumption that if that's well, the rest ought to be too.
 	vcrResp := track.ToResponse(resp)
-	ts.Assert().Equal("Hello, server responds '1' to query ''", string(vcrResp.Body))
+	ts.Equal("Hello, server responds '1' to query ''", string(vcrResp.Body))
 	vcrResp.Body = nil
 
 	// 2nd call - live
@@ -137,10 +134,10 @@ func (ts *GoVCRWBTestSuite) TestRoundTrip_RequestMatcherDoesNotMutateState() {
 	vcr.SetNormalMode()                           // ensure we attempt request matching
 	vcr.SetRequestMatchers(reqMatchers(false)...) // false: we want to attempt but not satisfy request matching so to check if the live request was altered
 
-	req, err = http.NewRequest(http.MethodGet, ts.testServer.URL, nil)
+	req, err = http.NewRequest(http.MethodGet, ts.testServer.URL, http.NoBody)
 	ts.Require().NoError(err)
 
-	resp2, err := vcr.HTTPClient().Do(req) //nolint:bodyclose
+	resp2, err := vcr.HTTPClient().Do(req)
 	ts.Require().NoError(err)
 	defer func() { _ = resp.Body.Close() }()
 
@@ -150,18 +147,18 @@ func (ts *GoVCRWBTestSuite) TestRoundTrip_RequestMatcherDoesNotMutateState() {
 		TracksRecorded: 1,
 		TracksPlayed:   0,
 	}
-	ts.Require().EqualValues(expectedStats, vcr.Stats())
+	ts.Require().Equal(expectedStats, vcr.Stats())
 
 	ts.Require().Equal(1, requestMatcherCount) // an attempt to match the request should be made (albeit unsuccessful)
 
 	postRoundTripReq = track.CloneHTTPRequest(req)
-	ts.Require().EqualValues(preRoundTripReq, postRoundTripReq)
+	ts.Require().Equal(preRoundTripReq, postRoundTripReq)
 
 	vcrResp2 := track.ToResponse(resp2)
-	ts.Assert().Equal("Hello, server responds '2' to query ''", string(vcrResp2.Body))
+	ts.Equal("Hello, server responds '2' to query ''", string(vcrResp2.Body))
 	vcrResp2.Body = nil
 
-	ts.Require().EqualValues(vcrResp, vcrResp2)
+	ts.Require().Equal(vcrResp, vcrResp2)
 
 	// 3rd call - replayed
 	vcr = ts.newVCR(cassetteName, actionKeepCassette)
@@ -170,7 +167,7 @@ func (ts *GoVCRWBTestSuite) TestRoundTrip_RequestMatcherDoesNotMutateState() {
 	requestMatcherCount = 0
 	vcr.SetRequestMatchers(reqMatchers(true)...) // true: satisfy request matching and force replay from track to ensure no mutation
 
-	req, err = http.NewRequest(http.MethodGet, ts.testServer.URL, nil)
+	req, err = http.NewRequest(http.MethodGet, ts.testServer.URL, http.NoBody)
 	ts.Require().NoError(err)
 
 	resp3, err := vcr.HTTPClient().Do(req)
@@ -183,21 +180,21 @@ func (ts *GoVCRWBTestSuite) TestRoundTrip_RequestMatcherDoesNotMutateState() {
 		TracksRecorded: 0,
 		TracksPlayed:   1,
 	}
-	ts.Require().EqualValues(expectedStats, vcr.Stats())
+	ts.Require().Equal(expectedStats, vcr.Stats())
 
 	ts.Require().Equal(1, requestMatcherCount)
 
 	postRoundTripReq = track.CloneHTTPRequest(req)
-	ts.Require().EqualValues(preRoundTripReq, postRoundTripReq)
+	ts.Require().Equal(preRoundTripReq, postRoundTripReq)
 
 	// for simplification, we're using our own track.Response
 	// we'll make the assumption that if that's well, the rest ought to be too.
 	vcrResp3 := track.ToResponse(resp3)
-	ts.Assert().Equal("Hello, server responds '1' to query ''", string(vcrResp3.Body))
+	ts.Equal("Hello, server responds '1' to query ''", string(vcrResp3.Body))
 	vcrResp3.Body = nil
 
 	vcrResp.TLS, vcrResp3.TLS = nil, nil // TLS will not match fully
-	ts.Require().EqualValues(vcrResp, vcrResp3)
+	ts.Require().Equal(vcrResp, vcrResp3)
 }
 
 func (ts *GoVCRWBTestSuite) TestRoundTrip_WithRecordingAndReplayingMutations() {
@@ -207,14 +204,14 @@ func (ts *GoVCRWBTestSuite) TestRoundTrip_WithRecordingAndReplayingMutations() {
 	vcr := ts.newVCR(cassetteName, actionDeleteCassette)
 	vcr.SetRecordingMutators(trackMutator)
 
-	ts.makeHTTPCalls_WithSuccess(vcr.HTTPClient())
+	ts.makeHTTPCallsWithSuccess(vcr.HTTPClient())
 	expectedStats := &stats.Stats{
 		TotalTracks:    2,
 		TracksLoaded:   0,
 		TracksRecorded: 2,
 		TracksPlayed:   0,
 	}
-	ts.Require().EqualValues(expectedStats, vcr.Stats())
+	ts.Require().Equal(expectedStats, vcr.Stats())
 
 	// load the cassette and verify contents has been mutated.
 	vcr = ts.newVCR(cassetteName, actionKeepCassette)
@@ -223,25 +220,25 @@ func (ts *GoVCRWBTestSuite) TestRoundTrip_WithRecordingAndReplayingMutations() {
 	// note: remember that it usually doesn't make sense to modify the request in the replaying track mutator
 	trackMutatorAgain := track.Mutator(
 		func(trk *track.Track) {
-			trk.Response.Header.Set("TrackRecordingMutatorHeader", "headers have been mutated AGAIN AT PLAYBACK")
+			trk.Response.Header.Set("Trackrecordingmutatorheader", "headers have been mutated AGAIN AT PLAYBACK")
 		})
 	vcr.AddReplayingMutators(trackMutatorAgain)
 
 	tracks := vcr.vcrTransport().cassette.Tracks
 	for n := range tracks {
-		ts.Require().EqualValues("this_query_key_has_been_mutated", tracks[n].Request.URL.Query().Get("mutated_query_key"), "track #%d", n)
-		ts.Require().EqualValues("headers have been mutated", tracks[n].Response.Header.Get("TrackRecordingMutatorHeader"), "track #%d", n)
+		ts.Require().Equal("this_query_key_has_been_mutated", tracks[n].Request.URL.Query().Get("mutated_query_key"), "track #%d", n)
+		ts.Require().Equal("headers have been mutated", tracks[n].Response.Header.Get("Trackrecordingmutatorheader"), "track #%d", n)
 	}
 
 	// 2nd execution of set of calls (replayed)
-	ts.replayHTTPCalls_WithMutations_WithSuccess(vcr.HTTPClient(), "headers have been mutated AGAIN AT PLAYBACK")
+	ts.replayHTTPCallsWithMutationsWithSuccess(vcr.HTTPClient(), "headers have been mutated AGAIN AT PLAYBACK")
 	expectedStats = &stats.Stats{
 		TotalTracks:    2,
 		TracksLoaded:   2,
 		TracksRecorded: 0,
 		TracksPlayed:   2,
 	}
-	ts.EqualValues(expectedStats, vcr.Stats())
+	ts.Equal(expectedStats, vcr.Stats())
 }
 
 func (ts *GoVCRWBTestSuite) TestRoundTrip_SavesAndReplaysMutatedTracksToCassette() {
@@ -251,14 +248,14 @@ func (ts *GoVCRWBTestSuite) TestRoundTrip_SavesAndReplaysMutatedTracksToCassette
 	vcr := ts.newVCR(cassetteName, actionDeleteCassette)
 	vcr.SetRecordingMutators(trackMutator)
 
-	ts.makeHTTPCalls_WithSuccess(vcr.HTTPClient())
+	ts.makeHTTPCallsWithSuccess(vcr.HTTPClient())
 	expectedStats := &stats.Stats{
 		TotalTracks:    2,
 		TracksLoaded:   0,
 		TracksRecorded: 2,
 		TracksPlayed:   0,
 	}
-	ts.Require().EqualValues(expectedStats, vcr.Stats())
+	ts.Require().Equal(expectedStats, vcr.Stats())
 
 	// load the cassette and verify contents has been mutated.
 	vcr = ts.newVCR(cassetteName, actionKeepCassette)
@@ -266,26 +263,26 @@ func (ts *GoVCRWBTestSuite) TestRoundTrip_SavesAndReplaysMutatedTracksToCassette
 
 	tracks := vcr.vcrTransport().cassette.Tracks
 	for n := range tracks {
-		ts.Require().EqualValues("this_query_key_has_been_mutated", tracks[n].Request.URL.Query().Get("mutated_query_key"), "track #%d", n)
-		ts.Require().EqualValues("headers have been mutated", tracks[n].Response.Header.Get("TrackRecordingMutatorHeader"), "track #%d", n)
+		ts.Require().Equal("this_query_key_has_been_mutated", tracks[n].Request.URL.Query().Get("mutated_query_key"), "track #%d", n)
+		ts.Require().Equal("headers have been mutated", tracks[n].Response.Header.Get("Trackrecordingmutatorheader"), "track #%d", n)
 	}
 
 	// 2nd execution of set of calls (replayed)
-	ts.replayHTTPCalls_WithMutations_WithSuccess(vcr.HTTPClient(), "headers have been mutated")
+	ts.replayHTTPCallsWithMutationsWithSuccess(vcr.HTTPClient(), "headers have been mutated")
 	expectedStats = &stats.Stats{
 		TotalTracks:    2,
 		TracksLoaded:   2,
 		TracksRecorded: 0,
 		TracksPlayed:   2,
 	}
-	ts.EqualValues(expectedStats, vcr.Stats())
+	ts.Equal(expectedStats, vcr.Stats())
 }
 
-func (ts *GoVCRWBTestSuite) makeHTTPCalls_WithSuccess(httpClient *http.Client) {
+func (ts *GoVCRWBTestSuite) makeHTTPCallsWithSuccess(httpClient *http.Client) {
 	for i := 1; i <= 2; i++ {
-		req, err := http.NewRequest(http.MethodGet, ts.testServer.URL+fmt.Sprintf("?i=%d", i), nil)
+		req, err := http.NewRequest(http.MethodGet, ts.testServer.URL+fmt.Sprintf("?i=%d", i), http.NoBody)
 		ts.Require().NoError(err)
-		req.Header.Add("header", "value")
+		req.Header.Add("Header", "value")
 		req.SetBasicAuth("not_a_username", "not_a_password")
 
 		resp, err := httpClient.Do(req)
@@ -295,28 +292,28 @@ func (ts *GoVCRWBTestSuite) makeHTTPCalls_WithSuccess(httpClient *http.Client) {
 		bodyBytes, err := io.ReadAll(resp.Body)
 		ts.Require().NoError(err)
 		_ = resp.Body.Close()
-		ts.Assert().Equal(fmt.Sprintf("Hello, server responds '%d' to query '%d'", i, i), string(bodyBytes))
+		ts.Equal(fmt.Sprintf("Hello, server responds '%d' to query '%d'", i, i), string(bodyBytes))
 
-		ts.Assert().Equal("200 OK", resp.Status)
-		ts.Assert().Equal(http.StatusOK, resp.StatusCode)
+		ts.Equal("200 OK", resp.Status)
+		ts.Equal(http.StatusOK, resp.StatusCode)
 
-		ts.Assert().EqualValues("", resp.Header.Get("Content-Length"))
-		ts.Assert().EqualValues(-1, resp.ContentLength)
-		ts.Assert().EqualValues("text/plain; charset=utf-8", resp.Header.Get("Content-Type"))
-		ts.Assert().EqualValues("header_1_value", resp.Header.Get("header_1"))
-		ts.Require().EqualValues("", resp.Header.Get("TrackRecordingMutatorHeader")) // the header is injected, not present in the live traffic
+		ts.Empty(resp.Header.Get("Content-Length"))
+		ts.EqualValues(-1, resp.ContentLength)
+		ts.Equal("text/plain; charset=utf-8", resp.Header.Get("Content-Type"))
+		ts.Equal("header_1_value", resp.Header.Get("Header_1"))
+		ts.Require().Empty(resp.Header.Get("Trackrecordingmutatorheader")) // the header is injected, not present in the live traffic
 
-		ts.Assert().Len(resp.Trailer, 1)
-		ts.Assert().EqualValues("trailer_1_value", resp.Trailer.Get("trailer_1"))
+		ts.Len(resp.Trailer, 1)
+		ts.Equal("trailer_1_value", resp.Trailer.Get("Trailer_1"))
 
-		ts.Assert().NotNil(resp.Request)
-		ts.Assert().NotNil(resp.TLS)
+		ts.NotNil(resp.Request)
+		ts.NotNil(resp.TLS)
 	}
 }
 
-func (ts *GoVCRWBTestSuite) replayHTTPCalls_WithMutations_WithSuccess(httpClient *http.Client, trackRecordingMutatorHeaderValue string) {
+func (ts *GoVCRWBTestSuite) replayHTTPCallsWithMutationsWithSuccess(httpClient *http.Client, trackRecordingMutatorHeaderValue string) {
 	for i := 1; i <= 2; i++ {
-		req, err := http.NewRequest(http.MethodGet, ts.testServer.URL+fmt.Sprintf("?i=%d", i), nil)
+		req, err := http.NewRequest(http.MethodGet, ts.testServer.URL+fmt.Sprintf("?i=%d", i), http.NoBody)
 		ts.Require().NoError(err)
 
 		// update our request in line with the previous recording mutations that took place.
@@ -325,7 +322,7 @@ func (ts *GoVCRWBTestSuite) replayHTTPCalls_WithMutations_WithSuccess(httpClient
 		q.Set("mutated_query_key", "this_query_key_has_been_mutated")
 		req.URL.RawQuery = q.Encode()
 
-		req.Header.Add("header", "value")
+		req.Header.Add("Header", "value")
 		req.SetBasicAuth("not_a_username", "not_a_password")
 
 		resp, err := httpClient.Do(req)
@@ -334,14 +331,14 @@ func (ts *GoVCRWBTestSuite) replayHTTPCalls_WithMutations_WithSuccess(httpClient
 		ts.Require().Equal("200 OK", resp.Status)
 		ts.Require().Equal(http.StatusOK, resp.StatusCode)
 
-		ts.Assert().EqualValues("", resp.Header.Get("Content-Length"))
-		ts.Assert().EqualValues(-1, resp.ContentLength)
-		ts.Assert().EqualValues("text/plain; charset=utf-8", resp.Header.Get("Content-Type"))
-		ts.Assert().EqualValues("header_1_value", resp.Header.Get("header_1"))
-		ts.Require().EqualValues(trackRecordingMutatorHeaderValue, resp.Header.Get("TrackRecordingMutatorHeader"))
+		ts.Empty(resp.Header.Get("Content-Length"))
+		ts.EqualValues(-1, resp.ContentLength)
+		ts.Equal("text/plain; charset=utf-8", resp.Header.Get("Content-Type"))
+		ts.Equal("header_1_value", resp.Header.Get("Header_1"))
+		ts.Require().Equal(trackRecordingMutatorHeaderValue, resp.Header.Get("Trackrecordingmutatorheader"))
 
-		ts.Assert().Len(resp.Trailer, 1)
-		ts.Assert().EqualValues("trailer_1_value", resp.Trailer.Get("trailer_1"))
+		ts.Len(resp.Trailer, 1)
+		ts.Equal("trailer_1_value", resp.Trailer.Get("Trailer_1"))
 
 		bodyBytes, err := io.ReadAll(resp.Body)
 		ts.Require().NoError(err)
@@ -353,12 +350,11 @@ func (ts *GoVCRWBTestSuite) replayHTTPCalls_WithMutations_WithSuccess(httpClient
 	}
 }
 
-var trackMutator = track.Mutator(
-	func(trk *track.Track) {
-		q := trk.Request.URL.Query()
-		q.Set("mutated_query_key", "this_query_key_has_been_mutated")
-		trk.Request.URL.RawQuery = q.Encode()
+func trackMutator(trk *track.Track) {
+	q := trk.Request.URL.Query()
+	q.Set("mutated_query_key", "this_query_key_has_been_mutated")
+	trk.Request.URL.RawQuery = q.Encode()
 
-		trk.Response.Header.Add("TrackRecordingMutatorHeader", "headers have been mutated")
-		trk.Response.Header.Del("Date") // to avoid matching issues
-	})
+	trk.Response.Header.Add("Trackrecordingmutatorheader", "headers have been mutated")
+	trk.Response.Header.Del("Date") // to avoid matching issues
+}

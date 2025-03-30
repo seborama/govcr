@@ -2,7 +2,7 @@ package examples_test
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"os"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -15,7 +15,8 @@ import (
 
 func makeS3ClientWithBucket(bucketName string) (*s3.Client, error) {
 	if err := godotenv.Load("../.envrc"); err != nil {
-		log.Println(".envrc load failed: ", err)
+		// NOTE: this is non-fatal: the environment may already be set correctly.
+		slog.Warn(".envrc load failed: ", slog.String("error", err.Error()))
 	}
 
 	ctx := context.Background()
@@ -23,30 +24,22 @@ func makeS3ClientWithBucket(bucketName string) (*s3.Client, error) {
 	awsEndpoint := os.Getenv("LOCALSTACK_ENDPOINT")
 	awsRegion := os.Getenv("AWS_DEFAULT_REGION")
 
-	var optFns []func(*config.LoadOptions) error
-
-	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
-		if awsEndpoint != "" {
-			return aws.Endpoint{
-				PartitionID:   "aws",
-				URL:           awsEndpoint,
-				SigningRegion: awsRegion,
-			}, nil
-		}
-		// returning EndpointNotFoundError will allow the service to fallback to it's default resolution
-		return aws.Endpoint{}, &aws.EndpointNotFoundError{}
-	})
-	optFns = append(optFns, config.WithEndpointResolverWithOptions(customResolver), config.WithRegion(awsRegion))
-
-	sdkConfig, err := config.LoadDefaultConfig(ctx, optFns...)
+	// Load the default AWS configuration
+	awsCfg, err := config.LoadDefaultConfig(context.TODO(),
+		config.WithRegion(awsRegion),
+	)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		panic("Cannot load the AWS configs: " + err.Error())
 	}
 
+	// Create the S3 client with LocalStack endpoint
 	// Note: "UsePathStyle" REQUIRED for localstack
 	// https://docs.localstack.cloud/user-guide/aws/s3/
 	// https://docs.aws.amazon.com/AmazonS3/latest/userguide/VirtualHosting.html
-	s3Client := s3.NewFromConfig(sdkConfig, func(o *s3.Options) { o.UsePathStyle = true })
+	s3Client := s3.NewFromConfig(awsCfg, func(o *s3.Options) {
+		o.UsePathStyle = true
+		o.BaseEndpoint = aws.String(awsEndpoint)
+	})
 
 	if err = createBucket(ctx, s3Client, awsRegion, bucketName); err != nil {
 		return nil, errors.WithStack(err)

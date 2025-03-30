@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,18 +14,17 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
-	"github.com/seborama/govcr/v15/cassette/track"
-	"github.com/seborama/govcr/v15/compression"
-	cryptoerr "github.com/seborama/govcr/v15/encryption/errors"
-	govcrerr "github.com/seborama/govcr/v15/errors"
-	"github.com/seborama/govcr/v15/fileio"
-	"github.com/seborama/govcr/v15/stats"
+	"github.com/seborama/govcr/v16/cassette/track"
+	"github.com/seborama/govcr/v16/compression"
+	cryptoerr "github.com/seborama/govcr/v16/encryption/errors"
+	govcrerr "github.com/seborama/govcr/v16/errors"
+	"github.com/seborama/govcr/v16/fileio"
+	"github.com/seborama/govcr/v16/stats"
 )
 
 // Cassette contains a set of tracks.
-// nolint:govet
 type Cassette struct {
-	Tracks []track.Track
+	Tracks []track.Track `json:"Tracks"`
 
 	name            string
 	trackSliceMutex sync.RWMutex
@@ -61,7 +60,7 @@ type Option func(*Cassette)
 func WithCrypter(crypter Crypter) Option {
 	return func(k7 *Cassette) {
 		if k7.crypter != nil {
-			log.Println("notice: setting a crypter but another one had already been registered - this is incorrect usage")
+			slog.Info("notice: setting a crypter but another one had already been registered - this is incorrect usage")
 		}
 
 		k7.crypter = crypter
@@ -72,7 +71,7 @@ func WithCrypter(crypter Crypter) Option {
 func WithStore(store FileIO) Option {
 	return func(k7 *Cassette) {
 		if k7.store != nil {
-			log.Println("notice: setting a storer but another one had already been registered - this is incorrect usage")
+			slog.Info("notice: setting a storer but another one had already been registered - this is incorrect usage")
 		}
 
 		k7.store = store
@@ -251,14 +250,15 @@ func (k7 *Cassette) EncryptionFilter(data []byte) ([]byte, error) {
 		return nil, errors.New("nonce is too long, must be 255 max")
 	}
 
-	header := []byte(encryptedCassetteHeaderMarkerV2)
-	header = append(header, byte(kindLen))
-	header = append(header, []byte(k7.crypter.Kind())...)
-	header = append(header, byte(nonceLen))
-	header = append(header, nonce...)
+	// first add header
+	eData := []byte(encryptedCassetteHeaderMarkerV2)
+	eData = append(eData, byte(kindLen))
+	eData = append(eData, []byte(k7.crypter.Kind())...)
+	eData = append(eData, byte(nonceLen))
+	eData = append(eData, nonce...)
 
-	// nolint:gocritic
-	eData := append(header, ciphertext...)
+	// then add cassette data
+	eData = append(eData, ciphertext...)
 
 	return eData, nil
 }

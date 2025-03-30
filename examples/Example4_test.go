@@ -4,9 +4,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/seborama/govcr/v15"
-	"github.com/seborama/govcr/v15/encryption"
-	"github.com/seborama/govcr/v15/stats"
+	"github.com/seborama/govcr/v16"
+	"github.com/seborama/govcr/v16/encryption"
+	"github.com/seborama/govcr/v16/stats"
 	"github.com/stretchr/testify/assert"
 )
 

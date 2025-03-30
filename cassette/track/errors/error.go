@@ -1,9 +1,5 @@
 package trkerr
 
-import (
-	"fmt"
-)
-
 // ErrTransportFailure is an error that indicates a transport failure during the HTTP dialogue.
 type ErrTransportFailure struct {
 	errType string
@@ -19,5 +15,5 @@ func NewErrTransportFailure(errType, errMsg string) *ErrTransportFailure {
 }
 
 func (e ErrTransportFailure) Error() string {
-	return fmt.Sprint(e.errType + ": " + e.errMsg)
+	return e.errType + ": " + e.errMsg
 }

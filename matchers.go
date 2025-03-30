@@ -1,10 +1,11 @@
 package govcr
 
 import (
+	"bytes"
 	"net/http"
 	"net/url"
 
-	"github.com/seborama/govcr/v15/cassette/track"
+	"github.com/seborama/govcr/v16/cassette/track"
 )
 
 // RequestMatcher is a function that performs request comparison.
@@ -62,7 +63,6 @@ func DefaultMethodMatcher(httpRequest, trackRequest *track.Request) bool {
 }
 
 // DefaultURLMatcher is the default implementation of URLMatcher.
-// nolint:gocyclo,gocognit
 func DefaultURLMatcher(httpRequest, trackRequest *track.Request) bool {
 	httpURL := httpRequest.URL
 	if httpURL == nil {
@@ -87,7 +87,7 @@ func DefaultURLMatcher(httpRequest, trackRequest *track.Request) bool {
 
 // DefaultBodyMatcher is the default implementation of BodyMatcher.
 func DefaultBodyMatcher(httpRequest, trackRequest *track.Request) bool {
-	return string(httpRequest.Body) == string(trackRequest.Body)
+	return bytes.Equal(httpRequest.Body, trackRequest.Body)
 }
 
 // DefaultTrailerMatcher is the default implementation of TrailerMatcher.
@@ -95,7 +95,6 @@ func DefaultTrailerMatcher(httpRequest, trackRequest *track.Request) bool {
 	return areHTTPHeadersEqual(httpRequest.Trailer, trackRequest.Trailer)
 }
 
-// nolint:gocyclo,gocognit
 func areHTTPHeadersEqual(httpHeaders1, httpHeaders2 http.Header) bool {
 	if len(httpHeaders1) != len(httpHeaders2) {
 		return false

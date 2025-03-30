@@ -1,9 +1,5 @@
 package errors
 
-import (
-	"fmt"
-)
-
 // ErrGoVCR is an error that indicates a govcr failure.
 type ErrGoVCR struct {
 	message string
@@ -17,5 +13,5 @@ func NewErrGoVCR(message string) *ErrGoVCR {
 }
 
 func (e ErrGoVCR) Error() string {
-	return fmt.Sprint(e.message)
+	return e.message
 }

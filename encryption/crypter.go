@@ -32,13 +32,13 @@ func (c Crypter) Kind() string {
 // Encrypt performs the encryption of the provided plaintext with the key
 // associated with this Crypter and the supplied nonce.
 // The nonce is generated from c.nonceGenerator.
-func (c Crypter) Encrypt(plaintext []byte) (ciphertext, nonce []byte, err error) {
-	nonce, err = c.nonceGenerator.Generate()
+func (c Crypter) Encrypt(plaintext []byte) ([]byte, []byte, error) {
+	nonce, err := c.nonceGenerator.Generate()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	ciphertext = c.aead.Seal(nil, nonce, plaintext, nil)
+	ciphertext := c.aead.Seal(nil, nonce, plaintext, nil)
 
 	return ciphertext, nonce, nil
 }

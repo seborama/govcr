@@ -13,10 +13,11 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/seborama/govcr/v15"
-	"github.com/seborama/govcr/v15/stats"
+	"github.com/seborama/govcr/v16"
+	"github.com/seborama/govcr/v16/stats"
 )
 
 func TestConcurrencySafety(t *testing.T) {
@@ -28,7 +29,7 @@ func TestConcurrencySafety(t *testing.T) {
 		time.Sleep(time.Millisecond * time.Duration(rand.Intn(50)))
 
 		clientNum, err := strconv.ParseInt(r.URL.Query().Get("num"), 0, 8)
-		require.NoError(t, err)
+		assert.NoError(t, err)
 
 		data := generateBinaryBody(int8(clientNum))
 		written, err := w.Write(data)
@@ -77,7 +78,7 @@ func TestConcurrencySafety(t *testing.T) {
 		TracksRecorded: int32(threadMax),
 		TracksPlayed:   0,
 	}
-	require.EqualValues(t, expectedStats, *vcr.Stats())
+	require.Equal(t, expectedStats, *vcr.Stats())
 
 	// re-run request and expect play back from vcr
 	vcr = createVCR(cassetteName, testServerClient)
@@ -111,7 +112,7 @@ func TestConcurrencySafety(t *testing.T) {
 		TracksRecorded: 0,
 		TracksPlayed:   int32(threadMax),
 	}
-	require.EqualValues(t, expectedStats, *vcr.Stats())
+	require.Equal(t, expectedStats, *vcr.Stats())
 }
 
 func createVCR(cassetteName string, client *http.Client) *govcr.ControlPanel {
@@ -129,7 +130,7 @@ func generateBinaryBody(sequence int8) []byte {
 	return data
 }
 
-func validateResponseForTestPlaybackOrder(resp *http.Response, expectedBody interface{}) error {
+func validateResponseForTestPlaybackOrder(resp *http.Response, expectedBody any) error {
 	if resp.StatusCode != http.StatusOK {
 		return errors.Errorf("resp.StatusCode: Expected %d, got %d", http.StatusOK, resp.StatusCode)
 	}

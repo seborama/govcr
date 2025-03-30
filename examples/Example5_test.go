@@ -1,22 +1,22 @@
 package examples_test
 
 import (
-	"log"
+	"log/slog"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/seborama/govcr/v15"
-	"github.com/seborama/govcr/v15/fileio"
-	"github.com/seborama/govcr/v15/stats"
+	"github.com/seborama/govcr/v16"
+	"github.com/seborama/govcr/v16/fileio"
+	"github.com/seborama/govcr/v16/stats"
 )
 
 // TestExample5 is a simple example use of govcr with a AWS S3 cassette storage.
 func TestExample5(t *testing.T) {
 	bucketName := "example5-" + uuid.New().String() // warning: max length: 63 chars
-	log.Println("bucketName:", bucketName)
+	slog.Info("AWS info", slog.String("bucketName:", bucketName))
 	exampleCassetteName5 := "/" + bucketName + "/temp-fixtures/TestExample5.cassette.json"
 
 	s3Client, err := makeS3ClientWithBucket(bucketName)

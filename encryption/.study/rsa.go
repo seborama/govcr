@@ -11,11 +11,12 @@ import (
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh"
 
-	cryptoerr "github.com/seborama/govcr/v15/encryption/errors"
+	cryptoerr "github.com/seborama/govcr/v16/encryption/errors"
 )
 
-// nolint:deadcode
 // TODO: offer ability to supply the key via an environment variable in base64 format.
+//
+//nolint:deadcode
 func readSSHRSAPrivateKeyFile(privKeyFile, passphrase string) (rsaPrivKey *rsa.PrivateKey, sshSigner ssh.Signer, rsaPubKey *rsa.PublicKey, err error) {
 	keyData, err := os.ReadFile(privKeyFile)
 	if err != nil {
@@ -61,8 +62,9 @@ func readSSHRSAPrivateKeyFile(privKeyFile, passphrase string) (rsaPrivKey *rsa.P
 	return rsaPrivKey, sshSigner, rsaPubKey, nil
 }
 
-// nolint:deadcode
 // TODO: offer ability to supply the key via an environment variable in base64 format.
+//
+//nolint:deadcode
 func readSSHRSAPublicKeyFile(pubKeyFile string) (*rsa.PublicKey, error) {
 	keyData, err := os.ReadFile(pubKeyFile)
 	if err != nil {
