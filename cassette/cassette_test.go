@@ -2,6 +2,7 @@ package cassette_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"os"
 	"testing"
 
@@ -47,6 +48,33 @@ func Test_cassette_GzipFilter(t *testing.T) {
 			assert.Equal(t, tc.want, got)
 		})
 	}
+}
+
+func Test_cassette_AddTrackToCassette(t *testing.T) {
+	t.Run("Nested request is discarded", func(t *testing.T) {
+		s := &StoreMock{}
+		k7 := cassette.NewCassette("", cassette.WithStore(s))
+
+		req := &track.Request{}
+		res := &track.Response{}
+		res.Request = req
+
+		tr := track.NewTrack(req, res, nil)
+
+		err := cassette.AddTrackToCassette(k7, tr)
+		require.NoError(t, err)
+
+		if assert.NotNil(t, s.Data) {
+			var got cassette.Cassette
+			err = json.Unmarshal(s.Data, &got)
+			require.NoError(t, err)
+			require.Len(t, got.Tracks, 1)
+
+			// Make sure the request has not made it into the saved cassette attached to the response.
+			assert.NotNil(t, got.Tracks[0].Request)
+			assert.Nil(t, got.Tracks[0].Response.Request)
+		}
+	})
 }
 
 func Test_cassette_IsLongPlay(t *testing.T) {
@@ -214,4 +242,25 @@ func Test_cassette_CanEncryptPlainCassette(t *testing.T) {
 	}
 
 	require.Equal(t, k7.Tracks, k8.Tracks)
+}
+
+type StoreMock struct {
+	Data []byte
+}
+
+func (s *StoreMock) MkdirAll(path string, perm os.FileMode) error {
+	return nil
+}
+
+func (s *StoreMock) ReadFile(name string) ([]byte, error) {
+	return nil, nil
+}
+
+func (s *StoreMock) WriteFile(name string, data []byte, perm os.FileMode) error {
+	s.Data = data
+	return nil
+}
+
+func (s *StoreMock) NotExist(name string) (bool, error) {
+	return false, nil
 }

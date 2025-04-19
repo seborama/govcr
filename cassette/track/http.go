@@ -194,7 +194,7 @@ type Response struct {
 	// such as e.g. a transaction ID, a customer number, etc.
 	// This is solely for informational purpose at replaying time.
 	// Mutating it at replay time typically achieves nothing very useful.
-	Request *Request `json:"Request"`
+	Request *Request `json:"-"`
 }
 
 // ToResponse transcodes an HTTP Response to a track Response.
