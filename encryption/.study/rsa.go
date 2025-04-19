@@ -11,7 +11,7 @@ import (
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh"
 
-	cryptoerr "github.com/seborama/govcr/v16/encryption/errors"
+	cryptoerr "github.com/seborama/govcr/v17/encryption/errors"
 )
 
 // TODO: offer ability to supply the key via an environment variable in base64 format.
