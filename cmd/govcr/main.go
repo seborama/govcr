@@ -7,8 +7,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/seborama/govcr/v16/cassette"
-	"github.com/seborama/govcr/v16/encryption"
+	"github.com/seborama/govcr/v17/cassette"
+	"github.com/seborama/govcr/v17/encryption"
 )
 
 func main() {

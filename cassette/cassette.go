@@ -14,12 +14,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
-	"github.com/seborama/govcr/v16/cassette/track"
-	"github.com/seborama/govcr/v16/compression"
-	cryptoerr "github.com/seborama/govcr/v16/encryption/errors"
-	govcrerr "github.com/seborama/govcr/v16/errors"
-	"github.com/seborama/govcr/v16/fileio"
-	"github.com/seborama/govcr/v16/stats"
+	"github.com/seborama/govcr/v17/cassette/track"
+	"github.com/seborama/govcr/v17/compression"
+	cryptoerr "github.com/seborama/govcr/v17/encryption/errors"
+	govcrerr "github.com/seborama/govcr/v17/errors"
+	"github.com/seborama/govcr/v17/fileio"
+	"github.com/seborama/govcr/v17/stats"
 )
 
 // Cassette contains a set of tracks.
@@ -29,8 +29,10 @@ type Cassette struct {
 	name            string
 	trackSliceMutex sync.RWMutex
 	tracksLoaded    int32
-	crypter         Crypter
-	store           FileIO
+	// crypter provides an encryption abstraction for cassette read/write operations.
+	crypter Crypter
+	// store provides a storage backend abstraction: file system, cloud storage, etc
+	store FileIO
 }
 
 type FileIO interface {

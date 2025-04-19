@@ -16,10 +16,11 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/seborama/govcr/v16"
-	"github.com/seborama/govcr/v16/cassette/track"
-	"github.com/seborama/govcr/v16/encryption"
-	"github.com/seborama/govcr/v16/stats"
+	"github.com/seborama/govcr/v17"
+	"github.com/seborama/govcr/v17/cassette"
+	"github.com/seborama/govcr/v17/cassette/track"
+	"github.com/seborama/govcr/v17/encryption"
+	"github.com/seborama/govcr/v17/stats"
 )
 
 func TestNewVCR(t *testing.T) {
@@ -407,6 +408,73 @@ func (ts *GoVCRTestSuite) TestRoundTrip_ReplaysPlainResponse() {
 		TracksPlayed:   2,
 	}
 	ts.Equal(expectedStats, vcr.Stats())
+}
+
+// This test checks that on recording a new track to an existing cassette, the
+// Response.Request of replayed tracks is not persisted from the replay.
+func TestRecordReplayRecord(t *testing.T) {
+	const k7Name = "temp-fixtures/TestRecordReplayRecord.cassette.json"
+
+	_ = os.Remove(k7Name)
+
+	vcr := govcr.NewVCR(
+		govcr.NewCassetteLoader(k7Name),
+		govcr.WithRequestMatchers(govcr.NewMethodURLRequestMatchers()...), // use a "relaxed" request matcher
+	)
+
+	// The first request will be live and transparently recorded by govcr since the cassette is empty
+	vcr.HTTPClient().Get("http://example.com/foo")
+	assert.Equal(
+		t,
+		&stats.Stats{
+			TotalTracks:    1,
+			TracksLoaded:   0,
+			TracksRecorded: 1,
+			TracksPlayed:   0,
+		},
+		vcr.Stats(),
+	)
+	k789 := cassette.LoadCassette(k7Name)
+	assert.Len(t, k789.Tracks, 1)
+	assert.Nil(t, k789.Tracks[0].Response.Request, "the Response.Request is not nil")
+
+	// The second request will be transparently replayed from the cassette by govcr
+	// No live HTTP request is placed to the live server.
+	vcr = govcr.NewVCR(
+		govcr.NewCassetteLoader(k7Name),
+		govcr.WithRequestMatchers(govcr.NewMethodURLRequestMatchers()...), // use a "relaxed" request matcher
+	)
+
+	vcr.HTTPClient().Get("http://example.com/foo")
+	assert.Equal(
+		t,
+		&stats.Stats{
+			TotalTracks:    1,
+			TracksLoaded:   1,
+			TracksRecorded: 0,
+			TracksPlayed:   1,
+		},
+		vcr.Stats(),
+	)
+
+	// The third request will be live and transparently recorded by govcr since no existing
+	// track on the cassette will match.
+	vcr.HTTPClient().Get("http://example.com/foo/bar")
+	assert.Equal(
+		t,
+		&stats.Stats{
+			TotalTracks:    2,
+			TracksLoaded:   1,
+			TracksRecorded: 1,
+			TracksPlayed:   1,
+		},
+		vcr.Stats(),
+	)
+
+	// Verify the 1st cassette track has not recorded Response.Request from the track replay.
+	k7 := cassette.LoadCassette(k7Name)
+	assert.Len(t, k7.Tracks, 2)
+	assert.Nil(t, k7.Tracks[0].Response.Request)
 }
 
 func (ts *GoVCRTestSuite) makeHTTPCallsWithSuccess(httpClient *http.Client, serverCurrentCount int) {

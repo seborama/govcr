@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/seborama/govcr/v16"
-	"github.com/seborama/govcr/v16/cassette/track"
+	"github.com/seborama/govcr/v17"
+	"github.com/seborama/govcr/v17/cassette/track"
 	"github.com/stretchr/testify/require"
 )
 

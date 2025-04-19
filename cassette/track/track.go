@@ -10,7 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	trkerr "github.com/seborama/govcr/v16/cassette/track/errors"
+	trkerr "github.com/seborama/govcr/v17/cassette/track/errors"
 )
 
 // Track is a recording (HTTP Request + Response) in a cassette.

@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	"github.com/seborama/govcr/v16/fileio"
+	"github.com/seborama/govcr/v17/fileio"
 )
 
 func TestS3Client(t *testing.T) {
