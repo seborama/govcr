@@ -29,8 +29,10 @@ type Cassette struct {
 	name            string
 	trackSliceMutex sync.RWMutex
 	tracksLoaded    int32
-	crypter         Crypter
-	store           FileIO
+	// crypter provides an encryption abstraction for cassette read/write operations.
+	crypter Crypter
+	// store provides a storage backend abstraction: file system, cloud storage, etc
+	store FileIO
 }
 
 type FileIO interface {

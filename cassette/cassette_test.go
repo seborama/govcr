@@ -248,19 +248,19 @@ type StoreMock struct {
 	Data []byte
 }
 
-func (s *StoreMock) MkdirAll(path string, perm os.FileMode) error {
+func (s *StoreMock) MkdirAll(_ string, _ os.FileMode) error {
 	return nil
 }
 
-func (s *StoreMock) ReadFile(name string) ([]byte, error) {
+func (s *StoreMock) ReadFile(_ string) ([]byte, error) {
 	return nil, nil
 }
 
-func (s *StoreMock) WriteFile(name string, data []byte, perm os.FileMode) error {
+func (s *StoreMock) WriteFile(_ string, data []byte, _ os.FileMode) error {
 	s.Data = data
 	return nil
 }
 
-func (s *StoreMock) NotExist(name string) (bool, error) {
+func (s *StoreMock) NotExist(_ string) (bool, error) {
 	return false, nil
 }
