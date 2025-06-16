@@ -21,7 +21,7 @@ test: deps cover
 	go test -timeout 120s $(GORACE) -count 1 -parallel 2 ./...
 
 lint: deps
-	./golangci-lint.sh || :
+	sh ./golangci-lint.sh || :
 
 bin: deps
 	go build -o bin/govcr ./cmd/govcr/...
