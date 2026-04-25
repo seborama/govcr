@@ -252,7 +252,7 @@ func cloneTLS(tlsCS *tls.ConnectionState) *tls.ConnectionState {
 		var certSliceClone []*x509.Certificate
 
 		if err := copier.Copy(&certSliceClone, certSlice); err != nil {
-			slog.Error("failed to deep copy tlsCS.VerifiedChains", slog.Any("error", err.Error()))
+			slog.Error("failed to deep copy tlsCS.VerifiedChains", slog.Any("error", err))
 
 			verifiedChainsClone = tlsCS.VerifiedChains
 
@@ -305,12 +305,12 @@ func cloneHTTPRequestBody(httpRequest *http.Request) []byte {
 
 		httpBodyClone, err = io.ReadAll(httpRequest.Body)
 		if err != nil {
-			slog.Error("cloneHTTPRequestBody - httpBodyClone", slog.String("error", err.Error()))
+			slog.Error("cloneHTTPRequestBody - httpBodyClone", slog.Any("error", err))
 		}
 
 		err = httpRequest.Body.Close()
 		if err != nil {
-			slog.Error("cloneHTTPRequestBody - httpRequest.Body.Close", slog.String("error", err.Error()))
+			slog.Error("cloneHTTPRequestBody - httpRequest.Body.Close", slog.Any("error", err))
 		}
 
 		httpRequest.Body = io.NopCloser(bytes.NewBuffer(httpBodyClone))
@@ -418,7 +418,7 @@ func CloneHTTPRequest(httpRequest *http.Request) *http.Request {
 	var responseClone *http.Response
 	if httpRequest.Response != nil {
 		if err := copier.Copy(&responseClone, httpRequest.Response); err != nil {
-			slog.Info("cannot deep copy httpRequest.Response", slog.String("error", err.Error()))
+			slog.Info("cannot deep copy httpRequest.Response", slog.Any("error", err))
 
 			responseClone = httpRequest.Response // TODO: if ever creating a cloneHTTPResponse() function, use it!
 		}

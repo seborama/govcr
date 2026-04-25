@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/aws/smithy-go"
@@ -61,15 +60,10 @@ func (f *S3Storage) WriteFile(name string, data []byte, _ os.FileMode) error {
 		return err
 	}
 
-	largeBuffer := bytes.NewReader(data)
-	const partSize int64 = 10 * 1024 * 1024
-	uploader := manager.NewUploader(f.s3Client, func(u *manager.Uploader) {
-		u.PartSize = partSize
-	})
-	_, err = uploader.Upload(context.TODO(), &s3.PutObjectInput{
+	_, err = f.s3Client.PutObject(context.TODO(), &s3.PutObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
-		Body:   largeBuffer,
+		Body:   bytes.NewReader(data),
 	})
 
 	return errors.WithStack(err)
