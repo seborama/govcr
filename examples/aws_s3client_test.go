@@ -21,7 +21,7 @@ func makeS3ClientWithBucket(bucketName string) (*s3.Client, error) {
 
 	ctx := context.Background()
 
-	awsEndpoint := os.Getenv("LOCALSTACK_ENDPOINT")
+	awsEndpoint := os.Getenv("AWS_ENDPOINT_URL")
 	awsRegion := os.Getenv("AWS_DEFAULT_REGION")
 
 	// Load the default AWS configuration
@@ -32,9 +32,7 @@ func makeS3ClientWithBucket(bucketName string) (*s3.Client, error) {
 		panic("Cannot load the AWS configs: " + err.Error())
 	}
 
-	// Create the S3 client with LocalStack endpoint
-	// Note: "UsePathStyle" REQUIRED for localstack
-	// https://docs.localstack.cloud/user-guide/aws/s3/
+	// UsePathStyle is required for local S3 emulators on localhost.
 	// https://docs.aws.amazon.com/AmazonS3/latest/userguide/VirtualHosting.html
 	s3Client := s3.NewFromConfig(awsCfg, func(o *s3.Options) {
 		o.UsePathStyle = true
