@@ -583,9 +583,14 @@ To access the stats, call `vcr.Stats()` where vcr is the `ControlPanel` instance
 
 ## Run the tests
 
-For the S3 tests, install and configure [localstack](https://www.localstack.cloud/) or use your own AWS credentials.
+For the S3 tests, install and configure [MiniStack](https://ministack.org/) or use your own AWS credentials.
 
 ```bash
+docker compose up -d
+export AWS_ENDPOINT_URL=http://localhost:4566
+export AWS_DEFAULT_REGION=eu-west-1
+export AWS_ACCESS_KEY_ID=test
+export AWS_SECRET_ACCESS_KEY=test
 make test
 ```
 

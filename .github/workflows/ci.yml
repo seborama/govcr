@@ -25,27 +25,37 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - name: Start LocalStack
+      - name: Start MiniStack
         run: |
-          pip install localstack awscli-local[ver1] # install LocalStack cli and awslocal
-          docker pull localstack/localstack         # Make sure to pull the latest version of the image
-          localstack start -d                       # Start LocalStack in the background
+          docker run -d \
+            --name ministack \
+            -p 4566:4566 \
+            -e LOG_LEVEL=WARNING \
+            ministackorg/ministack:1.3.9
 
-          echo "Waiting for LocalStack startup..."  # Wait 30 seconds for the LocalStack container
-          localstack wait -t 30                     # to become ready before timing out
-          echo "Startup complete"
+          echo "Waiting for MiniStack startup..."
+          for i in {1..30}; do
+            if curl -fsS http://localhost:4566/_ministack/health >/dev/null; then
+              echo "Startup complete"
+              exit 0
+            fi
+            sleep 1
+          done
+
+          docker logs ministack
+          exit 1
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '^1.23'
+          go-version: '^1.25'
 
       - name: Test
         run: make test
         env:
-          LOCALSTACK_ENDPOINT: http://localhost:4566
+          AWS_ENDPOINT_URL: http://localhost:4566
           AWS_DEFAULT_REGION: eu-west-1
           AWS_ACCESS_KEY_ID: test
           AWS_SECRET_ACCESS_KEY: test
