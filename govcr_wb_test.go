@@ -72,6 +72,90 @@ func (ts *GoVCRWBTestSuite) newVCR(cassetteName string, a action) *ControlPanel 
 	)
 }
 
+func (ts *GoVCRWBTestSuite) TestRoundTrip_PreservesURLUserinfo() {
+	const username = "us@er%李"
+	const password = "p:as/s%w@密"
+	liveCalls := make(chan struct{}, 2)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		liveCalls <- struct{}{}
+		_, _ = io.WriteString(w, "recorded response")
+	}))
+	defer server.Close()
+
+	req, err := http.NewRequest(http.MethodGet, server.URL, http.NoBody)
+	ts.Require().NoError(err)
+	req.URL.User = url.UserPassword(username, password)
+	originalURL := *req.URL
+	redactedURL := originalURL
+	redactedURL.User = nil
+
+	assertURL := func(u *url.URL) {
+		ts.Require().NotNil(u)
+		ts.Require().NotNil(u.User)
+		ts.Equal(originalURL.String(), u.String())
+		ts.Equal(username, u.User.Username())
+		gotPassword, passwordSet := u.User.Password()
+		ts.Equal(password, gotPassword)
+		ts.True(passwordSet)
+	}
+
+	recordingCalls, matcherCalls, replayingCalls := 0, 0, 0
+	cassetteName := ts.T().TempDir() + "/userinfo.cassette.json"
+	vcr := NewVCR(
+		NewCassetteLoader(cassetteName),
+		WithClient(server.Client()),
+		WithTrackRecordingMutators(func(trk *track.Track) {
+			recordingCalls++
+			assertURL(trk.Request.URL)
+			trk.Request.URL.User = nil
+		}),
+	)
+
+	for _, offline := range []bool{false, true} {
+		wantResponseURL := &originalURL
+		if offline {
+			vcr = NewVCR(
+				NewCassetteLoader(cassetteName),
+				WithClient(server.Client()),
+				WithOfflineMode(),
+				WithRequestMatchers(func(httpRequest, trackRequest *track.Request) bool {
+					matcherCalls++
+					assertURL(httpRequest.URL)
+					ts.Equal(&redactedURL, trackRequest.URL)
+					httpRequest.URL.User = nil
+					return NewStrictRequestMatchers().Match(httpRequest, trackRequest)
+				}),
+				WithTrackReplayingMutators(func(trk *track.Track) {
+					replayingCalls++
+					ts.Require().NotNil(trk.Response.Request)
+					assertURL(trk.Response.Request.URL)
+				}),
+			)
+			wantResponseURL = &redactedURL
+		}
+		resp, requestErr := vcr.HTTPClient().Do(req)
+		ts.Require().NoError(requestErr)
+		body, readErr := io.ReadAll(resp.Body)
+		ts.Require().NoError(readErr)
+		ts.Require().NoError(resp.Body.Close())
+		ts.Equal("recorded response", string(body))
+		ts.Require().NotNil(resp.Request)
+		ts.Equal(wantResponseURL, resp.Request.URL)
+		ts.Equal(&originalURL, req.URL)
+	}
+
+	ts.Equal(1, recordingCalls)
+	ts.Equal(1, matcherCalls)
+	ts.Equal(1, replayingCalls)
+	ts.Len(liveCalls, 1)
+	ts.Equal(&stats.Stats{
+		TotalTracks:    1,
+		TracksLoaded:   1,
+		TracksRecorded: 0,
+		TracksPlayed:   1,
+	}, vcr.Stats())
+}
+
 func (ts *GoVCRWBTestSuite) TestRoundTrip_RequestMatcherDoesNotMutateState() {
 	const cassetteName = "temp-fixtures/TestRoundTrip_RequestMatcherDoesNotMutateState.cassette.json"
 

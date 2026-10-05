@@ -3,6 +3,7 @@ package track_test
 import (
 	"encoding/json"
 	"mime/multipart"
+	"net/http"
 	"net/url"
 	"testing"
 
@@ -145,6 +146,67 @@ func TestRequest_Clone(t *testing.T) {
 			reqJSON2, err := json.MarshalIndent(tc.req, "", "  ")
 			require.NoError(t, err)
 			assert.JSONEq(t, string(reqJSON), string(reqJSON2))
+		})
+	}
+}
+
+func TestRequestURLUserinfo(t *testing.T) {
+	tests := map[string]*url.Userinfo{
+		"no userinfo":       nil,
+		"username only":     url.User("reader"),
+		"empty username":    url.User(""),
+		"empty password":    url.UserPassword("reader", ""),
+		"plain password":    url.UserPassword("reader", "secret"),
+		"reserved username": url.User("reader:@/% name"),
+		"reserved password": url.UserPassword("reader", "p:@/% word"),
+		"unicode":           url.UserPassword("lecteuré", "秘密"),
+		"literal escapes":   url.UserPassword("reader%40", "p%3Ass"),
+	}
+
+	cloners := map[string]func(*url.URL) *url.URL{
+		"ToRequest": func(requestURL *url.URL) *url.URL {
+			return track.ToRequest(&http.Request{URL: requestURL}).URL
+		},
+		"Request.Clone": func(requestURL *url.URL) *url.URL {
+			return (&track.Request{URL: requestURL}).Clone().URL
+		},
+		"CloneHTTPRequest": func(requestURL *url.URL) *url.URL {
+			return track.CloneHTTPRequest(&http.Request{URL: requestURL}).URL
+		},
+	}
+
+	for name, clone := range cloners {
+		t.Run(name, func(t *testing.T) {
+			t.Run("nil URL", func(t *testing.T) {
+				assert.Nil(t, clone(nil))
+			})
+
+			for testName, user := range tests {
+				t.Run(testName, func(t *testing.T) {
+					original := &url.URL{
+						Scheme: "https",
+						User:   user,
+						Host:   "example.com",
+						Path:   "/recorded",
+					}
+					wantURL := original.String()
+					wantPassword, wantHasPassword := user.Password()
+
+					cloned := clone(original)
+					require.NotNil(t, cloned)
+					assert.NotSame(t, original, cloned)
+					assert.Equal(t, wantURL, cloned.String())
+					assert.Equal(t, user == nil, cloned.User == nil)
+					assert.Equal(t, user.Username(), cloned.User.Username())
+					password, hasPassword := cloned.User.Password()
+					assert.Equal(t, wantPassword, password)
+					assert.Equal(t, wantHasPassword, hasPassword)
+					assert.Equal(t, wantURL, clone(cloned).String())
+					assert.Equal(t, wantURL, original.String())
+					cloned.Host = "clone.example.com"
+					assert.Equal(t, "example.com", original.Host)
+				})
+			}
 		})
 	}
 }

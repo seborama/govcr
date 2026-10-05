@@ -228,6 +228,10 @@ While a track replaying mutator could change the request, it serves no purpose s
 
 The **track replaying mutator** additionally receives an informational copy of the current HTTP request in the track's `Response` under the `Request` field i.e. `Track.Response.Request`. This is useful for tailoring track replays with current request information. See TestExample3 for illustration.
 
+Request matchers and track mutators receive cloned URLs with the original decoded username and password.
+For example, `url.UserPassword("user@host", "p%ss")` keeps those values after cloning, including repeated clones.
+An absent password remains distinct from an empty password.
+
 Refer to the tests for examples (search for `WithTrackRecordingMutators` and `WithTrackReplayingMutators`).
 
 [(toc)](#table-of-content)

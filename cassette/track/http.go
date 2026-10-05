@@ -9,7 +9,6 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/url"
-	"strings"
 
 	"github.com/jinzhu/copier"
 )
@@ -366,11 +365,10 @@ func cloneURL(aURL *url.URL) *url.URL {
 	var user *url.Userinfo
 
 	if aURL.User != nil {
-		userPassword := strings.SplitN(aURL.User.String(), ":", 2)
-		if len(userPassword) == 1 {
-			user = url.User(userPassword[0])
+		if password, hasPassword := aURL.User.Password(); hasPassword {
+			user = url.UserPassword(aURL.User.Username(), password)
 		} else {
-			user = url.UserPassword(userPassword[0], userPassword[1])
+			user = url.User(aURL.User.Username())
 		}
 	}
 
